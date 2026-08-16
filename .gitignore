@@ -1,0 +1,18 @@
+# Binaries
+/bin/
+*.exe
+*.exe~
+
+# SQLite job store
+*.db
+*.db-shm
+*.db-wal
+
+# Local env / secrets
+.env
+.env.*
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
