@@ -73,6 +73,11 @@ community, including non-technical end users who only ever interact with it thro
   `internal/core/domain`) as consistent as reasonably possible across providers, so the eventual port
   unification is easier.
 - First provider to implement: **Parspack**. Later: ArvanCloud (ابرآروان), Liara.
+- **DNS is not a standalone product for Parspack (confirmed, and also true for ArvanCloud):** DNS records are
+  managed *inside* the CDN zone/domain configuration, not through a separate DNS API. Do not design a
+  standalone `ports.ParspackDNS`-style port — DNS record operations belong on the same `ParspackProvider` CDN
+  capability, scoped to a CDN zone. See the CDN-related issues (`area:parspack`, CDN) for the confirmed shape
+  once documented.
 
 ### 4.2 Authentication (two distinct, unrelated auth layers — do not conflate them)
 
@@ -182,3 +187,31 @@ internal/auth/                 Bearer token middleware, sits in front of the mcp
 - **Integration with other existing systems** (e.g. an existing agent/software-factory system): not decided.
   This project should remain a clean, independently usable subsystem exposed via the standard MCP protocol —
   do not add ad hoc coupling to any other system.
+
+## 9. Working from GitHub Issues
+
+Phase-1 work is tracked entirely as GitHub Issues on this repo (`javadib/do0ps`), not as a separate task list
+anywhere else. Every issue carries three kinds of labels:
+
+- `phase-1` — always present for phase-1 scope.
+- `area:*` — which part of the system it touches (`area:core`, `area:sqlite`, `area:queue`, `area:auth`,
+  `area:mcp`, `area:parspack`, `area:infra`, `area:docs`, `area:research`).
+- `status:*` — current pickup state:
+    - `status:ready` — available, no unmet dependencies, safe to start.
+    - `status:in-progress` — an agent is already working on it. **Do not start work on an issue in this
+      state**, even if it looks unassigned — this is the mechanism that prevents two agents from doing the same
+      work twice out of a shared queue.
+    - `status:blocked` — has an explicit unmet dependency (stated in the issue body). Do not start until the
+      blocking issue is closed.
+
+**Before writing any code against an issue:** change its label from `status:ready` to `status:in-progress`
+first. This is a hard rule, not a suggestion — it's the only thing standing between this repo and duplicate
+work when multiple agents pull from the open-issue queue concurrently.
+
+Issue bodies reference dependencies by number (e.g. "Depends on #4"). Treat that as a hard prerequisite — read
+the referenced issue and confirm it's actually closed/merged before starting, don't assume the numbering implies
+it's done.
+
+When an issue is complete (PR merged, acceptance criteria met), close it. If a PR doesn't fully close an issue,
+leave `status:in-progress` and note in a comment what's left, rather than silently reopening the pickup queue to
+other agents mid-work.
