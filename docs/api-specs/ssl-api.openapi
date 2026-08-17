@@ -1,0 +1,3257 @@
+openapi: 3.0.3
+info:
+  title: 'sslpanel API Documentation'
+  description: ''
+  version: 1.0.0
+servers:
+  -
+    url: 'https://my.parspack.com/sslv2'
+tags:
+  -
+    name: 'General Information'
+    description: ''
+  -
+    name: 'SSL Certificate Management'
+    description: ''
+  -
+    name: 'SSL Order Processing'
+    description: ''
+  -
+    name: 'SSL Orders'
+    description: ''
+components:
+  securitySchemes:
+    default:
+      type: http
+      scheme: bearer
+      description: 'You can retrieve your API token from your account dashboard. Include it in the Authorization header as a Bearer token.'
+security:
+  -
+    default: []
+paths:
+  /api/public/v1/products:
+    get:
+      summary: 'Get Available SSL Products'
+      operationId: getAvailableSSLProducts
+      description: "<aside class=\"notice\">Retrieve list of available SSL certificate products</aside>\nThis endpoint returns all SSL certificate products available for your reseller account, including pricing information for different billing cycles.\n\nUse this endpoint to:\n- Display product catalog to your customers\n- Get product IDs and slugs for creating orders\n- Show pricing for different billing periods\n- Filter products by type (DV, OV, EV, Code Signing)\n\n<aside class=\"info\">Product Types</aside>\n- **DV (Domain Validated)**: Basic validation, issued within minutes\n- **OV (Organization Validated)**: Business validation required, 1-3 days\n- **EV (Extended Validation)**: Highest validation, shows green bar, 1-5 days\n- **Code Signing**: For software developers to sign code\n\n<aside class=\"success\">Product Features</aside>\n- **Wildcard**: Secures unlimited subdomains (*.example.com)\n- **Multi-domain**: Secures multiple different domains (SANs)\n- **Single domain**: Secures one domain with optional www\n\n<aside class=\"warning\">Important Notes</aside>\n- Only active and available products are returned\n- Use the `slug` field when creating orders (not the `id`)\n- Check `is_available` field before allowing orders"
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Products retrieved successfully'
+                    type: object
+                    example:
+                      message: success
+                      code: 200
+                      data:
+                        -
+                          id: 1
+                          title: 'DV SSL Certificate'
+                          slug: dv-ssl
+                          description: 'Domain Validated SSL Certificate - Fast issuance'
+                          product_group: dv
+                          wildcard: 0
+                          multi_domain: 0
+                          prices:
+                            annually:
+                              cycle: annually
+                              price: 49.99
+                              setup_fee: 0
+                              currency: USD
+                          type: ssl
+                          is_available: true
+                        -
+                          id: 2
+                          title: 'Wildcard SSL Certificate'
+                          slug: wildcard-ssl
+                          description: 'Secures unlimited subdomains'
+                          product_group: dv
+                          wildcard: 1
+                          multi_domain: 0
+                          prices:
+                            annually:
+                              cycle: annually
+                              price: 149.99
+                              setup_fee: 0
+                              currency: USD
+                          type: ssl
+                          is_available: true
+                      status: true
+                    properties:
+                      message:
+                        type: string
+                        example: success
+                        description: 'Success message'
+                        enum: []
+                      code:
+                        type: integer
+                        example: 200
+                        description: 'HTTP status code'
+                        enum: []
+                      data:
+                        type: array
+                        example:
+                          -
+                            id: 1
+                            title: 'DV SSL Certificate'
+                            slug: dv-ssl
+                            description: 'Domain Validated SSL Certificate - Fast issuance'
+                            product_group: dv
+                            wildcard: 0
+                            multi_domain: 0
+                            prices:
+                              annually:
+                                cycle: annually
+                                price: 49.99
+                                setup_fee: 0
+                                currency: USD
+                            type: ssl
+                            is_available: true
+                          -
+                            id: 2
+                            title: 'Wildcard SSL Certificate'
+                            slug: wildcard-ssl
+                            description: 'Secures unlimited subdomains'
+                            product_group: dv
+                            wildcard: 1
+                            multi_domain: 0
+                            prices:
+                              annually:
+                                cycle: annually
+                                price: 149.99
+                                setup_fee: 0
+                                currency: USD
+                            type: ssl
+                            is_available: true
+                        description: 'Array of product objects'
+                        enum: []
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            title:
+                              type: string
+                              example: 'DV SSL Certificate'
+                            slug:
+                              type: string
+                              example: dv-ssl
+                            description:
+                              type: string
+                              example: 'Domain Validated SSL Certificate - Fast issuance'
+                            product_group:
+                              type: string
+                              example: dv
+                            wildcard:
+                              type: integer
+                              example: 0
+                            multi_domain:
+                              type: integer
+                              example: 0
+                            prices:
+                              type: object
+                              properties:
+                                annually:
+                                  type: object
+                                  properties:
+                                    cycle:
+                                      type: string
+                                      example: annually
+                                    price:
+                                      type: number
+                                      example: 49.99
+                                    setup_fee:
+                                      type: integer
+                                      example: 0
+                                    currency:
+                                      type: string
+                                      example: USD
+                            type:
+                              type: string
+                              example: ssl
+                            is_available:
+                              type: boolean
+                              example: true
+                      status:
+                        type: boolean
+                        example: true
+                        description: 'Operation success status'
+                        enum: []
+                    required:
+                      - message
+                      - code
+                      - data
+                      - status
+                  -
+                    description: 'No products found'
+                    type: object
+                    example:
+                      message: 'No products available'
+                      code: 200
+                      data: []
+                      status: true
+                    properties:
+                      message:
+                        type: string
+                        example: 'No products available'
+                        description: 'Success message'
+                        enum: []
+                      code:
+                        type: integer
+                        example: 200
+                        description: 'HTTP status code'
+                        enum: []
+                      data:
+                        type: array
+                        example: []
+                        description: 'Array of product objects'
+                        enum: []
+                      status:
+                        type: boolean
+                        example: true
+                        description: 'Operation success status'
+                        enum: []
+                    required:
+                      - message
+                      - code
+                      - data
+                      - status
+        401:
+          description: 'Authentication Required'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                  code: 401
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 401
+                    description: 'HTTP status code'
+                    enum: []
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+      tags:
+        - 'General Information'
+  /api/public/v1/countries:
+    get:
+      summary: 'Get Countries List'
+      operationId: getCountriesList
+      description: "<aside class=\"notice\">Retrieve list of countries for SSL certificate orders</aside>\nThis endpoint returns a paginated list of countries that are supported for SSL certificate issuance. Use this list when collecting contact information for certificate orders.\n\n<aside class=\"info\">When to Use</aside>\n- When you need to fill country code in process request\n- To validate country codes before submitting contact details\n- To get country phone codes for contact information\n\n<aside class=\"success\">Response Includes</aside>\n- Country ID (for state lookup)\n- Country name in English\n- ISO2 code (2-letter country code used in order forms)\n- Native name (country name in local language)\n- Phone code (with + prefix)\n\n<aside class=\"warning\">Important</aside>\n- Use the `iso2` field when submitting contact details for orders\n- Only countries accepted by SSL providers are included\n- Results are cached for performance"
+      parameters:
+        -
+          in: query
+          name: name
+          description: 'Filter countries by name (partial match, case-insensitive)'
+          example: United
+          required: false
+          schema:
+            type: string
+            description: 'Filter countries by name (partial match, case-insensitive)'
+            example: United
+            nullable: false
+        -
+          in: query
+          name: per_page
+          description: 'Number of items per page (max: 500)'
+          example: 50
+          required: false
+          schema:
+            type: integer
+            description: 'Number of items per page (max: 500)'
+            example: 50
+            nullable: false
+        -
+          in: query
+          name: page
+          description: 'Page number for pagination'
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 'Page number for pagination'
+            example: 1
+            nullable: false
+      responses:
+        200:
+          description: 'Countries retrieved successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: success
+                  code: 200
+                  response_code: success_code
+                  data:
+                    current_page: 1
+                    data:
+                      -
+                        country_id: 231
+                        name: 'United States'
+                        iso2: US
+                        native: 'United States'
+                        phone_code: '+1'
+                      -
+                        country_id: 232
+                        name: 'United Kingdom'
+                        iso2: GB
+                        native: 'United Kingdom'
+                        phone_code: '+44'
+                      -
+                        country_id: 101
+                        name: Iran
+                        iso2: IR
+                        native: ایران
+                        phone_code: '+98'
+                    first_page_url: 'https://my.parspack.com/sslv2/v1/general/countries?page=1'
+                    from: 1
+                    last_page: 5
+                    last_page_url: 'https://my.parspack.com/sslv2/v1/general/countries?page=5'
+                    links:
+                      -
+                        url: null
+                        label: '&laquo; Previous'
+                        active: false
+                      -
+                        url: 'https://my.parspack.com/sslv2/v1/general/countries?page=1'
+                        label: '1'
+                        active: true
+                      -
+                        url: 'https://my.parspack.com/sslv2/v1/general/countries?page=2'
+                        label: '2'
+                        active: false
+                    next_page_url: 'https://my.parspack.com/sslv2/v1/general/countries?page=2'
+                    path: 'https://my.parspack.com/sslv2/v1/general/countries'
+                    per_page: 50
+                    prev_page_url: null
+                    to: 50
+                    total: 249
+                  status: true
+                properties:
+                  message:
+                    type: string
+                    example: success
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 200
+                    description: 'HTTP status code'
+                    enum: []
+                  response_code:
+                    type: string
+                    example: success_code
+                    description: 'Application-level response code'
+                    enum: []
+                  data:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        example: 1
+                        description: 'Current page number'
+                        enum: []
+                      data:
+                        type: array
+                        example:
+                          -
+                            country_id: 231
+                            name: 'United States'
+                            iso2: US
+                            native: 'United States'
+                            phone_code: '+1'
+                          -
+                            country_id: 232
+                            name: 'United Kingdom'
+                            iso2: GB
+                            native: 'United Kingdom'
+                            phone_code: '+44'
+                          -
+                            country_id: 101
+                            name: Iran
+                            iso2: IR
+                            native: ایران
+                            phone_code: '+98'
+                        description: 'Array of country objects'
+                        enum: []
+                        items:
+                          type: object
+                          properties:
+                            country_id:
+                              type: integer
+                              example: 231
+                            name:
+                              type: string
+                              example: 'United States'
+                            iso2:
+                              type: string
+                              example: US
+                            native:
+                              type: string
+                              example: 'United States'
+                            phone_code:
+                              type: string
+                              example: '+1'
+                      first_page_url:
+                        type: string
+                        example: 'https://my.parspack.com/sslv2/v1/general/countries?page=1'
+                      from:
+                        type: integer
+                        example: 1
+                      last_page:
+                        type: integer
+                        example: 5
+                        description: 'Last page number'
+                        enum: []
+                      last_page_url:
+                        type: string
+                        example: 'https://my.parspack.com/sslv2/v1/general/countries?page=5'
+                      links:
+                        type: array
+                        example:
+                          -
+                            url: null
+                            label: '&laquo; Previous'
+                            active: false
+                          -
+                            url: 'https://my.parspack.com/sslv2/v1/general/countries?page=1'
+                            label: '1'
+                            active: true
+                          -
+                            url: 'https://my.parspack.com/sslv2/v1/general/countries?page=2'
+                            label: '2'
+                            active: false
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+                              example: null
+                            label:
+                              type: string
+                              example: '&laquo; Previous'
+                            active:
+                              type: boolean
+                              example: false
+                      next_page_url:
+                        type: string
+                        example: 'https://my.parspack.com/sslv2/v1/general/countries?page=2'
+                      path:
+                        type: string
+                        example: 'https://my.parspack.com/sslv2/v1/general/countries'
+                      per_page:
+                        type: integer
+                        example: 50
+                        description: 'Items per page'
+                        enum: []
+                      prev_page_url:
+                        type: string
+                        example: null
+                      to:
+                        type: integer
+                        example: 50
+                      total:
+                        type: integer
+                        example: 249
+                        description: 'Total number of countries'
+                        enum: []
+                    required:
+                      - current_page
+                      - data
+                      - last_page
+                      - per_page
+                      - total
+                    description: 'Paginated countries data'
+                  status:
+                    type: boolean
+                    example: true
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - response_code
+                  - data
+                  - status
+        422:
+          description: 'Validation Error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  code: 422
+                  errors:
+                    per_page:
+                      - 'The per page must not be greater than 500.'
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 422
+                    description: 'HTTP status code'
+                    enum: []
+                  errors:
+                    type: object
+                    properties:
+                      per_page:
+                        type: array
+                        example:
+                          - 'The per page must not be greater than 500.'
+                        items:
+                          type: string
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+      tags:
+        - 'General Information'
+  /api/public/v1/states:
+    get:
+      summary: 'Get States/Provinces List'
+      operationId: getStatesProvincesList
+      description: "<aside class=\"notice\">Retrieve list of states/provinces for a country</aside>\nThis endpoint returns a paginated list of states, provinces, or regions for SSL certificate orders. Use this when collecting detailed location information for Organization Validated (OV) or Extended Validation (EV) certificates.\n\n<aside class=\"info\">When to Use</aside>\n- After user selects a country (use country_id from countries endpoint)\n- When collecting state/province for OV/EV certificates\n- For displaying state selection dropdown in order forms\n\n<aside class=\"success\">Filtering Options</aside>\n- Filter by country_id to get states for specific country\n- Filter by name for search functionality\n- Combine both filters for advanced search\n\n<aside class=\"warning\">Important Notes</aside>\n- Not all countries have states in the database\n- Some countries use different terms (provinces, regions, etc.)\n- State information is primarily needed for OV/EV certificates\n- Results are cached for 24 hours for performance"
+      parameters:
+        -
+          in: query
+          name: country_id
+          description: 'Filter states by country ID (from countries endpoint)'
+          example: 231
+          required: false
+          schema:
+            type: integer
+            description: 'Filter states by country ID (from countries endpoint)'
+            example: 231
+            nullable: false
+        -
+          in: query
+          name: name
+          description: 'Filter states by name (partial match, case-insensitive)'
+          example: California
+          required: false
+          schema:
+            type: string
+            description: 'Filter states by name (partial match, case-insensitive)'
+            example: California
+            nullable: false
+        -
+          in: query
+          name: per_page
+          description: 'Number of items per page (max: 200)'
+          example: 100
+          required: false
+          schema:
+            type: integer
+            description: 'Number of items per page (max: 200)'
+            example: 100
+            nullable: false
+        -
+          in: query
+          name: page
+          description: 'Page number for pagination'
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 'Page number for pagination'
+            example: 1
+            nullable: false
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'States retrieved successfully'
+                    type: object
+                    example:
+                      message: success
+                      code: 200
+                      response_code: success_code
+                      data:
+                        current_page: 1
+                        data:
+                          -
+                            state_id: 1401
+                            name: California
+                          -
+                            state_id: 1452
+                            name: Texas
+                          -
+                            state_id: 1440
+                            name: 'New York'
+                          -
+                            state_id: 1416
+                            name: Florida
+                        first_page_url: 'https://my.parspack.com/sslv2/v1/general/states?page=1'
+                        from: 1
+                        last_page: 13
+                        last_page_url: 'https://my.parspack.com/sslv2/v1/general/states?page=13'
+                        links:
+                          -
+                            url: null
+                            label: '&laquo; Previous'
+                            active: false
+                          -
+                            url: 'https://my.parspack.com/sslv2/v1/general/states?page=1'
+                            label: '1'
+                            active: true
+                          -
+                            url: 'https://my.parspack.com/sslv2/v1/general/states?page=2'
+                            label: '2'
+                            active: false
+                        next_page_url: 'https://my.parspack.com/sslv2/v1/general/states?page=2'
+                        path: 'https://my.parspack.com/sslv2/v1/general/states'
+                        per_page: 100
+                        prev_page_url: null
+                        to: 100
+                        total: 1250
+                      status: true
+                    properties:
+                      message:
+                        type: string
+                        example: success
+                        description: 'Success message'
+                        enum: []
+                      code:
+                        type: integer
+                        example: 200
+                        description: 'HTTP status code'
+                        enum: []
+                      response_code:
+                        type: string
+                        example: success_code
+                        description: 'Application-level response code'
+                        enum: []
+                      data:
+                        type: object
+                        properties:
+                          current_page:
+                            type: integer
+                            example: 1
+                            description: 'Current page number'
+                            enum: []
+                          data:
+                            type: array
+                            example:
+                              -
+                                state_id: 1401
+                                name: California
+                              -
+                                state_id: 1452
+                                name: Texas
+                              -
+                                state_id: 1440
+                                name: 'New York'
+                              -
+                                state_id: 1416
+                                name: Florida
+                            description: 'Array of state objects'
+                            enum: []
+                            items:
+                              type: object
+                              properties:
+                                state_id:
+                                  type: integer
+                                  example: 1401
+                                name:
+                                  type: string
+                                  example: California
+                          first_page_url:
+                            type: string
+                            example: 'https://my.parspack.com/sslv2/v1/general/states?page=1'
+                          from:
+                            type: integer
+                            example: 1
+                          last_page:
+                            type: integer
+                            example: 13
+                            description: 'Last page number'
+                            enum: []
+                          last_page_url:
+                            type: string
+                            example: 'https://my.parspack.com/sslv2/v1/general/states?page=13'
+                          links:
+                            type: array
+                            example:
+                              -
+                                url: null
+                                label: '&laquo; Previous'
+                                active: false
+                              -
+                                url: 'https://my.parspack.com/sslv2/v1/general/states?page=1'
+                                label: '1'
+                                active: true
+                              -
+                                url: 'https://my.parspack.com/sslv2/v1/general/states?page=2'
+                                label: '2'
+                                active: false
+                            items:
+                              type: object
+                              properties:
+                                url:
+                                  type: string
+                                  example: null
+                                label:
+                                  type: string
+                                  example: '&laquo; Previous'
+                                active:
+                                  type: boolean
+                                  example: false
+                          next_page_url:
+                            type: string
+                            example: 'https://my.parspack.com/sslv2/v1/general/states?page=2'
+                          path:
+                            type: string
+                            example: 'https://my.parspack.com/sslv2/v1/general/states'
+                          per_page:
+                            type: integer
+                            example: 100
+                            description: 'Items per page'
+                            enum: []
+                          prev_page_url:
+                            type: string
+                            example: null
+                          to:
+                            type: integer
+                            example: 100
+                          total:
+                            type: integer
+                            example: 1250
+                            description: 'Total number of states'
+                            enum: []
+                        required:
+                          - current_page
+                          - data
+                          - last_page
+                          - per_page
+                          - total
+                        description: 'Paginated states data'
+                      status:
+                        type: boolean
+                        example: true
+                        description: 'Operation success status'
+                        enum: []
+                    required:
+                      - message
+                      - code
+                      - response_code
+                      - data
+                      - status
+                  -
+                    description: 'No states found (country may not have states)'
+                    type: object
+                    example:
+                      message: success
+                      code: 200
+                      response_code: success_code
+                      data:
+                        current_page: 1
+                        data: []
+                        first_page_url: 'https://my.parspack.com/sslv2/v1/general/states?page=1'
+                        from: null
+                        last_page: 1
+                        last_page_url: 'https://my.parspack.com/sslv2/v1/general/states?page=1'
+                        links:
+                          -
+                            url: null
+                            label: '&laquo; Previous'
+                            active: false
+                          -
+                            url: 'https://my.parspack.com/sslv2/v1/general/states?page=1'
+                            label: '1'
+                            active: true
+                          -
+                            url: null
+                            label: 'Next &raquo;'
+                            active: false
+                        next_page_url: null
+                        path: 'https://my.parspack.com/sslv2/v1/general/states'
+                        per_page: 100
+                        prev_page_url: null
+                        to: null
+                        total: 0
+                      status: true
+                    properties:
+                      message:
+                        type: string
+                        example: success
+                        description: 'Success message'
+                        enum: []
+                      code:
+                        type: integer
+                        example: 200
+                        description: 'HTTP status code'
+                        enum: []
+                      response_code:
+                        type: string
+                        example: success_code
+                        description: 'Application-level response code'
+                        enum: []
+                      data:
+                        type: object
+                        properties:
+                          current_page:
+                            type: integer
+                            example: 1
+                            description: 'Current page number'
+                            enum: []
+                          data:
+                            type: array
+                            example: []
+                            description: 'Array of state objects'
+                            enum: []
+                          first_page_url:
+                            type: string
+                            example: 'https://my.parspack.com/sslv2/v1/general/states?page=1'
+                          from:
+                            type: string
+                            example: null
+                          last_page:
+                            type: integer
+                            example: 1
+                            description: 'Last page number'
+                            enum: []
+                          last_page_url:
+                            type: string
+                            example: 'https://my.parspack.com/sslv2/v1/general/states?page=1'
+                          links:
+                            type: array
+                            example:
+                              -
+                                url: null
+                                label: '&laquo; Previous'
+                                active: false
+                              -
+                                url: 'https://my.parspack.com/sslv2/v1/general/states?page=1'
+                                label: '1'
+                                active: true
+                              -
+                                url: null
+                                label: 'Next &raquo;'
+                                active: false
+                            items:
+                              type: object
+                              properties:
+                                url:
+                                  type: string
+                                  example: null
+                                label:
+                                  type: string
+                                  example: '&laquo; Previous'
+                                active:
+                                  type: boolean
+                                  example: false
+                          next_page_url:
+                            type: string
+                            example: null
+                          path:
+                            type: string
+                            example: 'https://my.parspack.com/sslv2/v1/general/states'
+                          per_page:
+                            type: integer
+                            example: 100
+                            description: 'Items per page'
+                            enum: []
+                          prev_page_url:
+                            type: string
+                            example: null
+                          to:
+                            type: string
+                            example: null
+                          total:
+                            type: integer
+                            example: 0
+                            description: 'Total number of states'
+                            enum: []
+                        required:
+                          - current_page
+                          - data
+                          - last_page
+                          - per_page
+                          - total
+                        description: 'Paginated states data'
+                      status:
+                        type: boolean
+                        example: true
+                        description: 'Operation success status'
+                        enum: []
+                    required:
+                      - message
+                      - code
+                      - response_code
+                      - data
+                      - status
+        422:
+          description: 'Validation Error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  code: 422
+                  errors:
+                    per_page:
+                      - 'The per page must not be greater than 200.'
+                    country_id:
+                      - 'The country id must be a number.'
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 422
+                    description: 'HTTP status code'
+                    enum: []
+                  errors:
+                    type: object
+                    properties:
+                      per_page:
+                        type: array
+                        example:
+                          - 'The per page must not be greater than 200.'
+                        items:
+                          type: string
+                      country_id:
+                        type: array
+                        example:
+                          - 'The country id must be a number.'
+                        items:
+                          type: string
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+      tags:
+        - 'General Information'
+  '/api/public/v1/order/{order_id}/certificate':
+    get:
+      summary: 'Get SSL Certificate'
+      operationId: getSSLCertificate
+      description: "<aside class=\"notice\">Download issued SSL certificate</aside>\nThis endpoint retrieves the issued SSL certificate for an order. The certificate must be in issued status (final_verify or final_certificate).\n\nIf the certificate is not yet ready in the database but verification was successful, this endpoint will attempt to fetch it from the SSL provider.\n\n<aside class=\"info\">When to Use This Endpoint</aside>\n- After successful domain verification\n- After POST /order/{order_id}/verifyChallenge returns success\n- To download certificate for installation on server\n- To check if certificate has been issued\n\n<aside class=\"warning\">Prerequisites</aside>\n- Domain verification must be completed successfully\n- Order must be in final_verify or final_certificate status\n- For DV certificates: Usually ready immediately after verification\n- For OV/EV certificates: May take 1-3 business days after document approval\n\n<aside class=\"success\">Certificate Format</aside>\nThe response includes:\n- **certificate**: Your SSL certificate in PEM format\n- **ca_bundle**: Intermediate certificates (CA bundle) in PEM format\n\nInstall both on your web server:\n1. Save certificate as: domain.crt\n2. Save ca_bundle as: ca_bundle.crt\n3. Use your private key generated with CSR\n\n<aside class=\"info\">Polling for Certificate</aside>\nIf certificate is not ready, you may need to poll this endpoint:\n- For DV: Poll every 10-30 seconds\n- For OV/EV: Check after receiving approval notification\n- Maximum wait time: Usually under 5 minutes for DV"
+      parameters: []
+      responses:
+        200:
+          description: 'Certificate Ready'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: success
+                  code: 200
+                  data:
+                    certificate_ready: true
+                    certificate: "-----BEGIN CERTIFICATE-----\nMIIFXzCCBEegAwIBAgISA5IjhTfKGPIbDf7sTZm0U4x9MA0GCSqNVBAMT\nD2V4YW1wbGUuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END CERTIFICATE-----"
+                    ca_bundle: "-----BEGIN CERTIFICATE-----\nMIIFFjCCAv6gAwIBAgIRAJErCErPDBinU/bWLiWnX1owDQYJKoZIhvcNAQELBQAw\nAoIBAQC7AhUozPaglNMPEuyNVZLD+ILxmaZ6QoinXSaqtSu5xUyxr45r+XXIo9cP...\n-----END CERTIFICATE-----"
+                  status: true
+                properties:
+                  message:
+                    type: string
+                    example: success
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 200
+                    description: 'HTTP status code'
+                    enum: []
+                  data:
+                    type: object
+                    properties:
+                      certificate_ready:
+                        type: boolean
+                        example: true
+                        description: 'Whether certificate is ready for download'
+                        enum: []
+                      certificate:
+                        type: string
+                        example: "-----BEGIN CERTIFICATE-----\nMIIFXzCCBEegAwIBAgISA5IjhTfKGPIbDf7sTZm0U4x9MA0GCSqNVBAMT\nD2V4YW1wbGUuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END CERTIFICATE-----"
+                        description: 'The SSL certificate in PEM format. Install this on your web server.'
+                        enum: []
+                      ca_bundle:
+                        type: string
+                        example: "-----BEGIN CERTIFICATE-----\nMIIFFjCCAv6gAwIBAgIRAJErCErPDBinU/bWLiWnX1owDQYJKoZIhvcNAQELBQAw\nAoIBAQC7AhUozPaglNMPEuyNVZLD+ILxmaZ6QoinXSaqtSu5xUyxr45r+XXIo9cP...\n-----END CERTIFICATE-----"
+                        description: 'The intermediate certificates (CA bundle) in PEM format. Install this along with your certificate.'
+                        enum: []
+                    required:
+                      - certificate_ready
+                      - certificate
+                      - ca_bundle
+                  status:
+                    type: boolean
+                    example: true
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        202:
+          description: 'Certificate Not Ready Yet'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Certificate is not ready yet. Please try again in a few moments.'
+                  code: 202
+                  data:
+                    certificate_ready: false
+                  status: true
+                properties:
+                  message:
+                    type: string
+                    example: 'Certificate is not ready yet. Please try again in a few moments.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 202
+                    description: 'HTTP status code'
+                    enum: []
+                  data:
+                    type: object
+                    properties:
+                      certificate_ready:
+                        type: boolean
+                        example: false
+                        description: 'Whether certificate is ready for download'
+                        enum: []
+                    required:
+                      - certificate_ready
+                  status:
+                    type: boolean
+                    example: true
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        403:
+          description: 'Invalid Order Status'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Order is not in correct status for certificate retrieval.'
+                  code: 403
+                  response_code: INVALID_ORDER_STATUS
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Order is not in correct status for certificate retrieval.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 403
+                    description: 'HTTP status code'
+                    enum: []
+                  response_code:
+                    type: string
+                    example: INVALID_ORDER_STATUS
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        404:
+          description: 'Certificate Not Found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Certificate not found. Order must be verified first.'
+                  code: 404
+                  response_code: CERTIFICATE_NOT_FOUND
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Certificate not found. Order must be verified first.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 404
+                    description: 'HTTP status code'
+                    enum: []
+                  response_code:
+                    type: string
+                    example: CERTIFICATE_NOT_FOUND
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+      tags:
+        - 'SSL Certificate Management'
+    parameters:
+      -
+        in: path
+        name: order_id
+        description: 'The unique encrypted order ID'
+        example: 07e0-32ff-f210-b126
+        required: true
+        schema:
+          type: string
+  '/api/public/v1/order/{order_id}/reissue':
+    post:
+      summary: 'Reissue Certificate with New CSR'
+      operationId: reissueCertificateWithNewCSR
+      description: "<aside class=\"notice\">Reissue an already issued certificate</aside>\nThis endpoint allows you to reissue an existing SSL certificate with a new Certificate Signing Request (CSR). This is useful when:\n- You need to change the private key\n- The private key has been compromised\n- You want to update certificate details\n- Server migration requires new keys\n\n<aside class=\"warning\">Important Requirements</aside>\n- Certificate must already be issued (order status = final_certificate)\n- New CSR must be for the same domain as the original order\n- CSR must be properly formatted and valid\n- Common Name (CN) in CSR must match the ordered domain\n- Most SSL providers allow free reissues during certificate validity period\n\n<aside class=\"success\">After Reissue</aside>\n- If successful, new certificate is returned immediately (for most DV certificates)\n- If pending, poll GET /order/{order_id}/certificate until ready\n- Old certificate may remain valid until replaced on your server\n- Update your server with the new certificate and private key\n\n<aside class=\"info\">Generate New CSR</aside>\nYou can generate a new CSR using OpenSSL:\n```bash\nopenssl req -new -newkey rsa:2048 -nodes \\\n  -keyout private.key -out certificate.csr \\\n  -subj \"/C=US/ST=State/L=City/O=Company/CN=example.com\"\n```"
+      parameters: []
+      responses:
+        200:
+          description: 'Reissue Successful - Certificate Ready'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: success
+                  code: 200
+                  data:
+                    certificate_ready: true
+                    certificate: '-----BEGIN CERTIFICATE-----\nMIIE...\n-----END CERTIFICATE-----'
+                    ca_bundle: '-----BEGIN CERTIFICATE-----\nMIIF...\n-----END CERTIFICATE-----'
+                  status: true
+                properties:
+                  message:
+                    type: string
+                    example: success
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 200
+                    description: 'HTTP status code'
+                    enum: []
+                  data:
+                    type: object
+                    properties:
+                      certificate_ready:
+                        type: boolean
+                        example: true
+                        description: 'Whether the reissued certificate is ready'
+                        enum: []
+                      certificate:
+                        type: string
+                        example: '-----BEGIN CERTIFICATE-----\nMIIE...\n-----END CERTIFICATE-----'
+                        description: 'The reissued SSL certificate in PEM format (if ready)'
+                        enum: []
+                      ca_bundle:
+                        type: string
+                        example: '-----BEGIN CERTIFICATE-----\nMIIF...\n-----END CERTIFICATE-----'
+                        description: 'The CA bundle/intermediate certificates in PEM format (if ready)'
+                        enum: []
+                    required:
+                      - certificate_ready
+                  status:
+                    type: boolean
+                    example: true
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        202:
+          description: 'Reissue Accepted - Certificate Pending'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Certificate reissue request submitted successfully. The new certificate will be issued shortly.'
+                  code: 202
+                  data:
+                    certificate_ready: false
+                  status: true
+                properties:
+                  message:
+                    type: string
+                    example: 'Certificate reissue request submitted successfully. The new certificate will be issued shortly.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 202
+                    description: 'HTTP status code'
+                    enum: []
+                  data:
+                    type: object
+                    properties:
+                      certificate_ready:
+                        type: boolean
+                        example: false
+                        description: 'Whether the reissued certificate is ready'
+                        enum: []
+                    required:
+                      - certificate_ready
+                  status:
+                    type: boolean
+                    example: true
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        400:
+          description: 'CSR Validation Failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'CSR domain does not match order domain.'
+                  code: 400
+                  response_code: CSR_DOMAIN_MISMATCH
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'CSR domain does not match order domain.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 400
+                    description: 'HTTP status code'
+                    enum: []
+                  response_code:
+                    type: string
+                    example: CSR_DOMAIN_MISMATCH
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        403:
+          description: 'Reissue Not Allowed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Order is not in correct status for reissue.'
+                  code: 403
+                  response_code: REISSUE_NOT_ALLOWED
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Order is not in correct status for reissue.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 403
+                    description: 'HTTP status code'
+                    enum: []
+                  response_code:
+                    type: string
+                    example: REISSUE_NOT_ALLOWED
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        422:
+          description: 'Certificate Not Yet Issued'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Certificate has not been issued yet. Reissue is only available for issued certificates.'
+                  code: 422
+                  errors:
+                    order_id:
+                      - 'Certificate has not been issued yet.'
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Certificate has not been issued yet. Reissue is only available for issued certificates.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 422
+                    description: 'HTTP status code'
+                    enum: []
+                  errors:
+                    type: object
+                    properties:
+                      order_id:
+                        type: array
+                        example:
+                          - 'Certificate has not been issued yet.'
+                        items:
+                          type: string
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+      tags:
+        - 'SSL Certificate Management'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                csr:
+                  type: string
+                  description: 'New Certificate Signing Request in PEM format. Must be for the same domain as original order. Must start with -----BEGIN CERTIFICATE REQUEST----- and end with -----END CERTIFICATE REQUEST-----'
+                  example: '-----BEGIN CERTIFICATE REQUEST-----\nMIICvTCCAaUCAQAweDELMAkGA1UEBhMCVVMx...\n-----END CERTIFICATE REQUEST-----'
+                  nullable: false
+              required:
+                - csr
+    parameters:
+      -
+        in: path
+        name: order_id
+        description: 'The unique encrypted order ID of an issued certificate'
+        example: 07e0-32ff-f210-b126
+        required: true
+        schema:
+          type: string
+  '/api/public/v1/order/{order_id}/process':
+    post:
+      summary: 'Process SSL Order (Complete Workflow)'
+      operationId: processSSLOrderCompleteWorkflow
+      description: "<aside class=\"notice\">Complete SSL order processing in one request</aside>\nThis endpoint performs all necessary steps to process a SSL certificate order:\n1. **Validate and store CSR** (Certificate Signing Request)\n2. **Store contact details** (Required for certificate issuance)\n3. **Retrieve domain verification challenges** (Get available verification methods)\n\nThe response contains domain verification challenge details that must be completed before certificate issuance.\n\n<aside class=\"warning\">Prerequisites</aside>\n- Order must be created using POST /order/addOrder\n- Invoice must be paid (order status = paid)\n- CSR must be valid and CN match the ordered domain\n- Contact information must be accurate for certificate delivery\n\n<aside class=\"success\">After This Step</aside>\n1. Choose a verification method from the response\n2. Complete the domain verification (CNAME, DNS record, or Email)\n3. Call POST /order/{order_id}/verifyChallenge to verify\n4. Download certificate using GET /order/{order_id}/certificate"
+      parameters: []
+      responses:
+        200:
+          description: 'Order processed successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'عملیات با موفقیت انجام شد.'
+                  code: 200
+                  data:
+                    DNS:
+                      method: DNS
+                      name: DNS
+                      challenges:
+                        -
+                          id: 1234
+                          order_id: asdf-1234-f210-b126
+                          domain: example.com
+                          challenge: ...
+                          verify: 0
+                          type: DNS_TXT
+                    DNS_TXT:
+                      method: DNS_TXT
+                      name: DNS_TXT
+                      challenges:
+                        -
+                          id: 1234
+                          order_id: asdf-1234-f210-b126
+                          domain: example.com
+                          challenge: ...
+                          verify: 0
+                          type: DNS_TXT
+                    allowed_challenge_methods:
+                      -
+                        method: ADMIN
+                        name: EMAIL
+                        prefixes:
+                          - ADMIN
+                          - ADMINISTRATOR
+                          - POSTMASTER
+                          - HOSTMASTER
+                          - WEBMASTER
+                      -
+                        method: FILE
+                        name: FILE
+                      -
+                        method: DNS_TXT
+                        name: DNS_TXT
+                    maximum_verification_opportunity: 2025/11/17
+                  status: true
+                properties:
+                  message:
+                    type: string
+                    example: 'عملیات با موفقیت انجام شد.'
+                    description: 'Success message in Persian or English'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 200
+                    description: 'HTTP status code'
+                    enum: []
+                  data:
+                    type: object
+                    properties:
+                      DNS:
+                        type: object
+                        properties:
+                          method:
+                            type: string
+                            example: DNS
+                            description: 'Method identifier'
+                            enum: []
+                          name:
+                            type: string
+                            example: DNS
+                            description: 'Human-readable method name'
+                            enum: []
+                          challenges:
+                            type: array
+                            example:
+                              -
+                                id: 1234
+                                order_id: asdf-1234-f210-b126
+                                domain: example.com
+                                challenge: ...
+                                verify: 0
+                                type: DNS_TXT
+                            description: 'Array of challenge objects for each domain'
+                            enum: []
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 1234
+                                order_id:
+                                  type: string
+                                  example: asdf-1234-f210-b126
+                                domain:
+                                  type: string
+                                  example: example.com
+                                challenge:
+                                  type: string
+                                  example: ...
+                                verify:
+                                  type: integer
+                                  example: 0
+                                type:
+                                  type: string
+                                  example: DNS_TXT
+                        description: 'DNS verification method details (if available)'
+                      DNS_TXT:
+                        type: object
+                        properties:
+                          method:
+                            type: string
+                            example: DNS_TXT
+                          name:
+                            type: string
+                            example: DNS_TXT
+                          challenges:
+                            type: array
+                            example:
+                              -
+                                id: 1234
+                                order_id: asdf-1234-f210-b126
+                                domain: example.com
+                                challenge: ...
+                                verify: 0
+                                type: DNS_TXT
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 1234
+                                order_id:
+                                  type: string
+                                  example: asdf-1234-f210-b126
+                                domain:
+                                  type: string
+                                  example: example.com
+                                challenge:
+                                  type: string
+                                  example: ...
+                                verify:
+                                  type: integer
+                                  example: 0
+                                type:
+                                  type: string
+                                  example: DNS_TXT
+                      allowed_challenge_methods:
+                        type: array
+                        example:
+                          -
+                            method: ADMIN
+                            name: EMAIL
+                            prefixes:
+                              - ADMIN
+                              - ADMINISTRATOR
+                              - POSTMASTER
+                              - HOSTMASTER
+                              - WEBMASTER
+                          -
+                            method: FILE
+                            name: FILE
+                          -
+                            method: DNS_TXT
+                            name: DNS_TXT
+                        description: 'List of all available verification methods'
+                        enum: []
+                        items:
+                          type: object
+                          properties:
+                            method:
+                              type: string
+                              example: ADMIN
+                            name:
+                              type: string
+                              example: EMAIL
+                            prefixes:
+                              type: array
+                              example:
+                                - ADMIN
+                                - ADMINISTRATOR
+                                - POSTMASTER
+                                - HOSTMASTER
+                                - WEBMASTER
+                              items:
+                                type: string
+                      maximum_verification_opportunity:
+                        type: string
+                        example: 2025/11/17
+                        description: 'Deadline for completing domain verification (Persian date format)'
+                        enum: []
+                    required:
+                      - allowed_challenge_methods
+                      - maximum_verification_opportunity
+                    description: 'Contains challenge methods and verification details'
+                  status:
+                    type: boolean
+                    example: true
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - data
+                  - status
+        400:
+          description: 'CSR Validation Failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'CSR domain does not match order domain.'
+                  code: 400
+                  response_code: CSR_DOMAIN_MISMATCH
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'CSR domain does not match order domain.'
+                    description: 'Success message in Persian or English'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 400
+                    description: 'HTTP status code'
+                    enum: []
+                  response_code:
+                    type: string
+                    example: CSR_DOMAIN_MISMATCH
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        404:
+          description: 'Order Not Found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Order not found or does not belong to you.'
+                  code: 404
+                  response_code: ORDER_NOT_FOUND
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Order not found or does not belong to you.'
+                    description: 'Success message in Persian or English'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 404
+                    description: 'HTTP status code'
+                    enum: []
+                  response_code:
+                    type: string
+                    example: ORDER_NOT_FOUND
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        409:
+          description: 'Order Already Processed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Order has already been inserted.'
+                  code: 409
+                  response_code: ORDER_ALREADY_INSERTED
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Order has already been inserted.'
+                    description: 'Success message in Persian or English'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 409
+                    description: 'HTTP status code'
+                    enum: []
+                  response_code:
+                    type: string
+                    example: ORDER_ALREADY_INSERTED
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        422:
+          description: 'Validation Error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  code: 422
+                  errors:
+                    csr:
+                      - 'The CSR format is invalid.'
+                    email:
+                      - 'The email field must be a valid email address.'
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                    description: 'Success message in Persian or English'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 422
+                    description: 'HTTP status code'
+                    enum: []
+                  errors:
+                    type: object
+                    properties:
+                      csr:
+                        type: array
+                        example:
+                          - 'The CSR format is invalid.'
+                        items:
+                          type: string
+                      email:
+                        type: array
+                        example:
+                          - 'The email field must be a valid email address.'
+                        items:
+                          type: string
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+      tags:
+        - 'SSL Order Processing'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                csr:
+                  type: string
+                  description: 'Certificate Signing Request in PEM format. Must start with -----BEGIN CERTIFICATE REQUEST----- and end with -----END CERTIFICATE REQUEST-----'
+                  example: '-----BEGIN CERTIFICATE REQUEST-----\nMIIC...\n-----END CERTIFICATE REQUEST-----'
+                  nullable: false
+                first_name:
+                  type: string
+                  description: 'Contact person first name (max 16 characters)'
+                  example: John
+                  nullable: false
+                last_name:
+                  type: string
+                  description: 'Contact person last name (max 40 characters)'
+                  example: Doe
+                  nullable: false
+                country:
+                  type: string
+                  description: 'ISO 3166-1 alpha-2 country code (2 characters). Use GET /general/countries to get valid codes.'
+                  example: US
+                  nullable: false
+                city:
+                  type: string
+                  description: 'City name (max 128 characters)'
+                  example: 'New York'
+                  nullable: false
+                address:
+                  type: string
+                  description: 'Street address (max 255 characters). Only alphanumeric and ,-.&():space allowed.'
+                  example: '123 Main Street, Suite 100'
+                  nullable: false
+                phone:
+                  type: string
+                  description: 'Phone number with country code (4-20 digits, numbers only)'
+                  example: '12025551234'
+                  nullable: false
+                email:
+                  type: string
+                  description: 'Valid email address for certificate delivery and notifications (max 255 characters)'
+                  example: admin@example.com
+                  nullable: false
+                postal_code:
+                  type: string
+                  description: 'Postal/ZIP code (max 40 characters, optional). Only alphanumeric and ,-.&():space allowed.'
+                  example: '10001'
+                  nullable: false
+                joisocn:
+                  type: string
+                  description: 'Jurisdiction country code for OV/EV certificates (ISO 3166-1 alpha-2, optional)'
+                  example: US
+                  nullable: false
+                business_category:
+                  type: string
+                  description: 'Business category for OV/EV certificates. Valid values: Private Organization, Government Entity, Business Entity, Non-Commercial Entity'
+                  example: 'Private Organization'
+                  nullable: false
+                registration_number:
+                  type: string
+                  description: 'Company registration number for OV/EV certificates (max 150 characters, optional)'
+                  example: 12-3456789
+                  nullable: false
+              required:
+                - csr
+                - first_name
+                - last_name
+                - country
+                - city
+                - address
+                - phone
+                - email
+    parameters:
+      -
+        in: path
+        name: order_id
+        description: 'The unique encrypted order ID from order creation'
+        example: 07e0-32ff-f210-b126
+        required: true
+        schema:
+          type: string
+  '/api/public/v1/order/{order_id}/challenge':
+    get:
+      summary: 'Show Challenge Verification Methods'
+      operationId: showChallengeVerificationMethods
+      description: "<aside class=\"notice\">Retrieve domain verification challenges</aside>\nThis endpoint returns the available domain verification methods and challenge details for an order that has been processed and inserted into the SSL provider.\n\nUse this endpoint to retrieve challenge information if you need to check the verification details again, or if you want to display them to your users.\n\n<aside class=\"info\">When to Use This Endpoint</aside>\n- After calling POST /order/{order_id}/process\n- If you need to retrieve challenge details again\n- To display verification instructions to users\n- Before attempting verification\n\n<aside class=\"warning\">Prerequisites</aside>\n- Order must be processed (CSR uploaded, contact details submitted, order inserted)\n- Order must be in final approval status\n- Order must have challenge records\n\n<aside class=\"success\">Challenge Methods Explained</aside>\n**DNS_TXT**: Add TXT record to DNS zone\n- Record Name: _validation.yourdomain.com (or @)\n- Record Value: Challenge token from response\n\n**FILE**: Upload verification file to web server\n- Path: /.well-known/pki-validation/filename.txt\n- Content: Challenge token from response\n\n**EMAIL**: Click verification link in email\n- Email sent to: admin@yourdomain.com (or selected prefix)\n- Valid prefixes: ADMIN, ADMINISTRATOR, POSTMASTER, HOSTMASTER, WEBMASTER"
+      parameters: []
+      responses:
+        200:
+          description: 'Challenges retrieved successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'عملیات با موفقیت انجام شد.'
+                  code: 200
+                  data:
+                    DNS_TXT:
+                      method: DNS_TXT
+                      name: DNS_TXT
+                      challenges:
+                        -
+                          id: 3169
+                          order_id: 07e0-32ff-f210-b126
+                          domain: example.com
+                          challenge: 8600d62d9101445e48972fba8721b4db4c450889b9a57a1b220022a920d58a2
+                          verify: 0
+                          type: DNS_TXT
+                    FILE:
+                      method: FILE
+                      name: FILE
+                      challenges:
+                        -
+                          id: 3170
+                          order_id: 07e0-32ff-f210-b126
+                          domain: example.com
+                          challenge: file-content-here
+                          verify: 0
+                          type: FILE
+                          file_name: validation-file.txt
+                          file_path: /.well-known/pki-validation/validation-file.txt
+                    allowed_challenge_methods:
+                      -
+                        method: ADMIN
+                        name: EMAIL
+                        prefixes:
+                          - ADMIN
+                          - ADMINISTRATOR
+                          - POSTMASTER
+                          - HOSTMASTER
+                          - WEBMASTER
+                      -
+                        method: FILE
+                        name: FILE
+                      -
+                        method: DNS_TXT
+                        name: DNS_TXT
+                      -
+                        method: DNS_CNAME
+                        name: DNS_CNAME
+                    maximum_verification_opportunity: 2025/11/17
+                  status: true
+                properties:
+                  message:
+                    type: string
+                    example: 'عملیات با موفقیت انجام شد.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 200
+                    description: 'HTTP status code'
+                    enum: []
+                  data:
+                    type: object
+                    properties:
+                      DNS_TXT:
+                        type: object
+                        properties:
+                          method:
+                            type: string
+                            example: DNS_TXT
+                            description: 'Method identifier'
+                            enum: []
+                          name:
+                            type: string
+                            example: DNS_TXT
+                          challenges:
+                            type: array
+                            example:
+                              -
+                                id: 3169
+                                order_id: 07e0-32ff-f210-b126
+                                domain: example.com
+                                challenge: 8600d62d9101445e48972fba8721b4db4c450889b9a57a1b220022a920d58a2
+                                verify: 0
+                                type: DNS_TXT
+                            description: 'Array of DNS challenges'
+                            enum: []
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 3169
+                                order_id:
+                                  type: string
+                                  example: 07e0-32ff-f210-b126
+                                domain:
+                                  type: string
+                                  example: example.com
+                                challenge:
+                                  type: string
+                                  example: 8600d62d9101445e48972fba8721b4db4c450889b9a57a1b220022a920d58a2
+                                verify:
+                                  type: integer
+                                  example: 0
+                                type:
+                                  type: string
+                                  example: DNS_TXT
+                        description: 'DNS TXT verification method (if available)'
+                      FILE:
+                        type: object
+                        properties:
+                          method:
+                            type: string
+                            example: FILE
+                          name:
+                            type: string
+                            example: FILE
+                          challenges:
+                            type: array
+                            example:
+                              -
+                                id: 3170
+                                order_id: 07e0-32ff-f210-b126
+                                domain: example.com
+                                challenge: file-content-here
+                                verify: 0
+                                type: FILE
+                                file_name: validation-file.txt
+                                file_path: /.well-known/pki-validation/validation-file.txt
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 3170
+                                order_id:
+                                  type: string
+                                  example: 07e0-32ff-f210-b126
+                                domain:
+                                  type: string
+                                  example: example.com
+                                challenge:
+                                  type: string
+                                  example: file-content-here
+                                verify:
+                                  type: integer
+                                  example: 0
+                                type:
+                                  type: string
+                                  example: FILE
+                                file_name:
+                                  type: string
+                                  example: validation-file.txt
+                                file_path:
+                                  type: string
+                                  example: /.well-known/pki-validation/validation-file.txt
+                        description: 'File verification method (if available)'
+                      allowed_challenge_methods:
+                        type: array
+                        example:
+                          -
+                            method: ADMIN
+                            name: EMAIL
+                            prefixes:
+                              - ADMIN
+                              - ADMINISTRATOR
+                              - POSTMASTER
+                              - HOSTMASTER
+                              - WEBMASTER
+                          -
+                            method: FILE
+                            name: FILE
+                          -
+                            method: DNS_TXT
+                            name: DNS_TXT
+                          -
+                            method: DNS_CNAME
+                            name: DNS_CNAME
+                        description: 'List of all available verification methods'
+                        enum: []
+                        items:
+                          type: object
+                          properties:
+                            method:
+                              type: string
+                              example: ADMIN
+                            name:
+                              type: string
+                              example: EMAIL
+                            prefixes:
+                              type: array
+                              example:
+                                - ADMIN
+                                - ADMINISTRATOR
+                                - POSTMASTER
+                                - HOSTMASTER
+                                - WEBMASTER
+                              items:
+                                type: string
+                      maximum_verification_opportunity:
+                        type: string
+                        example: 2025/11/17
+                        description: 'Deadline to complete verification (Persian date)'
+                        enum: []
+                    required:
+                      - allowed_challenge_methods
+                      - maximum_verification_opportunity
+                    description: 'Contains challenge methods and verification details'
+                  status:
+                    type: boolean
+                    example: true
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - data
+                  - status
+        400:
+          description: 'No Contact Details'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Order does not have contact details.'
+                  code: 400
+                  response_code: ORDER_NO_CONTACT
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Order does not have contact details.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 400
+                    description: 'HTTP status code'
+                    enum: []
+                  response_code:
+                    type: string
+                    example: ORDER_NO_CONTACT
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        404:
+          description: 'Order Not Found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Order not found or not in correct status.'
+                  code: 404
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Order not found or not in correct status.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 404
+                    description: 'HTTP status code'
+                    enum: []
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+      tags:
+        - 'SSL Order Processing'
+    parameters:
+      -
+        in: path
+        name: order_id
+        description: 'The unique encrypted order ID'
+        example: 07e0-32ff-f210-b126
+        required: true
+        schema:
+          type: string
+  '/api/public/v1/order/{order_id}/reloadChallenge':
+    post:
+      summary: 'Reload Challenge Verification Method'
+      operationId: reloadChallengeVerificationMethod
+      description: "<aside class=\"notice\">Change domain verification method</aside>\nThis endpoint allows you to change the domain verification method after the order has been processed.\n\nYou can switch between different verification methods such as:\n- **DNS_TXT**: Add TXT record to your DNS\n- **FILE**: Upload verification file to your web server\n- **EMAIL (ADMIN)**: Receive verification link via email\n- **DNS_CNAME**: Add CNAME record to your DNS\n\n<aside class=\"warning\">When to Use</aside>\n- If the current verification method is not suitable\n- If you want to switch from FILE to DNS or vice versa\n- If you need to change the email prefix for email verification\n\n<aside class=\"success\">After Reload</aside>\n- New challenge tokens/values will be generated\n- Previous challenges become invalid\n- You must complete the new verification method\n- Call POST /order/{order_id}/verifyChallenge with the new method"
+      parameters: []
+      responses:
+        200:
+          description: 'Challenge reloaded successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'عملیات با موفقیت انجام شد.'
+                  code: 200
+                  data:
+                    DNS_TXT:
+                      method: DNS_TXT
+                      name: DNS_TXT
+                      challenges:
+                        -
+                          id: 3170
+                          order_id: 07e0-32ff-f210-b126
+                          domain: example.com
+                          challenge: new-challenge-token-here
+                          verify: 0
+                          type: DNS_TXT
+                    allowed_challenge_methods:
+                      -
+                        method: DNS_TXT
+                        name: DNS_TXT
+                      -
+                        method: FILE
+                        name: FILE
+                  status: true
+                properties:
+                  message:
+                    type: string
+                    example: 'عملیات با موفقیت انجام شد.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 200
+                    description: 'HTTP status code'
+                    enum: []
+                  data:
+                    type: object
+                    properties:
+                      DNS_TXT:
+                        type: object
+                        properties:
+                          method:
+                            type: string
+                            example: DNS_TXT
+                          name:
+                            type: string
+                            example: DNS_TXT
+                          challenges:
+                            type: array
+                            example:
+                              -
+                                id: 3170
+                                order_id: 07e0-32ff-f210-b126
+                                domain: example.com
+                                challenge: new-challenge-token-here
+                                verify: 0
+                                type: DNS_TXT
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 3170
+                                order_id:
+                                  type: string
+                                  example: 07e0-32ff-f210-b126
+                                domain:
+                                  type: string
+                                  example: example.com
+                                challenge:
+                                  type: string
+                                  example: new-challenge-token-here
+                                verify:
+                                  type: integer
+                                  example: 0
+                                type:
+                                  type: string
+                                  example: DNS_TXT
+                      allowed_challenge_methods:
+                        type: array
+                        example:
+                          -
+                            method: DNS_TXT
+                            name: DNS_TXT
+                          -
+                            method: FILE
+                            name: FILE
+                        items:
+                          type: object
+                          properties:
+                            method:
+                              type: string
+                              example: DNS_TXT
+                            name:
+                              type: string
+                              example: DNS_TXT
+                    description: 'Contains new challenge details with updated tokens'
+                  status:
+                    type: boolean
+                    example: true
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - data
+                  - status
+        404:
+          description: 'Order Not Found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Order not found or invalid status.'
+                  code: 404
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Order not found or invalid status.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 404
+                    description: 'HTTP status code'
+                    enum: []
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        422:
+          description: 'Invalid Method'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Invalid verification method.'
+                  code: 422
+                  errors:
+                    method:
+                      - 'The selected method is invalid.'
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Invalid verification method.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 422
+                    description: 'HTTP status code'
+                    enum: []
+                  errors:
+                    type: object
+                    properties:
+                      method:
+                        type: array
+                        example:
+                          - 'The selected method is invalid.'
+                        items:
+                          type: string
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+      tags:
+        - 'SSL Order Processing'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                method:
+                  type: string
+                  description: 'The verification method to use. Valid values: DNS_TXT, FILE, ADMIN (email), DNS_CNAME, DNS_TXT_PREFIX, DNS_CNAME_PREFIX'
+                  example: DNS_TXT
+                  nullable: false
+                email_prefix:
+                  type: string
+                  description: 'Email prefix for EMAIL verification method. Valid values: ADMIN, ADMINISTRATOR, POSTMASTER, HOSTMASTER, WEBMASTER. Only required when method is ADMIN.'
+                  example: ADMIN
+                  nullable: false
+    parameters:
+      -
+        in: path
+        name: order_id
+        description: 'The unique encrypted order ID'
+        example: 07e0-32ff-f210-b126
+        required: true
+        schema:
+          type: string
+  '/api/public/v1/order/{order_id}/verifyChallenge':
+    post:
+      summary: 'Verify Domain Ownership Challenge'
+      operationId: verifyDomainOwnershipChallenge
+      description: "<aside class=\"notice\">Verify domain ownership and get certificate</aside>\nAfter completing the domain verification challenge (placing DNS record, uploading file, or clicking email link), use this endpoint to verify and retrieve the SSL certificate.\n\n<aside class=\"warning\">Before Calling This Endpoint</aside>\n**For DNS Verification:**\n- Add TXT/CNAME record to your DNS zone\n- Wait for DNS propagation (can take up to 48 hours, usually 5-30 minutes)\n- Verify DNS propagation using tools like dig or nslookup\n\n**For FILE Verification:**\n- Upload the verification file to your web server\n- Ensure the file is accessible via HTTP at: http://yourdomain.com/.well-known/pki-validation/filename.txt\n- The file must return the exact challenge content\n\n**For EMAIL Verification:**\n- Check email sent to admin@yourdomain.com (or selected prefix)\n- Click the verification link in the email\n\n<aside class=\"success\">Response Behavior</aside>\n**For DV Certificates:**\n- If verification succeeds and certificate is ready, returns the certificate immediately\n- If verification succeeds but certificate is pending, returns success message with certificate_ready: false\n- Poll GET /order/{order_id}/certificate until certificate is ready\n\n**For OV/EV Certificates:**\n- Returns message to contact support for document submission\n- Additional business validation documents are required\n- Certificate will be issued after manual review (usually 1-3 business days)"
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'DV Certificate Ready'
+                    type: object
+                    example:
+                      message: success
+                      code: 200
+                      data:
+                        step: final_verify
+                        certificate_ready: true
+                        certificate: '-----BEGIN CERTIFICATE-----\nMIIE...\n-----END CERTIFICATE-----'
+                        ca_bundle: '-----BEGIN CERTIFICATE-----\nMIIF...\n-----END CERTIFICATE-----'
+                      status: true
+                    properties:
+                      message:
+                        type: string
+                        example: success
+                        description: 'Success message'
+                        enum: []
+                      code:
+                        type: integer
+                        example: 200
+                        description: 'HTTP status code'
+                        enum: []
+                      data:
+                        type: object
+                        properties:
+                          step:
+                            type: string
+                            example: final_verify
+                            description: 'Current order processing step'
+                            enum: []
+                          certificate_ready:
+                            type: boolean
+                            example: true
+                            description: 'Whether the certificate is ready for download'
+                            enum: []
+                          certificate:
+                            type: string
+                            example: '-----BEGIN CERTIFICATE-----\nMIIE...\n-----END CERTIFICATE-----'
+                            description: 'The issued SSL certificate in PEM format (if ready)'
+                            enum: []
+                          ca_bundle:
+                            type: string
+                            example: '-----BEGIN CERTIFICATE-----\nMIIF...\n-----END CERTIFICATE-----'
+                            description: 'The CA bundle/intermediate certificates in PEM format (if ready)'
+                            enum: []
+                        required:
+                          - step
+                          - certificate_ready
+                      status:
+                        type: boolean
+                        example: true
+                        description: 'Operation success status'
+                        enum: []
+                    required:
+                      - message
+                      - code
+                      - status
+                  -
+                    description: 'OV/EV Certificate - Documents Required'
+                    type: object
+                    example:
+                      message: 'Your order requires additional documents for OV/EV validation. Please contact support to submit required documents.'
+                      code: 200
+                      data:
+                        step: final_verify
+                        product_group: ov
+                        requires_documents: true
+                      status: true
+                    properties:
+                      message:
+                        type: string
+                        example: 'Your order requires additional documents for OV/EV validation. Please contact support to submit required documents.'
+                        description: 'Success message'
+                        enum: []
+                      code:
+                        type: integer
+                        example: 200
+                        description: 'HTTP status code'
+                        enum: []
+                      data:
+                        type: object
+                        properties:
+                          step:
+                            type: string
+                            example: final_verify
+                            description: 'Current order processing step'
+                            enum: []
+                          product_group:
+                            type: string
+                            example: ov
+                          requires_documents:
+                            type: boolean
+                            example: true
+                        required:
+                          - step
+                      status:
+                        type: boolean
+                        example: true
+                        description: 'Operation success status'
+                        enum: []
+                    required:
+                      - message
+                      - code
+                      - status
+        202:
+          description: 'Verification Success - Certificate Pending'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Certificate verification completed successfully. Certificate will be issued shortly.'
+                  code: 202
+                  data:
+                    step: final_verify
+                    certificate_ready: false
+                  status: true
+                properties:
+                  message:
+                    type: string
+                    example: 'Certificate verification completed successfully. Certificate will be issued shortly.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 202
+                    description: 'HTTP status code'
+                    enum: []
+                  data:
+                    type: object
+                    properties:
+                      step:
+                        type: string
+                        example: final_verify
+                        description: 'Current order processing step'
+                        enum: []
+                      certificate_ready:
+                        type: boolean
+                        example: false
+                        description: 'Whether the certificate is ready for download'
+                        enum: []
+                    required:
+                      - step
+                      - certificate_ready
+                  status:
+                    type: boolean
+                    example: true
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        400:
+          description: 'Verification Failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Domain verification failed. Please ensure the challenge is properly configured.'
+                  code: 400
+                  response_code: VERIFICATION_FAILED
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Domain verification failed. Please ensure the challenge is properly configured.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 400
+                    description: 'HTTP status code'
+                    enum: []
+                  response_code:
+                    type: string
+                    example: VERIFICATION_FAILED
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+        409:
+          description: 'Invalid Order Status'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Order not in correct status for verification.'
+                  code: 409
+                  response_code: INVALID_ORDER_STATUS
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'Order not in correct status for verification.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 409
+                    description: 'HTTP status code'
+                    enum: []
+                  response_code:
+                    type: string
+                    example: INVALID_ORDER_STATUS
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+      tags:
+        - 'SSL Order Processing'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                method:
+                  type: string
+                  description: 'The verification method you completed. Must match the method used in challenge setup. Valid values: DNS_TXT, FILE, ADMIN (email), DNS_CNAME'
+                  example: DNS_TXT
+                  nullable: false
+              required:
+                - method
+    parameters:
+      -
+        in: path
+        name: order_id
+        description: 'The unique encrypted order ID'
+        example: 07e0-32ff-f210-b126
+        required: true
+        schema:
+          type: string
+  /api/public/v1/order/index:
+    get:
+      summary: 'List All SSL Orders'
+      operationId: listAllSSLOrders
+      description: "<aside class=\"notice\">Retrieve all SSL certificate orders</aside>\nThis endpoint returns a paginated list of all SSL certificate orders associated with your account, including both paid commercial SSL certificates and free SSL certificates.\n\n<aside class=\"info\">Filtering and Sorting</aside>\nYou can filter orders by:\n- **Domain name**: Search for specific domain\n- **Certificate type**: Single domain, wildcard, or multi-domain\n- **Status**: Active, expired, suspended, or not completed services\n\nYou can also sort results by various fields like creation date, domain, status, etc.\n\n<aside class=\"success\">Pagination</aside>\nResults are paginated with 25 items per page by default. You can adjust this using the `per_page` parameter (min: 5, max: 100)."
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Orders retrieved successfully'
+                    type: object
+                    example:
+                      message: success
+                      code: 200
+                      data:
+                        current_page: 1
+                        data:
+                          -
+                            id: 07e0-32ff-f210-b126
+                            domain: example.com
+                            sans:
+                              -
+                                name: it.example.com
+                                is_ip: false
+                                www: 1
+                              -
+                                name: mail.example.com
+                                is_ip: false
+                                www: 0
+                              -
+                                name: 10.10.0.1
+                                is_ip: true
+                                www: 0
+                            invoice_id: '2112'
+                            invoice_status: true
+                            wildcard: 0
+                            status: final_approval
+                            documents: 0
+                          -
+                            id: 08f1-7d77-g321-c237
+                            domain: another-domain.com
+                            sans: null
+                            invoice_id: '2113'
+                            invoice_status: false
+                            wildcard: 0
+                            status: first
+                            documents: 0
+                        first_page_url: 'https://my.parspack.com/sslv2/v1/order/index?page=1'
+                        from: 1
+                        last_page: 5
+                        last_page_url: 'https://my.parspack.com/sslv2/v1/order/index?page=5'
+                        links:
+                          -
+                            url: null
+                            label: '&laquo; Previous'
+                            active: false
+                          -
+                            url: 'https://my.parspack.com/sslv2/v1/order/index?page=1'
+                            label: '1'
+                            active: true
+                          -
+                            url: 'https://my.parspack.com/sslv2/v1/order/index?page=2'
+                            label: '2'
+                            active: false
+                          -
+                            url: 'https://my.parspack.com/sslv2/v1/order/index?page=2'
+                            label: 'Next &raquo;'
+                            active: false
+                        next_page_url: 'https://my.parspack.com/sslv2/v1/order/index?page=2'
+                        path: 'https://my.parspack.com/sslv2/v1/order/index'
+                        per_page: 25
+                        prev_page_url: null
+                        to: 25
+                        total: 120
+                      status: true
+                    properties:
+                      message:
+                        type: string
+                        example: success
+                        description: 'Success message'
+                        enum: []
+                      code:
+                        type: integer
+                        example: 200
+                        description: 'HTTP status code'
+                        enum: []
+                      data:
+                        type: object
+                        properties:
+                          current_page:
+                            type: integer
+                            example: 1
+                            description: 'Current page number'
+                            enum: []
+                          data:
+                            type: array
+                            example:
+                              -
+                                id: 07e0-32ff-f210-b126
+                                domain: example.com
+                                sans:
+                                  -
+                                    name: it.example.com
+                                    is_ip: false
+                                    www: 1
+                                  -
+                                    name: mail.example.com
+                                    is_ip: false
+                                    www: 0
+                                  -
+                                    name: 10.10.0.1
+                                    is_ip: true
+                                    www: 0
+                                invoice_id: '2112'
+                                invoice_status: true
+                                wildcard: 0
+                                status: final_approval
+                                documents: 0
+                              -
+                                id: 08f1-7d77-g321-c237
+                                domain: another-domain.com
+                                sans: null
+                                invoice_id: '2113'
+                                invoice_status: false
+                                wildcard: 0
+                                status: first
+                                documents: 0
+                            description: 'Array of simplified order objects'
+                            enum: []
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                  example: 07e0-32ff-f210-b126
+                                domain:
+                                  type: string
+                                  example: example.com
+                                sans:
+                                  type: array
+                                  example:
+                                    -
+                                      name: it.example.com
+                                      is_ip: false
+                                      www: 1
+                                    -
+                                      name: mail.example.com
+                                      is_ip: false
+                                      www: 0
+                                    -
+                                      name: 10.10.0.1
+                                      is_ip: true
+                                      www: 0
+                                  items:
+                                    type: object
+                                    properties:
+                                      name: { type: string, example: it.example.com }
+                                      is_ip: { type: boolean, example: false }
+                                      www: { type: integer, example: 1 }
+                                invoice_id:
+                                  type: string
+                                  example: '2112'
+                                invoice_status:
+                                  type: boolean
+                                  example: true
+                                wildcard:
+                                  type: integer
+                                  example: 0
+                                status:
+                                  type: string
+                                  example: final_approval
+                                documents:
+                                  type: integer
+                                  example: 0
+                            required:
+                              - status
+                          first_page_url:
+                            type: string
+                            example: 'https://my.parspack.com/sslv2/v1/order/index?page=1'
+                            description: 'URL to first page'
+                            enum: []
+                          from:
+                            type: integer
+                            example: 1
+                          last_page:
+                            type: integer
+                            example: 5
+                            description: 'Last page number'
+                            enum: []
+                          last_page_url:
+                            type: string
+                            example: 'https://my.parspack.com/sslv2/v1/order/index?page=5'
+                            description: 'URL to last page'
+                            enum: []
+                          links:
+                            type: array
+                            example:
+                              -
+                                url: null
+                                label: '&laquo; Previous'
+                                active: false
+                              -
+                                url: 'https://my.parspack.com/sslv2/v1/order/index?page=1'
+                                label: '1'
+                                active: true
+                              -
+                                url: 'https://my.parspack.com/sslv2/v1/order/index?page=2'
+                                label: '2'
+                                active: false
+                              -
+                                url: 'https://my.parspack.com/sslv2/v1/order/index?page=2'
+                                label: 'Next &raquo;'
+                                active: false
+                            items:
+                              type: object
+                              properties:
+                                url:
+                                  type: string
+                                  example: null
+                                label:
+                                  type: string
+                                  example: '&laquo; Previous'
+                                active:
+                                  type: boolean
+                                  example: false
+                          next_page_url:
+                            type: string
+                            example: 'https://my.parspack.com/sslv2/v1/order/index?page=2'
+                            description: 'URL to next page (null if on last page)'
+                            enum: []
+                          path:
+                            type: string
+                            example: 'https://my.parspack.com/sslv2/v1/order/index'
+                          per_page:
+                            type: integer
+                            example: 25
+                            description: 'Items per page'
+                            enum: []
+                          prev_page_url:
+                            type: string
+                            example: null
+                            description: 'URL to previous page (null if on first page)'
+                            enum: []
+                          to:
+                            type: integer
+                            example: 25
+                          total:
+                            type: integer
+                            example: 120
+                            description: 'Total number of orders'
+                            enum: []
+                        required:
+                          - current_page
+                          - data
+                          - first_page_url
+                          - last_page
+                          - last_page_url
+                          - per_page
+                          - total
+                        description: 'Paginated orders data'
+                      status:
+                        type: boolean
+                        example: true
+                        description: 'Operation success status'
+                        enum: []
+                    required:
+                      - message
+                      - code
+                      - data
+                      - status
+                  -
+                    description: 'No orders found'
+                    type: object
+                    example:
+                      message: success
+                      code: 200
+                      data: []
+                      status: true
+                    properties:
+                      message:
+                        type: string
+                        example: success
+                        description: 'Success message'
+                        enum: []
+                      code:
+                        type: integer
+                        example: 200
+                        description: 'HTTP status code'
+                        enum: []
+                      data:
+                        type: array
+                        example: []
+                        description: 'Paginated orders data'
+                        enum: []
+                      status:
+                        type: boolean
+                        example: true
+                        description: 'Operation success status'
+                        enum: []
+                    required:
+                      - message
+                      - code
+                      - data
+                      - status
+        422:
+          description: 'Validation Error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  code: 422
+                  errors:
+                    per_page:
+                      - 'The per page must be at least 5.'
+                    level:
+                      - 'The selected level is invalid.'
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                    description: 'Success message'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 422
+                    description: 'HTTP status code'
+                    enum: []
+                  errors:
+                    type: object
+                    properties:
+                      per_page:
+                        type: array
+                        example:
+                          - 'The per page must be at least 5.'
+                        items:
+                          type: string
+                      level:
+                        type: array
+                        example:
+                          - 'The selected level is invalid.'
+                        items:
+                          type: string
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Operation success status'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+      tags:
+        - 'SSL Orders'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                per_page:
+                  type: integer
+                  description: 'Number of items per page (5-100)'
+                  example: 25
+                  nullable: false
+                domain:
+                  type: string
+                  description: 'Filter by domain name (partial match, min 2 chars)'
+                  example: example.com
+                  nullable: false
+                level:
+                  type: string
+                  description: 'Filter by certificate type. Valid values: single, wildcard, multi'
+                  example: single
+                  nullable: false
+                active_services:
+                  type: integer
+                  description: 'Show only active services (0 or 1)'
+                  example: 1
+                  nullable: false
+                not_completed_services:
+                  type: integer
+                  description: 'Show only incomplete services (0 or 1)'
+                  example: 0
+                  nullable: false
+                suspended_services:
+                  type: integer
+                  description: 'Show only suspended services (0 or 1)'
+                  example: 0
+                  nullable: false
+                expired_services:
+                  type: integer
+                  description: 'Show only expired services (0 or 1)'
+                  example: 0
+                  nullable: false
+                sort_by:
+                  type: string
+                  description: 'Field to sort by. Valid values: id, created_at, level, domain, type, end_cert, expire_date, status'
+                  example: created_at
+                  nullable: false
+                sort_type:
+                  type: string
+                  description: 'Sort direction. Valid values: asc, desc'
+                  example: desc
+                  nullable: false
+  /api/public/v1/order/addOrder:
+    post:
+      summary: 'Create a New SSL Order'
+      operationId: createANewSSLOrder
+      description: "<aside class=\"notice\">Create a new SSL order</aside>\nAn SSL certificate order will be created using the provided information. The response body will contain a JSON object with order details including order ID, invoice information, and payment status.\n\nThe response code, 200 OK, indicates that the order has been successfully created and an invoice has been generated. The order will be in pending status until the invoice is paid.\n\n<aside class=\"warning\">Important Notes</aside>\n- The order must be paid before proceeding with certificate issuance\n- Use the returned <span style=\"color: red;\">order_id</span> for subsequent operations (CSR upload, contact details, etc.)\n- For wildcard certificates, the domain should NOT include the wildcard prefix (*)\n- For multi-domain certificates, use the <span style=\"color: red;\">sans</span> parameter to specify additional domains\n\n<aside class=\"info\">SANs Structure</aside>\nEach SAN (Subject Alternative Name) must be an object with the following fields:\n- **name**: The domain name (required)\n- **is_ip**: Boolean indicating if it's an IP address (required)\n- **www**: Integer (0 or 1) to include www subdomain (required)\n\nExample SANs array:\n```json\n[\n    {\"name\": \"s151.domain.com\", \"is_ip\": false, \"www\": 0},\n    {\"name\": \"s152.domain.com\", \"is_ip\": false, \"www\": 1}\n]\n```"
+      parameters: []
+      responses:
+        200:
+          description: 'Order created successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: success
+                  code: 200
+                  data:
+                    order_id: 07e0-32ff-f210-b126
+                    invoice_id: 2112
+                    invoice_status: unpaid
+                  status: true
+                properties:
+                  message:
+                    type: string
+                    example: success
+                    description: 'A message indicating the result of the operation.'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 200
+                    description: 'HTTP status code of the response.'
+                    enum: []
+                  data:
+                    type: object
+                    properties:
+                      order_id:
+                        type: string
+                        example: 07e0-32ff-f210-b126
+                        description: 'A unique encrypted identifier for the SSL order. This ID should be used for all subsequent operations related to this order.'
+                        enum: []
+                      invoice_id:
+                        type: integer
+                        example: 2112
+                        description: 'Unique identifier for the invoice in the billing system.'
+                        enum: []
+                      invoice_status:
+                        type: string
+                        example: unpaid
+                        description: 'Current payment status of the invoice. Possible values: unpaid, paid, cancelled, refunded.'
+                        enum: []
+                    required:
+                      - order_id
+                      - invoice_id
+                      - invoice_status
+                    description: 'Contains the order details and invoice information.'
+                  status:
+                    type: boolean
+                    example: true
+                    description: 'Indicates whether the operation was successful.'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - data
+                  - status
+        401:
+          description: 'Authentication Required'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  id: unauthorized
+                  message: Unauthenticated.
+                properties:
+                  id:
+                    type: string
+                    example: unauthorized
+                  message:
+                    type: string
+                    example: Unauthenticated.
+                    description: 'A message indicating the result of the operation.'
+                    enum: []
+                required:
+                  - message
+        422:
+          description: 'Validation Error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  code: 422
+                  errors:
+                    product_slug:
+                      - 'The selected product slug is invalid or the product is not available.'
+                    domain:
+                      - 'The domain field is required.'
+                    billing_cycle:
+                      - 'The selected billing cycle is invalid.'
+                  status: false
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                    description: 'A message indicating the result of the operation.'
+                    enum: []
+                  code:
+                    type: integer
+                    example: 422
+                    description: 'HTTP status code of the response.'
+                    enum: []
+                  errors:
+                    type: object
+                    properties:
+                      product_slug:
+                        type: array
+                        example:
+                          - 'The selected product slug is invalid or the product is not available.'
+                        items:
+                          type: string
+                      domain:
+                        type: array
+                        example:
+                          - 'The domain field is required.'
+                        items:
+                          type: string
+                      billing_cycle:
+                        type: array
+                        example:
+                          - 'The selected billing cycle is invalid.'
+                        items:
+                          type: string
+                  status:
+                    type: boolean
+                    example: false
+                    description: 'Indicates whether the operation was successful.'
+                    enum: []
+                required:
+                  - message
+                  - code
+                  - status
+      tags:
+        - 'SSL Orders'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                product_slug:
+                  type: string
+                  description: 'The unique slug identifier for the SSL product. Use the /general/products endpoint to get available products.'
+                  example: dv-ssl
+                  nullable: false
+                domain:
+                  type: string
+                  description: 'The primary domain name for the SSL certificate. Must be a valid domain without protocol (http/https) or www prefix unless explicitly needed.'
+                  example: example.com
+                  nullable: false
+                billing_cycle:
+                  type: string
+                  description: 'The billing cycle for the certificate. Must be one of: annually, biennially, triennially.'
+                  example: annually
+                  nullable: false
+                www:
+                  type: boolean
+                  description: 'Include www subdomain in the certificate. Only applicable for certain certificate types. Set to true to include both example.com and www.example.com.'
+                  example: true
+                  nullable: false
+                promocode:
+                  type: string
+                  description: 'Optional promotional code for discount. Will be validated against active promotions in the billing system.'
+                  example: SUMMER2024
+                  nullable: false
+                sans:
+                  type: array
+                  description: 'Additional Subject Alternative Names (SANs) for multi-domain certificates. Only applicable for multi-domain products. Each SAN must be an object with name, is_ip, and www fields.'
+                  example:
+                    -
+                      name: s151.example.com
+                      is_ip: false
+                      www: 0
+                    -
+                      name: s152.example.com
+                      is_ip: false
+                      www: 1
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: 'The domain name for this SAN. Must be a valid domain (max 64 characters).'
+                        example: s151.domain.com
+                        nullable: false
+                      is_ip:
+                        type: boolean
+                        description: 'Whether this SAN is an IP address. Set to false for domain names, true for IP addresses.'
+                        example: false
+                        nullable: false
+                      www:
+                        type: integer
+                        description: 'Include www subdomain for this SAN. 0 = no www, 1 = include www.'
+                        example: 0
+                        nullable: false
+              required:
+                - product_slug
+                - domain
+                - billing_cycle

@@ -1,0 +1,104 @@
+name: Jiffy Dispatch
+
+# Ported from javadib/sonar_srv's jiffy.yml, unchanged in substance -- this
+# workflow is language-agnostic (it only watches for @jiffy mentions on
+# Issues/comments and forwards the thread to the Jiffy Gateway). This is the
+# "lightweight component living next to the git server" that the
+# jiffy-task-planner skill's dispatch protocol depends on -- without this
+# file, @jiffy mentions in Issues (see AGENTS.md §9) go nowhere.
+#
+# One change from the sonar_srv version: removed a debug console.log that
+# printed the raw repo token into the Action log (GitHub's log redaction
+# masks registered secrets even when printed, but there's no reason to rely
+# on that when the line serves no purpose).
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'issues' && contains(github.event.issue.body, '@jiffy')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@jiffy'))
+    steps:
+      - name: Collect thread and dispatch to Jiffy Gateway
+        uses: actions/github-script@v9
+        env:
+          JIFFY_URL: ${{ secrets.JIFFY_GATEWAY_URL }}
+          JIFFY_INGEST_TOKEN: ${{ secrets.JIFFY_GITHUB_INGEST_TOKEN }}
+          REPO_TOKEN: ${{ secrets.JIFFY_REPO_PAT }}
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+        with:
+          script: |
+            const issueNumber = context.payload.issue.number;
+
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber
+            });
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber
+            });
+
+            const fullText = [issue.data.body || '', ...comments.map(c => c.body || '')].join(' --- ');
+
+            const repoToken = process.env.REPO_TOKEN;
+            const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}.git`;
+            const callbackUrl = `https://api.github.com/repos/${context.repo.owner}/${context.repo.repo}/issues/${issueNumber}/comments`;
+            const callbackSecret = repoToken;
+
+            const payload = {
+              repo: { url: repoUrl, token: repoToken, username: context.actor },
+              issue: { text: fullText, external_issue_id: String(issueNumber) },
+              callback: { url: callbackUrl, secret: callbackSecret }
+            };
+
+            const response = await fetch(`${process.env.JIFFY_URL}/api/github/ingestion`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-JIFFY-TOKEN': process.env.JIFFY_INGEST_TOKEN
+              },
+              body: JSON.stringify(payload)
+            });
+
+            const responseText = await response.text();
+            console.log(`HTTP Status: ${response.status}`);
+            console.log(responseText);
+
+            if (response.status >= 400) {
+              core.setFailed(`Jiffy ingestion failed with status ${response.status}: ${responseText}`);
+            } else {
+              try {
+                if (context.eventName === 'issue_comment') {
+                  await github.rest.reactions.createForIssueComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: context.payload.comment.id,
+                    content: 'eyes'
+                  });
+                } else {
+                  await github.rest.reactions.createForIssue({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    content: 'eyes'
+                  });
+                }
+              } catch (reactionError) {
+                core.warning(`Failed to add reaction: ${reactionError.message}`);
+              }
+            }
