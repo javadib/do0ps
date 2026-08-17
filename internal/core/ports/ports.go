@@ -37,8 +37,17 @@ type Queue interface {
 
 // JobRepository persists job state. Implemented by internal/adapters/sqlite.
 type JobRepository interface {
+	// Create persists a new job. The caller assigns Job.ID beforehand (see
+	// ports.IDGenerator); Create returns an error if that ID is already in use.
 	Create(ctx context.Context, job *domain.Job) error
+
+	// Get returns the job with the given ID, or domain.ErrNotFound if none
+	// exists.
 	Get(ctx context.Context, id string) (*domain.Job, error)
+
+	// Update overwrites a persisted job's mutable fields (status, attempts,
+	// next_retry_at, result, error, updated_at) by ID. Returns domain.ErrNotFound
+	// if the job was never created.
 	Update(ctx context.Context, job *domain.Job) error
 
 	// ListUnfinished returns every job still in pending or running state. Used
@@ -56,16 +65,35 @@ type JobRepository interface {
 // providers make the real overlap visible (see AGENTS.md 4.1).
 //
 // Credentials are passed per call: they belong to the chatbot session, never
-// to this server.
+// to this server. Create-style methods are not expected to be idempotent on
+// their own — callers that must not duplicate a resource on retry (recovery
+// after a crash, see AGENTS.md 4.4) are expected to check first, e.g. via
+// FindServerByName, rather than relying on the provider to deduplicate.
 type ParspackProvider interface {
+	// VM lifecycle. CreateServer is a long operation (AGENTS.md 4.3); the
+	// others are fast.
 	CreateServer(ctx context.Context, creds domain.ProviderCredentials, spec domain.ServerSpec) (*domain.Server, error)
 	GetServer(ctx context.Context, creds domain.ProviderCredentials, id string) (*domain.Server, error)
 	ListServers(ctx context.Context, creds domain.ProviderCredentials) ([]domain.Server, error)
+
+	// DeleteServer removes a server by provider ID. Deleting an ID that no
+	// longer exists returns domain.ErrNotFound, so callers can treat delete as
+	// idempotent by tolerating that specific error.
+	DeleteServer(ctx context.Context, creds domain.ProviderCredentials, id string) error
 
 	// FindServerByName supports crash recovery: before retrying a create-style
 	// job found in running state, core asks whether the resource already exists.
 	// Returns domain.ErrNotFound when it does not.
 	FindServerByName(ctx context.Context, creds domain.ProviderCredentials, name string) (*domain.Server, error)
+
+	// SSH key management. All fast operations. Keys are referenced by
+	// ServerSpec.SSHKeys at server-creation time.
+	CreateSSHKey(ctx context.Context, creds domain.ProviderCredentials, key domain.SSHKey) (*domain.SSHKey, error)
+	ListSSHKeys(ctx context.Context, creds domain.ProviderCredentials) ([]domain.SSHKey, error)
+	// DeleteSSHKey removes a key by provider ID. As with DeleteServer, an
+	// already-absent ID reports domain.ErrNotFound rather than succeeding
+	// silently, so callers decide for themselves whether that counts as done.
+	DeleteSSHKey(ctx context.Context, creds domain.ProviderCredentials, id string) error
 
 	ListDNSZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.DNSZone, error)
 	ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneID string) ([]domain.DNSRecord, error)

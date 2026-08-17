@@ -27,6 +27,11 @@ func (c *Client) ListServers(ctx context.Context, creds domain.ProviderCredentia
 	return nil, fmt.Errorf("list servers: %w", errNotImplemented)
 }
 
+// DeleteServer removes an instance by provider ID.
+func (c *Client) DeleteServer(ctx context.Context, creds domain.ProviderCredentials, id string) error {
+	return fmt.Errorf("delete server %s: %w", id, errNotImplemented)
+}
+
 // FindServerByName supports crash reconciliation. It must return
 // domain.ErrNotFound — not a nil server — when no instance matches.
 func (c *Client) FindServerByName(ctx context.Context, creds domain.ProviderCredentials, name string) (*domain.Server, error) {
@@ -40,6 +45,21 @@ func (c *Client) FindServerByName(ctx context.Context, creds domain.ProviderCred
 		}
 	}
 	return nil, fmt.Errorf("server %q: %w", name, domain.ErrNotFound)
+}
+
+// CreateSSHKey registers a public key with the provider.
+func (c *Client) CreateSSHKey(ctx context.Context, creds domain.ProviderCredentials, key domain.SSHKey) (*domain.SSHKey, error) {
+	return nil, fmt.Errorf("create SSH key %q: %w", key.Name, errNotImplemented)
+}
+
+// ListSSHKeys returns every key registered with the credentials.
+func (c *Client) ListSSHKeys(ctx context.Context, creds domain.ProviderCredentials) ([]domain.SSHKey, error) {
+	return nil, fmt.Errorf("list SSH keys: %w", errNotImplemented)
+}
+
+// DeleteSSHKey removes a registered key by provider ID.
+func (c *Client) DeleteSSHKey(ctx context.Context, creds domain.ProviderCredentials, id string) error {
+	return fmt.Errorf("delete SSH key %s: %w", id, errNotImplemented)
 }
 
 // ListDNSZones returns the domains hosted on the account.
