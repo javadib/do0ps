@@ -8,10 +8,9 @@ import (
 )
 
 // The methods below implement ports.ParspackProvider. Each one is responsible
-// for exactly two things: calling the right endpoint through c.do, and
-// translating the provider's payload into the domain types. Provider-specific
-// JSON shapes stay in this package — nothing above the adapter boundary should
-// ever see them.
+// for exactly two things: calling the right endpoint, and translating the
+// provider's payload into the domain types. Provider-specific JSON shapes stay
+// in this package — nothing above the adapter boundary should ever see them.
 
 // CreateServer provisions a compute instance.
 func (c *Client) CreateServer(ctx context.Context, creds domain.ProviderCredentials, spec domain.ServerSpec) (*domain.Server, error) {
