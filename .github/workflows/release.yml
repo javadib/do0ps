@@ -1,0 +1,59 @@
+name: Release
+
+# Ported from javadib/sonar_srv's release.yml. Swaps python-semantic-release
+# for go-semantic-release (github.com/go-semantic-release), a Go-native
+# semantic-release implementation with its own GitHub Action -- avoids
+# pulling in a Python or Node toolchain just to cut releases.
+on:
+  push:
+    branches: [master]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      id-token: write
+    outputs:
+      released: ${{ steps.release.outputs.version != '' }}
+      version: ${{ steps.release.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.JIFFY_REPO_PAT }}
+
+      - name: Configure git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      # Outputs `version` (empty string if no release was warranted by the
+      # commits since the last tag -- see the `released` job output above).
+      # Check go-semantic-release/action's README for additional optional
+      # inputs (changelog formatting, initial version, etc.) if needed --
+      # kept minimal here rather than guessing at flags.
+      - name: Run semantic release
+        id: release
+        uses: go-semantic-release/action@v1
+        with:
+          github-token: ${{ secrets.JIFFY_REPO_PAT }}
+
+  docker:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      app_version: ${{ needs.release.outputs.version }}
