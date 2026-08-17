@@ -76,8 +76,8 @@ community, including non-technical end users who only ever interact with it thro
 - **DNS is not a standalone product for Parspack (confirmed, and also true for ArvanCloud):** DNS records are
   managed *inside* the CDN zone/domain configuration, not through a separate DNS API. Do not design a
   standalone `ports.ParspackDNS`-style port — DNS record operations belong on the same `ParspackProvider` CDN
-  capability, scoped to a CDN zone. See the CDN-related issues (`area:parspack`, CDN) for the confirmed shape
-  once documented.
+  capability, scoped to a CDN zone (`zone_uuid`). The confirmed endpoint shape lives in
+  `docs/api-specs/parspack-cdn.openapi.yaml` (see §4.5) and is spelled out in issue #19.
 
 ### 4.2 Authentication (two distinct, unrelated auth layers — do not conflate them)
 
@@ -126,6 +126,21 @@ community, including non-technical end users who only ever interact with it thro
   call, query the provider to check whether the resource already exists. Never assume a "running" job simply
   needs to be replayed from scratch — that can create duplicate resources on the provider side.
 
+### 4.5 Parspack API Surfaces (confirmed)
+
+Parspack exposes **three separate API surfaces**, same host, same Bearer-token auth scheme, different path
+prefixes. Do not assume they share a client config beyond auth — base paths differ:
+
+| Surface | Base URL | Spec file | Phase-1 issue |
+| --- | --- | --- | --- |
+| Cloud Server (VM/network, Abrha-based) | `https://my.parspack.com/cserver` | not committed (see #9's references — cross-check against `github.com/abrhacom/go-api-abrha`) | #9, #10, #11, #12, #13, #14, #15 |
+| CDN (zones, **DNS records live here**, +18 other tags out of phase-1 scope) | `https://my.parspack.com/cdnapi` | `docs/api-specs/parspack-cdn.openapi.yaml` | #19 (in scope), #24 (backlog) |
+| SSL (certificate ordering workflow) | `https://my.parspack.com/sslv2` | `docs/api-specs/parspack-ssl.openapi.yaml` | #18 |
+
+The CDN and SSL OpenAPI spec files were provided directly by the project owner and should be treated as
+authoritative — prefer them over re-deriving endpoint shapes from `docs.parspack.com`, which is a JS-rendered
+SPA that tooling generally cannot scrape.
+
 ## 5. MCP Server Details
 
 - Remote transport: Streamable HTTP, served over Fiber.
@@ -162,6 +177,9 @@ internal/adapters/
     parspack/                  secondary adapter — implements ports.ParspackProvider against the real API
 
 internal/auth/                 Bearer token middleware, sits in front of the mcp primary adapter
+
+docs/api-specs/                OpenAPI specs for external Parspack APIs (see §4.5) — reference material, not
+                                code Claude generates; treat as ground truth for adapter implementation.
 ```
 
 ## 7. Coding Conventions
@@ -193,7 +211,8 @@ internal/auth/                 Bearer token middleware, sits in front of the mcp
 Phase-1 work is tracked entirely as GitHub Issues on this repo (`javadib/do0ps`), not as a separate task list
 anywhere else. Every issue carries three kinds of labels:
 
-- `phase-1` — always present for phase-1 scope.
+- `phase-1` — always present for phase-1 scope. Issues labeled `backlog` instead (e.g. #24) are explicitly
+  post-phase-1 and should not be picked up under this workflow.
 - `area:*` — which part of the system it touches (`area:core`, `area:sqlite`, `area:queue`, `area:auth`,
   `area:mcp`, `area:parspack`, `area:infra`, `area:docs`, `area:research`).
 - `status:*` — current pickup state:
