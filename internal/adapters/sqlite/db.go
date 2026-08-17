@@ -6,6 +6,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	_ "modernc.org/sqlite" // pure-Go driver: keeps builds static, no cgo
 )
@@ -16,6 +18,12 @@ import (
 // concurrent readers and make writers wait briefly instead of failing with
 // SQLITE_BUSY.
 func Open(ctx context.Context, path string) (*sql.DB, error) {
+	if dir := filepath.Dir(path); dir != "." {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, fmt.Errorf("creating database directory %q: %w", dir, err)
+		}
+	}
+
 	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)", path)
 
 	db, err := sql.Open("sqlite", dsn)
