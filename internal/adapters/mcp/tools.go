@@ -52,14 +52,14 @@ func Tools(uc UseCases) []Tool {
 
 type createServerArgs struct {
 	credentialArgs
-	Name     string `json:"name"`
-	Region   string `json:"region"`
-	Image    string `json:"image"`
-	PlanID   string `json:"plan_id"`
-	CPUCores int    `json:"cpu_cores"`
-	RAMMB    int    `json:"ram_mb"`
-	DiskGB   int    `json:"disk_gb"`
-	SSHKeyID string `json:"ssh_key_id"`
+	Name     string   `json:"name"`
+	Region   string   `json:"region"`
+	Image    string   `json:"image"`
+	PlanID   string   `json:"plan_id"`
+	CPUCores int      `json:"cpu_cores"`
+	RAMMB    int      `json:"ram_mb"`
+	DiskGB   int      `json:"disk_gb"`
+	SSHKeys  []string `json:"ssh_keys"`
 }
 
 func createServerTool(uc *app.ProvisionServer) Tool {
@@ -95,9 +95,10 @@ func createServerTool(uc *app.ProvisionServer) Tool {
 		"description": "Disk size in gigabytes, e.g. 40.",
 		"minimum":     10,
 	}
-	props["ssh_key_id"] = map[string]any{
-		"type":        "string",
-		"description": "Identifier of an SSH key already registered with the provider, to be installed on the new server.",
+	props["ssh_keys"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "IDs or fingerprints of SSH keys already registered with the provider, to be installed on the new server.",
 	}
 
 	return Tool{
@@ -125,7 +126,7 @@ func createServerTool(uc *app.ProvisionServer) Tool {
 					CPUCores: args.CPUCores,
 					RAMMB:    args.RAMMB,
 					DiskGB:   args.DiskGB,
-					SSHKeyID: args.SSHKeyID,
+					SSHKeys:  args.SSHKeys,
 				},
 			})
 			if err != nil {
