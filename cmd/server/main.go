@@ -9,6 +9,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -22,25 +23,32 @@ import (
 	"github.com/javadib/do0ps/internal/adapters/sqlite"
 	"github.com/javadib/do0ps/internal/adapters/system"
 	"github.com/javadib/do0ps/internal/auth"
+	"github.com/javadib/do0ps/internal/config"
 	"github.com/javadib/do0ps/internal/core/app"
 	"github.com/javadib/do0ps/internal/core/domain"
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "config error:", err)
+		os.Exit(1)
+	}
+
+	logger, err := config.NewLogger(cfg.LogLevel)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "config error:", err)
+		os.Exit(1)
+	}
 	slog.SetDefault(logger)
 
-	if err := run(logger); err != nil {
+	if err := run(cfg, logger); err != nil {
 		logger.Error("server stopped", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(logger *slog.Logger) error {
-	cfg, err := loadConfig()
-	if err != nil {
-		return err
-	}
+func run(cfg config.Config, logger *slog.Logger) error {
 
 	// Signals bound the whole process: the same context stops the workers and
 	// triggers Fiber's graceful shutdown.
@@ -106,7 +114,7 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 
-	tokens, err := auth.ParseTokens(cfg.Tokens)
+	tokens, err := auth.ParseTokens(cfg.AuthTokens)
 	if err != nil {
 		return err
 	}
