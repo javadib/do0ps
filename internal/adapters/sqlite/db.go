@@ -1,5 +1,3 @@
-// Package sqlite is the secondary adapter that persists job state. It is the
-// only package in the tree allowed to import database/sql.
 package sqlite
 
 import (
@@ -28,12 +26,16 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 	db.SetMaxIdleConns(4)
 
 	if err := db.PingContext(ctx); err != nil {
-		db.Close()
+		if cerr := db.Close(); cerr != nil {
+			return nil, fmt.Errorf("connecting to sqlite database %q: %v; closing db: %w", path, err, cerr)
+		}
 		return nil, fmt.Errorf("connecting to sqlite database %q: %w", path, err)
 	}
 
 	if err := migrate(ctx, db); err != nil {
-		db.Close()
+		if cerr := db.Close(); cerr != nil {
+			return nil, fmt.Errorf("%v; closing db: %w", err, cerr)
+		}
 		return nil, err
 	}
 	return db, nil
