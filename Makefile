@@ -31,5 +31,7 @@ fmt:
 	gofmt -l -w .
 
 # Convenience for installing the exact golangci-lint version CI uses.
+# v2 moved the module to github.com/golangci/golangci-lint/v2; the v1 path
+# does not resolve v2 tags.
 install-tools:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
