@@ -114,6 +114,12 @@ type fakeProvider struct {
 	reloadedMethod   string
 	verifiedMethod   string
 	reissuedCSR      string
+
+	loadBalancers []domain.LoadBalancer
+	createdLB     *domain.LoadBalancer
+	updatedLB     *domain.LoadBalancer
+	deletedLBID   string
+	deleteLBErr   error
 }
 
 func (p *fakeProvider) ListSSLProducts(context.Context, domain.ProviderCredentials) ([]domain.SSLProduct, error) {
