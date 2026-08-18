@@ -16,9 +16,10 @@ import (
 // FindServerByName) live in vms.go, wired to the real cloud-server API
 // (issue #9). SSH key methods live in keys.go (issue #10), firewall methods in
 // firewalls.go (issue #11), load balancer methods in loadbalancers.go
-// (issue #12), and the SSL ordering workflow in ssl.go (issue #18). Everything
-// below remains a stub — issue #19 (CDN zones/DNS) wires these up against the
-// CDN API's own confirmed endpoints.
+// (issue #12), reserved IP methods in reserved_ips.go (issue #13), and the SSL
+// ordering workflow in ssl.go (issue #18). Everything below remains a stub —
+// issue #19 (CDN zones/DNS) wires these up against the CDN API's own confirmed
+// endpoints.
 
 // ListDNSZones returns the domains hosted on the account.
 func (c *Client) ListDNSZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.DNSZone, error) {

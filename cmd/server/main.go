@@ -91,6 +91,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	listServers := app.NewListServers(pool, provider)
 	getServer := app.NewGetServer(pool, provider)
 	deleteServer := app.NewDeleteServer(pool, provider)
+	reserveIP := app.NewReserveIP(pool, provider)
+	releaseIP := app.NewReleaseIP(pool, provider)
+	assignIPToServer := app.NewAssignIPToServer(pool, provider)
+	unassignIP := app.NewUnassignIP(pool, provider)
 	registerSSHKey := app.NewRegisterSSHKey(pool, provider)
 	listSSHKeys := app.NewListSSHKeys(pool, provider)
 	deleteSSHKey := app.NewDeleteSSHKey(pool, provider)
@@ -144,6 +148,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		ListServers:           listServers,
 		GetServer:             getServer,
 		DeleteServer:          deleteServer,
+		ReserveIP:             reserveIP,
+		ReleaseIP:             releaseIP,
+		AssignIPToServer:      assignIPToServer,
+		UnassignIP:            unassignIP,
 		RegisterSSHKey:        registerSSHKey,
 		ListSSHKeys:           listSSHKeys,
 		DeleteSSHKey:          deleteSSHKey,

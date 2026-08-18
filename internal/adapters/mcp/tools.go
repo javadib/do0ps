@@ -21,11 +21,10 @@ type UseCases struct {
 	SetupDNS           *app.SetupDNS
 	GetOperationStatus *app.GetOperationStatus
 
-	CreateFirewall *app.CreateFirewall
-	GetFirewall    *app.GetFirewall
-	ListFirewalls  *app.ListFirewalls
-	UpdateFirewall *app.UpdateFirewall
-	DeleteFirewall *app.DeleteFirewall
+	ReserveIP        *app.ReserveIP
+	ReleaseIP        *app.ReleaseIP
+	AssignIPToServer *app.AssignIPToServer
+	UnassignIP       *app.UnassignIP
 
 	ListSSLProducts       *app.ListSSLProducts
 	CreateSSLOrder        *app.CreateSSLOrder
@@ -35,6 +34,12 @@ type UseCases struct {
 	VerifySSLChallenge    *app.VerifySSLChallenge
 	GetSSLCertificate     *app.GetSSLCertificate
 	ReissueSSLCertificate *app.ReissueSSLCertificate
+
+	CreateFirewall *app.CreateFirewall
+	GetFirewall    *app.GetFirewall
+	ListFirewalls  *app.ListFirewalls
+	UpdateFirewall *app.UpdateFirewall
+	DeleteFirewall *app.DeleteFirewall
 
 	ProvisionLoadBalancer *app.ProvisionLoadBalancer
 	GetLoadBalancer       *app.GetLoadBalancer
@@ -81,11 +86,10 @@ func Tools(uc UseCases) []Tool {
 		deleteSSHKeyTool(uc.DeleteSSHKey),
 		createDNSRecordTool(uc.SetupDNS),
 		getOperationStatusTool(uc.GetOperationStatus),
-		createFirewallTool(uc.CreateFirewall),
-		getFirewallTool(uc.GetFirewall),
-		listFirewallsTool(uc.ListFirewalls),
-		updateFirewallTool(uc.UpdateFirewall),
-		deleteFirewallTool(uc.DeleteFirewall),
+		reserveIPTool(uc.ReserveIP),
+		releaseIPTool(uc.ReleaseIP),
+		assignIPToServerTool(uc.AssignIPToServer),
+		unassignIPTool(uc.UnassignIP),
 		listSSLProductsTool(uc.ListSSLProducts),
 		createSSLOrderTool(uc.CreateSSLOrder),
 		processSSLOrderTool(uc.ProcessSSLOrder),
@@ -94,6 +98,11 @@ func Tools(uc UseCases) []Tool {
 		verifySSLChallengeTool(uc.VerifySSLChallenge),
 		getSSLCertificateTool(uc.GetSSLCertificate),
 		reissueSSLCertificateTool(uc.ReissueSSLCertificate),
+		createFirewallTool(uc.CreateFirewall),
+		getFirewallTool(uc.GetFirewall),
+		listFirewallsTool(uc.ListFirewalls),
+		updateFirewallTool(uc.UpdateFirewall),
+		deleteFirewallTool(uc.DeleteFirewall),
 		createLoadBalancerTool(uc.ProvisionLoadBalancer),
 		getLoadBalancerTool(uc.GetLoadBalancer),
 		listLoadBalancersTool(uc.ListLoadBalancers),
