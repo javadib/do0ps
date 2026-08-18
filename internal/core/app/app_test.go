@@ -132,6 +132,10 @@ func (p *fakeProvider) GetSSLCertificate(context.Context, domain.ProviderCredent
 func (p *fakeProvider) ReissueSSLCertificate(_ context.Context, _ domain.ProviderCredentials, _, csr string) (*domain.SSLCertificate, error) {
 	p.reissuedCSR = csr
 	return p.sslCertificate, nil
+	keys         []domain.SSHKey
+	createdKey   *domain.SSHKey
+	deletedKeyID string
+	keyDeleteErr error
 }
 
 func (p *fakeProvider) ListServers(context.Context, domain.ProviderCredentials) ([]domain.Server, error) {
@@ -163,6 +167,25 @@ func (p *fakeProvider) CreateDNSRecord(_ context.Context, _ domain.ProviderCrede
 	rec.ID = "rec-1"
 	p.created = &rec
 	return &rec, nil
+}
+
+func (p *fakeProvider) CreateSSHKey(_ context.Context, _ domain.ProviderCredentials, key domain.SSHKey) (*domain.SSHKey, error) {
+	key.ID = "key-1"
+	key.Fingerprint = "aa:bb:cc"
+	p.createdKey = &key
+	return &key, nil
+}
+
+func (p *fakeProvider) ListSSHKeys(context.Context, domain.ProviderCredentials) ([]domain.SSHKey, error) {
+	return p.keys, nil
+}
+
+func (p *fakeProvider) DeleteSSHKey(_ context.Context, _ domain.ProviderCredentials, id string) error {
+	if p.keyDeleteErr != nil {
+		return p.keyDeleteErr
+	}
+	p.deletedKeyID = id
+	return nil
 }
 
 func TestSetupDNSResolvesZoneAndCreatesRecord(t *testing.T) {
@@ -347,5 +370,101 @@ func TestDeleteServerTreatsAlreadyGoneAsSuccess(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("Execute: %v, want nil for an already-deleted server", err)
+	}
+}
+
+func TestRegisterSSHKeyReturnsProviderCopy(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewRegisterSSHKey(&inlineQueue{}, provider)
+
+	key, err := uc.Execute(context.Background(), app.RegisterSSHKeyInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		Key:         domain.SSHKey{Name: "laptop", PublicKey: "ssh-ed25519 AAAAC3..."},
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if key.ID != "key-1" || key.Fingerprint != "aa:bb:cc" {
+		t.Errorf("key = %+v, want id key-1 and fingerprint aa:bb:cc", key)
+	}
+	if provider.createdKey.Name != "laptop" {
+		t.Errorf("createdKey.Name = %q, want laptop", provider.createdKey.Name)
+	}
+}
+
+func TestRegisterSSHKeyRequiresNameAndPublicKey(t *testing.T) {
+	uc := app.NewRegisterSSHKey(&inlineQueue{}, &fakeProvider{})
+
+	for name, in := range map[string]app.RegisterSSHKeyInput{
+		"missing name":  {Credentials: domain.ProviderCredentials{APIKey: "k"}, Key: domain.SSHKey{PublicKey: "ssh-ed25519 AAAA"}},
+		"missing key":   {Credentials: domain.ProviderCredentials{APIKey: "k"}, Key: domain.SSHKey{Name: "laptop"}},
+		"missing creds": {Key: domain.SSHKey{Name: "laptop", PublicKey: "ssh-ed25519 AAAA"}},
+	} {
+		if _, err := uc.Execute(context.Background(), in); !errors.Is(err, domain.ErrInvalidInput) {
+			t.Errorf("%s: error = %v, want domain.ErrInvalidInput", name, err)
+		}
+	}
+}
+
+func TestListSSHKeysReturnsProviderResult(t *testing.T) {
+	provider := &fakeProvider{keys: []domain.SSHKey{{ID: "key-1", Name: "laptop"}, {ID: "key-2", Name: "ci-runner"}}}
+	uc := app.NewListSSHKeys(&inlineQueue{}, provider)
+
+	keys, err := uc.Execute(context.Background(), app.ListSSHKeysInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if len(keys) != 2 {
+		t.Fatalf("len(keys) = %d, want 2", len(keys))
+	}
+}
+
+func TestListSSHKeysRequiresCredentials(t *testing.T) {
+	uc := app.NewListSSHKeys(&inlineQueue{}, &fakeProvider{})
+
+	_, err := uc.Execute(context.Background(), app.ListSSHKeysInput{})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+}
+
+func TestDeleteSSHKeyCallsProvider(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewDeleteSSHKey(&inlineQueue{}, provider)
+
+	err := uc.Execute(context.Background(), app.DeleteSSHKeyInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		KeyID:       "key-1",
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if provider.deletedKeyID != "key-1" {
+		t.Errorf("deletedKeyID = %q, want key-1", provider.deletedKeyID)
+	}
+}
+
+func TestDeleteSSHKeyRequiresKeyID(t *testing.T) {
+	uc := app.NewDeleteSSHKey(&inlineQueue{}, &fakeProvider{})
+
+	err := uc.Execute(context.Background(), app.DeleteSSHKeyInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+}
+
+// TestDeleteSSHKeyTreatsAlreadyGoneAsSuccess proves delete_ssh_key can be
+// called more than once safely: a not-found response from the provider is not
+// surfaced as an error.
+func TestDeleteSSHKeyTreatsAlreadyGoneAsSuccess(t *testing.T) {
+	provider := &fakeProvider{keyDeleteErr: fmt.Errorf("SSH key key-1: %w", domain.ErrNotFound)}
+	uc := app.NewDeleteSSHKey(&inlineQueue{}, provider)
+
+	err := uc.Execute(context.Background(), app.DeleteSSHKeyInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		KeyID:       "key-1",
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v, want nil for an already-deleted key", err)
 	}
 }
