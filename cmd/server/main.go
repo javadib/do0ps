@@ -91,7 +91,19 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	listServers := app.NewListServers(pool, provider)
 	getServer := app.NewGetServer(pool, provider)
 	deleteServer := app.NewDeleteServer(pool, provider)
+	registerSSHKey := app.NewRegisterSSHKey(pool, provider)
+	listSSHKeys := app.NewListSSHKeys(pool, provider)
+	deleteSSHKey := app.NewDeleteSSHKey(pool, provider)
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
+
+	listSSLProducts := app.NewListSSLProducts(pool, provider)
+	createSSLOrder := app.NewCreateSSLOrder(pool, provider)
+	processSSLOrder := app.NewProcessSSLOrder(pool, provider)
+	getSSLChallenge := app.NewGetSSLChallenge(pool, provider)
+	reloadSSLChallenge := app.NewReloadSSLChallenge(pool, provider)
+	verifySSLChallenge := app.NewVerifySSLChallenge(pool, provider)
+	getSSLCertificate := app.NewGetSSLCertificate(pool, provider)
+	reissueSSLCertificate := app.NewReissueSSLCertificate(pool, provider)
 	recovery := app.NewRecovery(jobs, clock)
 
 	createCDNZone := app.NewCreateCDNZone(pool, provider)
@@ -104,6 +116,12 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	createDNSRecord := app.NewCreateDNSRecord(pool, provider)
 	updateDNSRecord := app.NewUpdateDNSRecord(pool, provider)
 	deleteDNSRecord := app.NewDeleteDNSRecord(pool, provider)
+
+	createFirewall := app.NewCreateFirewall(pool, provider)
+	getFirewall := app.NewGetFirewall(pool, provider)
+	listFirewalls := app.NewListFirewalls(pool, provider)
+	updateFirewall := app.NewUpdateFirewall(pool, provider)
+	deleteFirewall := app.NewDeleteFirewall(pool, provider)
 
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Start(ctx)
@@ -135,6 +153,25 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		CreateDNSRecord:      createDNSRecord,
 		UpdateDNSRecord:      updateDNSRecord,
 		DeleteDNSRecord:      deleteDNSRecord,
+
+		RegisterSSHKey: registerSSHKey,
+		ListSSHKeys:    listSSHKeys,
+		DeleteSSHKey:   deleteSSHKey,
+
+		CreateFirewall: createFirewall,
+		GetFirewall:    getFirewall,
+		ListFirewalls:  listFirewalls,
+		UpdateFirewall: updateFirewall,
+		DeleteFirewall: deleteFirewall,
+
+		ListSSLProducts:       listSSLProducts,
+		CreateSSLOrder:        createSSLOrder,
+		ProcessSSLOrder:       processSSLOrder,
+		GetSSLChallenge:       getSSLChallenge,
+		ReloadSSLChallenge:    reloadSSLChallenge,
+		VerifySSLChallenge:    verifySSLChallenge,
+		GetSSLCertificate:     getSSLCertificate,
+		ReissueSSLCertificate: reissueSSLCertificate,
 	}), mcp.WithLogger(logger))
 	if err != nil {
 		return err

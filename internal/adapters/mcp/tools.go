@@ -15,6 +15,9 @@ type UseCases struct {
 	ListServers        *app.ListServers
 	GetServer          *app.GetServer
 	DeleteServer       *app.DeleteServer
+	RegisterSSHKey     *app.RegisterSSHKey
+	ListSSHKeys        *app.ListSSHKeys
+	DeleteSSHKey       *app.DeleteSSHKey
 	GetOperationStatus *app.GetOperationStatus
 
 	CreateCDNZone        *app.CreateCDNZone
@@ -27,6 +30,21 @@ type UseCases struct {
 	CreateDNSRecord      *app.CreateDNSRecord
 	UpdateDNSRecord      *app.UpdateDNSRecord
 	DeleteDNSRecord      *app.DeleteDNSRecord
+
+	ListSSLProducts       *app.ListSSLProducts
+	CreateSSLOrder        *app.CreateSSLOrder
+	ProcessSSLOrder       *app.ProcessSSLOrder
+	GetSSLChallenge       *app.GetSSLChallenge
+	ReloadSSLChallenge    *app.ReloadSSLChallenge
+	VerifySSLChallenge    *app.VerifySSLChallenge
+	GetSSLCertificate     *app.GetSSLCertificate
+	ReissueSSLCertificate *app.ReissueSSLCertificate
+
+	CreateFirewall *app.CreateFirewall
+	GetFirewall    *app.GetFirewall
+	ListFirewalls  *app.ListFirewalls
+	UpdateFirewall *app.UpdateFirewall
+	DeleteFirewall *app.DeleteFirewall
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -62,6 +80,9 @@ func Tools(uc UseCases) []Tool {
 		listServersTool(uc.ListServers),
 		getServerTool(uc.GetServer),
 		deleteServerTool(uc.DeleteServer),
+		registerSSHKeyTool(uc.RegisterSSHKey),
+		listSSHKeysTool(uc.ListSSHKeys),
+		deleteSSHKeyTool(uc.DeleteSSHKey),
 		getOperationStatusTool(uc.GetOperationStatus),
 		createCDNZoneTool(uc.CreateCDNZone),
 		listCDNZonesTool(uc.ListCDNZones),
@@ -73,6 +94,19 @@ func Tools(uc UseCases) []Tool {
 		createDNSRecordTool(uc.CreateDNSRecord),
 		updateDNSRecordTool(uc.UpdateDNSRecord),
 		deleteDNSRecordTool(uc.DeleteDNSRecord),
+		listSSLProductsTool(uc.ListSSLProducts),
+		createSSLOrderTool(uc.CreateSSLOrder),
+		processSSLOrderTool(uc.ProcessSSLOrder),
+		getSSLChallengeTool(uc.GetSSLChallenge),
+		reloadSSLChallengeTool(uc.ReloadSSLChallenge),
+		verifySSLChallengeTool(uc.VerifySSLChallenge),
+		getSSLCertificateTool(uc.GetSSLCertificate),
+		reissueSSLCertificateTool(uc.ReissueSSLCertificate),
+		createFirewallTool(uc.CreateFirewall),
+		getFirewallTool(uc.GetFirewall),
+		listFirewallsTool(uc.ListFirewalls),
+		updateFirewallTool(uc.UpdateFirewall),
+		deleteFirewallTool(uc.DeleteFirewall),
 	}
 }
 
@@ -311,92 +345,289 @@ func deleteServerTool(uc *app.DeleteServer) Tool {
 	}
 }
 
-// cdnZoneToMap renders a domain.CDNZone the way every zone-returning tool
-// reports it back to the caller.
-func cdnZoneToMap(zone domain.CDNZone) map[string]any {
-	return map[string]any{
-		"zone_uuid":      zone.UUID,
-		"id":             zone.ID,
-		"domain":         zone.Domain,
-		"status":         zone.Status,
-		"plan":           zone.Plan,
-		"billing_cycle":  zone.BillingCycle,
-		"proxy":          zone.Proxy,
-		"ns_status":      zone.NSStatus,
-		"remaining_days": zone.RemainingDays,
-		"expire_at":      zone.ExpireAt,
-	}
-}
-
-type createCDNZoneArgs struct {
+type registerSSHKeyArgs struct {
 	credentialArgs
-	Domain        string `json:"domain"`
-	Plan          string `json:"plan"`
-	BillingCycle  string `json:"billing_cycle"`
-	PromotionCode string `json:"promotion_code"`
+	Name      string `json:"name"`
+	PublicKey string `json:"public_key"`
 }
 
-func createCDNZoneTool(uc *app.CreateCDNZone) Tool {
+func registerSSHKeyTool(uc *app.RegisterSSHKey) Tool {
 	props := credentialProperties()
-	props["domain"] = map[string]any{
+	props["name"] = map[string]any{
 		"type":        "string",
-		"description": "The domain to onboard onto Parspack's CDN, e.g. \"example.com\".",
+		"description": "Human-readable label for the key, e.g. \"laptop\" or \"ci-runner\". Must be unique within the account.",
 	}
-	props["plan"] = map[string]any{
+	props["public_key"] = map[string]any{
 		"type":        "string",
-		"enum":        []string{"free", "standard", "premium", "professional"},
-		"description": "CDN subscription plan. Use list_cdn_plans to see pricing for each.",
-	}
-	props["billing_cycle"] = map[string]any{
-		"type":        "string",
-		"enum":        []string{"free", "monthly", "quarterly", "semiannually", "annually"},
-		"description": "Billing cycle for the plan, e.g. \"monthly\". Use \"free\" only with the free plan.",
-	}
-	props["promotion_code"] = map[string]any{
-		"type":        "string",
-		"description": "Optional promotion/discount code to apply to the order.",
+		"description": "The public key contents, e.g. \"ssh-ed25519 AAAAC3... user@host\". Sent to the provider as-is.",
 	}
 
 	return Tool{
-		Name: "create_cdn_zone",
-		Description: "Onboard a new domain onto Parspack's CDN (creates a \"zone\"). This is a fast operation: the " +
-			"created zone, including its status, is returned within this call. Default MX and NS records are created " +
-			"automatically. After this call, use get_nameserver_records to learn which nameservers the domain " +
-			"registrar must be pointed at.",
+		Name: "register_ssh_key",
+		Description: "Register an SSH public key with the provider so it can be installed on new servers via " +
+			"create_server's ssh_keys parameter. This is a fast operation: the created key (with its provider id " +
+			"and fingerprint) is returned within this call.",
 		InputSchema: map[string]any{
 			"type":       "object",
 			"properties": props,
-			"required":   []string{"api_key", "domain", "plan", "billing_cycle"},
+			"required":   []string{"api_key", "name", "public_key"},
 		},
 		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args createCDNZoneArgs
+			var args registerSSHKeyArgs
 			if err := decodeArgs(raw, &args); err != nil {
 				return nil, err
 			}
 
-			zone, err := uc.Execute(ctx, app.CreateCDNZoneInput{
+			key, err := uc.Execute(ctx, app.RegisterSSHKeyInput{
 				Credentials: args.domain(),
-				Spec: domain.CDNZoneSpec{
-					Domain:        args.Domain,
-					Plan:          args.Plan,
-					BillingCycle:  args.BillingCycle,
-					PromotionCode: args.PromotionCode,
-				},
+				Key:         domain.SSHKey{Name: args.Name, PublicKey: args.PublicKey},
 			})
 			if err != nil {
 				return nil, err
 			}
-			return cdnZoneToMap(*zone), nil
+			return sshKeyToMap(*key), nil
 		},
 	}
 }
 
-func listCDNZonesTool(uc *app.ListCDNZones) Tool {
+func listSSHKeysTool(uc *app.ListSSHKeys) Tool {
 	props := credentialProperties()
 
 	return Tool{
-		Name: "list_cdn_zones",
-		Description: "List every CDN zone at Parspack visible to the given credentials. This is a fast operation: " +
+		Name: "list_ssh_keys",
+		Description: "List every SSH key registered with the provider for the given credentials. This is a fast " +
+			"operation: the list is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args credentialArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			keys, err := uc.Execute(ctx, app.ListSSHKeysInput{Credentials: args.domain()})
+			if err != nil {
+				return nil, err
+			}
+
+			out := make([]map[string]any, len(keys))
+			for i, key := range keys {
+				out[i] = sshKeyToMap(key)
+			}
+			return map[string]any{"ssh_keys": out}, nil
+		},
+	}
+}
+
+type sshKeyIDArgs struct {
+	credentialArgs
+	KeyID string `json:"key_id"`
+}
+
+func deleteSSHKeyTool(uc *app.DeleteSSHKey) Tool {
+	props := credentialProperties()
+	props["key_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID (or fingerprint) of the key to delete, as returned by register_ssh_key or list_ssh_keys.",
+	}
+
+	return Tool{
+		Name: "delete_ssh_key",
+		Description: "Permanently delete a registered SSH key by its provider ID or fingerprint. This is a fast " +
+			"operation and cannot be undone. Deleting a key that no longer exists is treated as already done rather " +
+			"than an error.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "key_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args sshKeyIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			if err := uc.Execute(ctx, app.DeleteSSHKeyInput{
+				Credentials: args.domain(),
+				KeyID:       args.KeyID,
+			}); err != nil {
+				return nil, err
+			}
+			return map[string]any{"deleted": true, "key_id": args.KeyID}, nil
+		},
+	}
+}
+
+// sshKeyToMap renders a domain.SSHKey the way every key-returning tool reports
+// it back to the caller.
+func sshKeyToMap(key domain.SSHKey) map[string]any {
+	return map[string]any{
+		"id":          key.ID,
+		"name":        key.Name,
+		"fingerprint": key.Fingerprint,
+		"public_key":  key.PublicKey,
+	}
+}
+
+type firewallRuleArgs struct {
+	Protocol  string   `json:"protocol"`
+	PortRange string   `json:"port_range"`
+	Addresses []string `json:"addresses"`
+}
+
+type firewallArgs struct {
+	credentialArgs
+	Name          string             `json:"name"`
+	ServerIDs     []string           `json:"server_ids"`
+	InboundRules  []firewallRuleArgs `json:"inbound_rules"`
+	OutboundRules []firewallRuleArgs `json:"outbound_rules"`
+}
+
+type firewallIDArgs struct {
+	credentialArgs
+	FirewallID string `json:"firewall_id"`
+}
+
+type updateFirewallArgs struct {
+	firewallArgs
+	FirewallID string `json:"firewall_id"`
+}
+
+func (a firewallArgs) firewall() domain.Firewall {
+	fw := domain.Firewall{
+		Name:      a.Name,
+		ServerIDs: a.ServerIDs,
+	}
+	for _, r := range a.InboundRules {
+		fw.InboundRules = append(fw.InboundRules, firewallRuleArgsToDomain(r))
+	}
+	for _, r := range a.OutboundRules {
+		fw.OutboundRules = append(fw.OutboundRules, firewallRuleArgsToDomain(r))
+	}
+	return fw
+}
+
+func firewallRuleArgsToDomain(r firewallRuleArgs) domain.FirewallRule {
+	return domain.FirewallRule{Protocol: r.Protocol, PortRange: r.PortRange, Addresses: r.Addresses}
+}
+
+// firewallRuleProperties is the JSON Schema for one inbound/outbound rule
+// block, shared by create_firewall and update_firewall.
+func firewallRuleProperties() map[string]any {
+	return map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"protocol": map[string]any{
+				"type":        "string",
+				"enum":        []string{"tcp", "udp", "icmp"},
+				"description": "The type of traffic the rule allows: \"tcp\", \"udp\", or \"icmp\".",
+			},
+			"port_range": map[string]any{
+				"type":        "string",
+				"description": "A single port, a range like \"8000-9000\", or \"1-65535\" for all ports. Required for tcp and udp rules, ignored for icmp.",
+			},
+			"addresses": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Source addresses (CIDRs or single IPs) for an inbound rule, or destination addresses for an outbound rule. Omit to mean all addresses.",
+			},
+		},
+		"required": []string{"protocol"},
+	}
+}
+
+func createFirewallTool(uc *app.CreateFirewall) Tool {
+	props := credentialProperties()
+	props["name"] = map[string]any{
+		"type":        "string",
+		"description": "Human-readable firewall name, e.g. \"only-22-80-and-443\".",
+	}
+	props["server_ids"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "IDs of the servers (VMs) the firewall is applied to, as returned by create_server or list_servers. Omit to create the firewall without attaching any server yet.",
+	}
+	props["inbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Inbound rules: traffic allowed INTO the attached servers. Each rule lists its source addresses under \"addresses\".",
+	}
+	props["outbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Outbound rules: traffic allowed OUT of the attached servers. Each rule lists its destination addresses under \"addresses\".",
+	}
+
+	return Tool{
+		Name: "create_firewall",
+		Description: "Create a new rules-based network firewall at Parspack and optionally attach it to servers. This is a " +
+			"fast operation: the created firewall is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "name"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args firewallArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			fw, err := uc.Execute(ctx, app.CreateFirewallInput{
+				Credentials: args.domain(),
+				Firewall:    args.firewall(),
+			})
+			if err != nil {
+				return nil, err
+			}
+			return firewallToMap(*fw), nil
+		},
+	}
+}
+
+func getFirewallTool(uc *app.GetFirewall) Tool {
+	props := credentialProperties()
+	props["firewall_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the firewall to look up, as returned by create_firewall or list_firewalls.",
+	}
+
+	return Tool{
+		Name: "get_firewall",
+		Description: "Get the current state of one firewall at Parspack by its provider ID. This is a fast " +
+			"operation: the result is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "firewall_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args firewallIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			fw, err := uc.Execute(ctx, app.GetFirewallInput{
+				Credentials: args.domain(),
+				FirewallID:  args.FirewallID,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return firewallToMap(*fw), nil
+		},
+	}
+}
+
+func listFirewallsTool(uc *app.ListFirewalls) Tool {
+	props := credentialProperties()
+
+	return Tool{
+		Name: "list_firewalls",
+		Description: "List every firewall at Parspack visible to the given credentials. This is a fast operation: " +
 			"the list is returned within this call.",
 		InputSchema: map[string]any{
 			"type":       "object",
@@ -409,454 +640,134 @@ func listCDNZonesTool(uc *app.ListCDNZones) Tool {
 				return nil, err
 			}
 
-			zones, err := uc.Execute(ctx, app.ListCDNZonesInput{Credentials: args.domain()})
+			firewalls, err := uc.Execute(ctx, app.ListFirewallsInput{Credentials: args.domain()})
 			if err != nil {
 				return nil, err
 			}
 
-			out := make([]map[string]any, len(zones))
-			for i, zone := range zones {
-				out[i] = cdnZoneToMap(zone)
+			out := make([]map[string]any, len(firewalls))
+			for i, fw := range firewalls {
+				out[i] = firewallToMap(fw)
 			}
-			return map[string]any{"zones": out}, nil
+			return map[string]any{"firewalls": out}, nil
 		},
 	}
 }
 
-type zoneUUIDArgs struct {
-	credentialArgs
-	ZoneUUID string `json:"zone_uuid"`
-}
-
-func zoneUUIDProperty() map[string]any {
-	return map[string]any{
-		"type":        "string",
-		"description": "The zone's UUID, as returned by create_cdn_zone or list_cdn_zones.",
-	}
-}
-
-func getCDNZoneTool(uc *app.GetCDNZone) Tool {
+func updateFirewallTool(uc *app.UpdateFirewall) Tool {
 	props := credentialProperties()
-	props["zone_uuid"] = zoneUUIDProperty()
+	props["firewall_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the firewall to update, as returned by create_firewall or list_firewalls.",
+	}
+	props["name"] = map[string]any{
+		"type":        "string",
+		"description": "New human-readable firewall name, e.g. \"only-22-80-and-443\".",
+	}
+	props["server_ids"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "IDs of the servers (VMs) the firewall should be applied to, replacing the previous set.",
+	}
+	props["inbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Inbound rules: traffic allowed INTO the attached servers. Replaces the previous inbound rules. Each rule lists its source addresses under \"addresses\".",
+	}
+	props["outbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Outbound rules: traffic allowed OUT of the attached servers. Replaces the previous outbound rules. Each rule lists its destination addresses under \"addresses\".",
+	}
 
 	return Tool{
-		Name: "get_cdn_zone",
-		Description: "Get the current state of one CDN zone at Parspack by its UUID. This is a fast operation: the " +
-			"result is returned within this call.",
+		Name: "update_firewall",
+		Description: "Replace the configuration of an existing firewall at Parspack (rules, server attachments, and " +
+			"name). This is a fast operation: the updated firewall is returned within this call.",
 		InputSchema: map[string]any{
 			"type":       "object",
 			"properties": props,
-			"required":   []string{"api_key", "zone_uuid"},
+			"required":   []string{"api_key", "firewall_id"},
 		},
 		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args zoneUUIDArgs
+			var args updateFirewallArgs
 			if err := decodeArgs(raw, &args); err != nil {
 				return nil, err
 			}
 
-			zone, err := uc.Execute(ctx, app.GetCDNZoneInput{Credentials: args.domain(), ZoneUUID: args.ZoneUUID})
-			if err != nil {
-				return nil, err
-			}
-			return cdnZoneToMap(*zone), nil
-		},
-	}
-}
-
-func deleteCDNZoneTool(uc *app.DeleteCDNZone) Tool {
-	props := credentialProperties()
-	props["zone_uuid"] = zoneUUIDProperty()
-
-	return Tool{
-		Name: "delete_cdn_zone",
-		Description: "Permanently remove a domain from Parspack's CDN by its zone UUID. This is a fast operation " +
-			"and cannot be undone. Deleting a zone that no longer exists is treated as already done rather than an " +
-			"error.",
-		InputSchema: map[string]any{
-			"type":       "object",
-			"properties": props,
-			"required":   []string{"api_key", "zone_uuid"},
-		},
-		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args zoneUUIDArgs
-			if err := decodeArgs(raw, &args); err != nil {
-				return nil, err
-			}
-
-			if err := uc.Execute(ctx, app.DeleteCDNZoneInput{Credentials: args.domain(), ZoneUUID: args.ZoneUUID}); err != nil {
-				return nil, err
-			}
-			return map[string]any{"deleted": true, "zone_uuid": args.ZoneUUID}, nil
-		},
-	}
-}
-
-func listCDNZonePlansTool(uc *app.ListCDNZonePlans) Tool {
-	props := credentialProperties()
-
-	return Tool{
-		Name: "list_cdn_plans",
-		Description: "List the CDN subscription plans Parspack offers and their pricing per billing cycle. Use this " +
-			"before create_cdn_zone to help the user pick a plan. This is a fast operation.",
-		InputSchema: map[string]any{
-			"type":       "object",
-			"properties": props,
-			"required":   []string{"api_key"},
-		},
-		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args credentialArgs
-			if err := decodeArgs(raw, &args); err != nil {
-				return nil, err
-			}
-
-			plans, err := uc.Execute(ctx, app.ListCDNZonePlansInput{Credentials: args.domain()})
-			if err != nil {
-				return nil, err
-			}
-
-			out := make([]map[string]any, len(plans))
-			for i, p := range plans {
-				out[i] = map[string]any{
-					"plan":         p.Plan,
-					"currency":     p.Currency,
-					"monthly":      p.Monthly,
-					"quarterly":    p.Quarterly,
-					"semiannually": p.Semiannually,
-					"annually":     p.Annually,
-				}
-			}
-			return map[string]any{"plans": out}, nil
-		},
-	}
-}
-
-func getNameserverRecordsTool(uc *app.GetNameserverRecords) Tool {
-	props := credentialProperties()
-	props["zone_uuid"] = zoneUUIDProperty()
-
-	return Tool{
-		Name: "get_nameserver_records",
-		Description: "Get the nameservers a CDN zone's domain registrar must be pointed at, plus (when known) the " +
-			"nameservers currently configured there. This is a fast operation.",
-		InputSchema: map[string]any{
-			"type":       "object",
-			"properties": props,
-			"required":   []string{"api_key", "zone_uuid"},
-		},
-		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args zoneUUIDArgs
-			if err := decodeArgs(raw, &args); err != nil {
-				return nil, err
-			}
-
-			ns, err := uc.Execute(ctx, app.GetNameserverRecordsInput{Credentials: args.domain(), ZoneUUID: args.ZoneUUID})
-			if err != nil {
-				return nil, err
-			}
-			return map[string]any{
-				"ns1": ns.NS1, "ns2": ns.NS2, "ns3": ns.NS3, "ns4": ns.NS4,
-				"current_ns": ns.CurrentNS,
-			}, nil
-		},
-	}
-}
-
-// dnsRecordValueProperties are the fields of a single DNS record value,
-// shared by create_dns_record and update_dns_record: content is always
-// required, the rest are only meaningful for specific record types.
-func dnsRecordValueProperties(props map[string]any) {
-	props["content"] = map[string]any{
-		"type":        "string",
-		"description": "Record value: an IPv4 address for A, a hostname for CNAME/MX/NS, arbitrary text for TXT.",
-	}
-	props["port"] = map[string]any{
-		"type":        "integer",
-		"description": "Target port. Only meaningful for SRV records, e.g. 5060.",
-	}
-	props["weight"] = map[string]any{
-		"type":        "integer",
-		"description": "Relative weight among records with the same priority. Only meaningful for SRV records.",
-	}
-	props["priority"] = map[string]any{
-		"type":        "integer",
-		"description": "Priority, lower is preferred. Only meaningful for MX and SRV records, e.g. 10.",
-	}
-	props["flags"] = map[string]any{
-		"type":        "integer",
-		"description": "CAA flags. Only meaningful for CAA records; the provider currently only accepts 0.",
-	}
-	props["tag"] = map[string]any{
-		"type":        "string",
-		"enum":        []string{"issue", "issuewild", "iodef"},
-		"description": "CAA tag naming what the value authorizes. Only meaningful for CAA records.",
-	}
-}
-
-func dnsRecordTypeAndTTLProperties(props map[string]any) {
-	props["type"] = map[string]any{
-		"type":        "string",
-		"enum":        []string{"A", "CNAME", "MX", "TXT", "NS", "SRV", "CAA"},
-		"description": "DNS record type, e.g. \"A\" for an IPv4 address.",
-	}
-	props["ttl"] = map[string]any{
-		"type": "integer",
-		"description": "Time to live in seconds, e.g. 3600 for one hour. Must be one of Parspack's supported " +
-			"values (1, 5, 30, 60, 300, 3600, 86400, ...) — an arbitrary value is rejected.",
-		"enum": []int{1, 2, 5, 10, 30, 60, 180, 300, 600, 900, 1800, 2700, 3600,
-			10800, 18000, 36000, 43200, 86400, 259200, 604800, 864000, 1296000, 2592000},
-	}
-	props["proxy"] = map[string]any{
-		"type":        "string",
-		"enum":        []string{"direct", "cdn-no-caching", "cdn-static-caching", "cdn-smart-caching", "cdn-always-caching"},
-		"description": "CDN proxy mode for the record. Use \"direct\" to bypass the CDN and resolve straight to content.",
-	}
-}
-
-// dnsRecordArgs is shared by create_dns_record and update_dns_record: both
-// take a zone-scoped host+type plus exactly one value.
-type dnsRecordArgs struct {
-	credentialArgs
-	ZoneUUID string `json:"zone_uuid"`
-	Host     string `json:"host"`
-	Type     string `json:"type"`
-	TTL      int    `json:"ttl"`
-	Proxy    string `json:"proxy"`
-	Content  string `json:"content"`
-	Port     int    `json:"port"`
-	Weight   int    `json:"weight"`
-	Priority int    `json:"priority"`
-	Flags    int    `json:"flags"`
-	Tag      string `json:"tag"`
-}
-
-func (a dnsRecordArgs) toDomainRecord() (domain.DNSRecord, error) {
-	recordType, err := domain.ParseDNSRecordType(a.Type)
-	if err != nil {
-		return domain.DNSRecord{}, fmt.Errorf("record type %q is not supported: %w", a.Type, err)
-	}
-	proxy, err := domain.ParseDNSRecordProxy(a.Proxy)
-	if err != nil {
-		return domain.DNSRecord{}, fmt.Errorf("proxy mode %q is not supported: %w", a.Proxy, err)
-	}
-
-	return domain.DNSRecord{
-		ZoneUUID: a.ZoneUUID,
-		Host:     a.Host,
-		Type:     recordType,
-		TTL:      a.TTL,
-		Proxy:    proxy,
-		Values: []domain.DNSRecordValue{{
-			Content: a.Content, Port: a.Port, Weight: a.Weight, Priority: a.Priority, Flags: a.Flags, Tag: a.Tag,
-		}},
-	}, nil
-}
-
-// dnsRecordToMap renders a domain.DNSRecord (with its first value, the
-// common case of one value per host+type) the way create/update_dns_record
-// report it back to the caller.
-func dnsRecordToMap(rec domain.DNSRecord) map[string]any {
-	out := map[string]any{
-		"zone_uuid": rec.ZoneUUID,
-		"host":      rec.Host,
-		"type":      rec.Type.String(),
-		"ttl":       rec.TTL,
-		"proxy":     rec.Proxy.String(),
-	}
-	if len(rec.Values) > 0 {
-		out["content"] = rec.Values[0].Content
-		out["priority"] = rec.Values[0].Priority
-	}
-	return out
-}
-
-func listDNSRecordsTool(uc *app.ListDNSRecords) Tool {
-	props := credentialProperties()
-	props["zone_uuid"] = zoneUUIDProperty()
-
-	return Tool{
-		Name: "list_dns_records",
-		Description: "List every DNS record of a Parspack CDN zone. Records are grouped by host and type: a single " +
-			"entry's values array can hold more than one value, e.g. multiple NS records for the zone apex. This is " +
-			"a fast operation.",
-		InputSchema: map[string]any{
-			"type":       "object",
-			"properties": props,
-			"required":   []string{"api_key", "zone_uuid"},
-		},
-		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args zoneUUIDArgs
-			if err := decodeArgs(raw, &args); err != nil {
-				return nil, err
-			}
-
-			records, err := uc.Execute(ctx, app.ListDNSRecordsInput{Credentials: args.domain(), ZoneUUID: args.ZoneUUID})
-			if err != nil {
-				return nil, err
-			}
-
-			out := make([]map[string]any, len(records))
-			for i, rec := range records {
-				values := make([]map[string]any, len(rec.Values))
-				for j, v := range rec.Values {
-					values[j] = map[string]any{
-						"content": v.Content, "port": v.Port, "weight": v.Weight,
-						"priority": v.Priority, "flags": v.Flags, "tag": v.Tag,
-					}
-				}
-				out[i] = map[string]any{
-					"host": rec.Host, "type": rec.Type.String(), "ttl": rec.TTL,
-					"proxy": rec.Proxy.String(), "values": values,
-				}
-			}
-			return map[string]any{"zone_uuid": args.ZoneUUID, "records": out}, nil
-		},
-	}
-}
-
-func createDNSRecordTool(uc *app.CreateDNSRecord) Tool {
-	props := credentialProperties()
-	props["zone_uuid"] = zoneUUIDProperty()
-	props["host"] = map[string]any{
-		"type":        "string",
-		"description": "Record host relative to the zone, e.g. \"api\" for api.example.com. Use \"@\" for the zone apex.",
-	}
-	dnsRecordTypeAndTTLProperties(props)
-	dnsRecordValueProperties(props)
-
-	return Tool{
-		Name: "create_dns_record",
-		Description: "Create a DNS record in a Parspack CDN zone. This is a fast operation: the created record is " +
-			"returned within this call. Creating a record with the same host and type as an existing one appends a " +
-			"new value instead of erroring, e.g. to add a second NS record for the same host.",
-		InputSchema: map[string]any{
-			"type":       "object",
-			"properties": props,
-			"required":   []string{"api_key", "zone_uuid", "host", "type", "ttl", "proxy", "content"},
-		},
-		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args dnsRecordArgs
-			if err := decodeArgs(raw, &args); err != nil {
-				return nil, err
-			}
-			rec, err := args.toDomainRecord()
-			if err != nil {
-				return nil, err
-			}
-
-			created, err := uc.Execute(ctx, app.CreateDNSRecordInput{
+			fw, err := uc.Execute(ctx, app.UpdateFirewallInput{
 				Credentials: args.domain(),
-				ZoneUUID:    args.ZoneUUID,
-				Record:      rec,
+				FirewallID:  args.FirewallID,
+				Firewall:    args.firewall(),
 			})
 			if err != nil {
 				return nil, err
 			}
-			return dnsRecordToMap(*created), nil
+			return firewallToMap(*fw), nil
 		},
 	}
 }
 
-func updateDNSRecordTool(uc *app.UpdateDNSRecord) Tool {
+func deleteFirewallTool(uc *app.DeleteFirewall) Tool {
 	props := credentialProperties()
-	props["zone_uuid"] = zoneUUIDProperty()
-	props["host"] = map[string]any{
+	props["firewall_id"] = map[string]any{
 		"type":        "string",
-		"description": "Host of the existing record to update, e.g. \"api\". Use \"@\" for the zone apex.",
-	}
-	dnsRecordTypeAndTTLProperties(props)
-	dnsRecordValueProperties(props)
-
-	return Tool{
-		Name: "update_dns_record",
-		Description: "Update an existing DNS record (matched by zone, host and type) in a Parspack CDN zone: TTL, " +
-			"proxy mode and value can change, but this cannot add or remove values under that host and type. This " +
-			"is a fast operation.",
-		InputSchema: map[string]any{
-			"type":       "object",
-			"properties": props,
-			"required":   []string{"api_key", "zone_uuid", "host", "type", "ttl", "proxy", "content"},
-		},
-		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args dnsRecordArgs
-			if err := decodeArgs(raw, &args); err != nil {
-				return nil, err
-			}
-			rec, err := args.toDomainRecord()
-			if err != nil {
-				return nil, err
-			}
-
-			updated, err := uc.Execute(ctx, app.UpdateDNSRecordInput{
-				Credentials: args.domain(),
-				ZoneUUID:    args.ZoneUUID,
-				Record:      rec,
-			})
-			if err != nil {
-				return nil, err
-			}
-			return dnsRecordToMap(*updated), nil
-		},
-	}
-}
-
-type deleteDNSRecordArgs struct {
-	credentialArgs
-	ZoneUUID string `json:"zone_uuid"`
-	Host     string `json:"host"`
-	Type     string `json:"type"`
-	Content  string `json:"content"`
-}
-
-func deleteDNSRecordTool(uc *app.DeleteDNSRecord) Tool {
-	props := credentialProperties()
-	props["zone_uuid"] = zoneUUIDProperty()
-	props["host"] = map[string]any{
-		"type":        "string",
-		"description": "Host of the record to delete, e.g. \"api\". Use \"@\" for the zone apex.",
-	}
-	props["type"] = map[string]any{
-		"type":        "string",
-		"enum":        []string{"A", "CNAME", "MX", "TXT", "NS", "SRV", "CAA"},
-		"description": "Type of the record to delete.",
-	}
-	props["content"] = map[string]any{
-		"type": "string",
-		"description": "The specific value to remove, e.g. \"1.2.3.4\" for one A record among several under the " +
-			"same host. Omit to delete every value under this host and type.",
+		"description": "The provider ID of the firewall to delete, as returned by create_firewall or list_firewalls.",
 	}
 
 	return Tool{
-		Name: "delete_dns_record",
-		Description: "Delete a DNS record (or one value of it) from a Parspack CDN zone by host and type. This is a " +
-			"fast operation and cannot be undone. Deleting a record that no longer exists is treated as already " +
-			"done rather than an error.",
+		Name: "delete_firewall",
+		Description: "Permanently delete a firewall at Parspack by its provider ID. This is a fast operation and " +
+			"cannot be undone. Deleting a firewall that no longer exists is treated as already done rather than an error.",
 		InputSchema: map[string]any{
 			"type":       "object",
 			"properties": props,
-			"required":   []string{"api_key", "zone_uuid", "host", "type"},
+			"required":   []string{"api_key", "firewall_id"},
 		},
 		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args deleteDNSRecordArgs
+			var args firewallIDArgs
 			if err := decodeArgs(raw, &args); err != nil {
 				return nil, err
 			}
 
-			recordType, err := domain.ParseDNSRecordType(args.Type)
-			if err != nil {
-				return nil, fmt.Errorf("record type %q is not supported: %w", args.Type, err)
-			}
-
-			if err := uc.Execute(ctx, app.DeleteDNSRecordInput{
+			if err := uc.Execute(ctx, app.DeleteFirewallInput{
 				Credentials: args.domain(),
-				ZoneUUID:    args.ZoneUUID,
-				Host:        args.Host,
-				Type:        recordType,
-				Content:     args.Content,
+				FirewallID:  args.FirewallID,
 			}); err != nil {
 				return nil, err
 			}
-			return map[string]any{"deleted": true, "zone_uuid": args.ZoneUUID, "host": args.Host, "type": args.Type}, nil
+			return map[string]any{"deleted": true, "firewall_id": args.FirewallID}, nil
 		},
+	}
+}
+
+// firewallToMap renders a domain.Firewall the way every firewall-returning
+// tool reports it back to the caller.
+func firewallToMap(fw domain.Firewall) map[string]any {
+	inbound := make([]map[string]any, len(fw.InboundRules))
+	for i, r := range fw.InboundRules {
+		inbound[i] = firewallRuleToMap(r)
+	}
+	outbound := make([]map[string]any, len(fw.OutboundRules))
+	for i, r := range fw.OutboundRules {
+		outbound[i] = firewallRuleToMap(r)
+	}
+	return map[string]any{
+		"id":             fw.ID,
+		"name":           fw.Name,
+		"status":         fw.Status,
+		"server_ids":     fw.ServerIDs,
+		"inbound_rules":  inbound,
+		"outbound_rules": outbound,
+		"created_at":     fw.CreatedAt,
+	}
+}
+
+func firewallRuleToMap(r domain.FirewallRule) map[string]any {
+	return map[string]any{
+		"protocol":   r.Protocol,
+		"port_range": r.PortRange,
+		"addresses":  r.Addresses,
 	}
 }
 

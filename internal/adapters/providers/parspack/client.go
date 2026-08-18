@@ -25,12 +25,9 @@ import (
 const (
 	defaultBaseURL    = "https://my.parspack.com/cserver"
 	defaultCDNBaseURL = "https://my.parspack.com/cdnapi"
+	defaultSSLBaseURL = "https://my.parspack.com/sslv2"
 	defaultTimeout    = 30 * time.Second
 )
-
-// errNotImplemented marks provider methods not yet wired to a real endpoint,
-// so a missing piece fails loudly instead of silently returning zero values.
-var errNotImplemented = errors.New("parspack endpoint not implemented yet")
 
 // errEmptyResponse means the provider returned 2xx with no resource in the
 // body where one was expected.
@@ -40,14 +37,13 @@ var errEmptyResponse = errors.New("parspack returned an empty response body")
 // receives the caller's credentials, which belong to the chatbot session
 // (AGENTS.md 4.2).
 //
-// Parspack exposes distinct API surfaces on the same host but different path
-// prefixes (AGENTS.md 4.5): baseURL is the cloud-server surface ("/cserver",
-// VM lifecycle, SSH keys), cdnBaseURL is the CDN surface ("/cdnapi", CDN zone
-// management and DNS records, issue #19). They share nothing but the auth
+// Parspack exposes three distinct API surfaces on the same host under
+// different path prefixes (AGENTS.md 4.5). They share nothing but the auth
 // scheme, so each gets its own base URL rather than one shared config.
 type Client struct {
-	baseURL    string
-	cdnBaseURL string
+	baseURL    string // cloud-server surface, e.g. .../cserver
+	cdnBaseURL string // CDN surface (zones and DNS records), e.g. .../cdnapi
+	sslBaseURL string // SSL ordering surface, e.g. .../sslv2
 	http       *http.Client
 }
 
@@ -80,6 +76,18 @@ func WithCDNBaseURL(u string) Option {
 	}
 }
 
+// WithSSLBaseURL overrides the SSL ordering API root, mainly for tests
+// against a fake server.
+func WithSSLBaseURL(u string) Option {
+	return func(c *Client) error {
+		if u == "" {
+			return errors.New("SSL base URL must not be empty")
+		}
+		c.sslBaseURL = u
+		return nil
+	}
+}
+
 // WithHTTPClient injects a preconfigured HTTP client.
 func WithHTTPClient(h *http.Client) Option {
 	return func(c *Client) error {
@@ -107,6 +115,7 @@ func New(opts ...Option) (*Client, error) {
 	c := &Client{
 		baseURL:    defaultBaseURL,
 		cdnBaseURL: defaultCDNBaseURL,
+		sslBaseURL: defaultSSLBaseURL,
 		http:       &http.Client{Timeout: defaultTimeout},
 	}
 	for _, opt := range opts {
@@ -130,7 +139,14 @@ type errorResponse struct {
 // errors ports callers are expected to check with errors.Is (AGENTS.md 4.2,
 // 4.4).
 func (c *Client) doJSON(ctx context.Context, creds domain.ProviderCredentials, method, path string, body, out any) error {
-	return c.doJSONAt(ctx, creds, c.baseURL, method, path, body, out)
+	return c.doJSONBase(ctx, creds, c.baseURL, method, path, body, out)
+}
+
+// doJSONSSL is doJSON against the SSL ordering surface instead of the
+// cloud-server one — same auth and error-mapping, different base URL
+// (AGENTS.md 4.5).
+func (c *Client) doJSONSSL(ctx context.Context, creds domain.ProviderCredentials, method, path string, body, out any) error {
+	return c.doJSONBase(ctx, creds, c.sslBaseURL, method, path, body, out)
 }
 
 // cdnEnvelope is the {"success","message","data"} response shape every CDN
@@ -147,7 +163,7 @@ type cdnEnvelope struct {
 // envelope. It unwraps the envelope's "data" field into out.
 func (c *Client) doCDNJSON(ctx context.Context, creds domain.ProviderCredentials, method, path string, body, out any) error {
 	var env cdnEnvelope
-	if err := c.doJSONAt(ctx, creds, c.cdnBaseURL, method, path, body, &env); err != nil {
+	if err := c.doJSONBase(ctx, creds, c.cdnBaseURL, method, path, body, &env); err != nil {
 		return err
 	}
 	if out == nil || len(env.Data) == 0 {
@@ -159,10 +175,10 @@ func (c *Client) doCDNJSON(ctx context.Context, creds domain.ProviderCredentials
 	return nil
 }
 
-// doJSONAt is the shared transport doJSON and doCDNJSON build on, targeting
-// an explicit base URL since Parspack's API surfaces share a host but not a
-// path prefix (AGENTS.md 4.5).
-func (c *Client) doJSONAt(ctx context.Context, creds domain.ProviderCredentials, baseURL, method, path string, body, out any) error {
+// doJSONBase is the shared transport doJSON, doJSONSSL and doCDNJSON build
+// on, targeting an explicit base URL since Parspack's API surfaces share a
+// host but not a path prefix (AGENTS.md 4.5).
+func (c *Client) doJSONBase(ctx context.Context, creds domain.ProviderCredentials, baseURL, method, path string, body, out any) error {
 	var reqBody io.Reader
 	if body != nil {
 		encoded, err := json.Marshal(body)
@@ -215,8 +231,14 @@ const statusFailedDependency = 424
 
 // mapErrorResponse turns a non-2xx HTTP response into one of the sentinel
 // domain errors, per the status codes AGENTS.md 4.5 confirms for the
-// cloud-server API (200/400/401/404/500) and the CDN API additionally
-// confirms (403/422/424, docs/api-specs/cdn-api.openapi).
+// cloud-server API (200/400/401/404/500), plus the 422 and 424 the CDN API
+// additionally confirms (docs/api-specs/cdn-api.openapi).
+//
+// Statuses outside that set (403, 409, ...) carry surface-specific meaning
+// that differs between surfaces — e.g. the SSL API's 403 means "order not in
+// the right state", not "bad credentials" — so they fall through to a plain
+// wrapped error with the provider's message rather than being forced onto a
+// sentinel that would mislead callers checking it with errors.Is.
 func mapErrorResponse(method, path string, status int, body []byte) error {
 	var parsed errorResponse
 	message := ""
@@ -228,7 +250,7 @@ func mapErrorResponse(method, path string, status int, body []byte) error {
 	}
 
 	switch {
-	case status == http.StatusUnauthorized || status == http.StatusForbidden:
+	case status == http.StatusUnauthorized:
 		return fmt.Errorf("%s %s: %s: %w", method, path, message, domain.ErrInvalidCredentials)
 	case status == http.StatusNotFound:
 		return fmt.Errorf("%s %s: %s: %w", method, path, message, domain.ErrNotFound)
@@ -237,6 +259,6 @@ func mapErrorResponse(method, path string, status int, body []byte) error {
 	case status == statusFailedDependency || status >= 500:
 		return fmt.Errorf("%s %s: %s: %w", method, path, message, domain.ErrProviderUnavailable)
 	default:
-		return fmt.Errorf("%s %s: unexpected status %d: %s", method, path, status, message)
+		return fmt.Errorf("%s %s: status %d: %s", method, path, status, message)
 	}
 }
