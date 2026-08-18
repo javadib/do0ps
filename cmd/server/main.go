@@ -91,6 +91,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	listServers := app.NewListServers(pool, provider)
 	getServer := app.NewGetServer(pool, provider)
 	deleteServer := app.NewDeleteServer(pool, provider)
+	reserveIP := app.NewReserveIP(pool, provider)
+	releaseIP := app.NewReleaseIP(pool, provider)
+	assignIPToServer := app.NewAssignIPToServer(pool, provider)
+	unassignIP := app.NewUnassignIP(pool, provider)
 	setupDNS := app.NewSetupDNS(pool, provider)
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
 	recovery := app.NewRecovery(jobs, clock)
@@ -113,6 +117,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		ListServers:        listServers,
 		GetServer:          getServer,
 		DeleteServer:       deleteServer,
+		ReserveIP:          reserveIP,
+		ReleaseIP:          releaseIP,
+		AssignIPToServer:   assignIPToServer,
+		UnassignIP:         unassignIP,
 		SetupDNS:           setupDNS,
 		GetOperationStatus: operationStatus,
 	}), mcp.WithLogger(logger))

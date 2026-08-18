@@ -95,6 +95,19 @@ type ParspackProvider interface {
 	// silently, so callers decide for themselves whether that counts as done.
 	DeleteSSHKey(ctx context.Context, creds domain.ProviderCredentials, id string) error
 
+	// Reserved IP management. All fast operations. A Reserved IP exists
+	// independently of any server (the two-resource split of
+	// terraform-provider-abrha's "reserved_ip" and "reserved_ip_assignment"):
+	// AssignIPToServer/UnassignIP only attach or detach it, they never create
+	// or destroy the address itself.
+	ReserveIP(ctx context.Context, creds domain.ProviderCredentials, region string) (*domain.ReservedIP, error)
+	// ReleaseIP removes a reserved IP. As with DeleteServer, an already-absent
+	// address reports domain.ErrNotFound so callers decide whether to treat a
+	// repeat release as already done.
+	ReleaseIP(ctx context.Context, creds domain.ProviderCredentials, ip string) error
+	AssignIPToServer(ctx context.Context, creds domain.ProviderCredentials, ip, serverID string) (*domain.ReservedIP, error)
+	UnassignIP(ctx context.Context, creds domain.ProviderCredentials, ip string) (*domain.ReservedIP, error)
+
 	ListDNSZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.DNSZone, error)
 	ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneID string) ([]domain.DNSRecord, error)
 	CreateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, rec domain.DNSRecord) (*domain.DNSRecord, error)
