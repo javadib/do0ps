@@ -7,9 +7,16 @@ package parspack
 //
 // VM lifecycle methods (CreateServer, GetServer, ListServers, DeleteServer,
 // FindServerByName) live in vms.go, wired to the real cloud-server API
-// (issue #9). SSH key methods (CreateSSHKey, ListSSHKeys, DeleteSSHKey) live
-// in keys.go (issue #10). Everything below remains a stub — issue #19 (CDN
-// zones/DNS) wires these up against its own confirmed endpoints.
+// (issue #9). Firewall methods (CreateFirewall, GetFirewall, ListFirewalls,
+// UpdateFirewall, DeleteFirewall) live in firewalls.go, wired to the same
+// cloud-server API (issue #11). Everything below remains a stub — issues #10
+// (SSH keys) and #19 (CDN zones/DNS) wire these up against their own confirmed
+// endpoints.
+
+// CreateSSHKey registers a public key with the provider.
+func (c *Client) CreateSSHKey(ctx context.Context, creds domain.ProviderCredentials, key domain.SSHKey) (*domain.SSHKey, error) {
+	return nil, fmt.Errorf("create SSH key %q: %w", key.Name, errNotImplemented)
+}
 
 import (
 	"context"

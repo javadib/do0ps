@@ -107,6 +107,12 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	reissueSSLCertificate := app.NewReissueSSLCertificate(pool, provider)
 	recovery := app.NewRecovery(jobs, clock)
 
+	createFirewall := app.NewCreateFirewall(pool, provider)
+	getFirewall := app.NewGetFirewall(pool, provider)
+	listFirewalls := app.NewListFirewalls(pool, provider)
+	updateFirewall := app.NewUpdateFirewall(pool, provider)
+	deleteFirewall := app.NewDeleteFirewall(pool, provider)
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Start(ctx)
 
@@ -130,15 +136,11 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		DeleteSSHKey:       deleteSSHKey,
 		SetupDNS:           setupDNS,
 		GetOperationStatus: operationStatus,
-
-		ListSSLProducts:       listSSLProducts,
-		CreateSSLOrder:        createSSLOrder,
-		ProcessSSLOrder:       processSSLOrder,
-		GetSSLChallenge:       getSSLChallenge,
-		ReloadSSLChallenge:    reloadSSLChallenge,
-		VerifySSLChallenge:    verifySSLChallenge,
-		GetSSLCertificate:     getSSLCertificate,
-		ReissueSSLCertificate: reissueSSLCertificate,
+		CreateFirewall:     createFirewall,
+		GetFirewall:        getFirewall,
+		ListFirewalls:      listFirewalls,
+		UpdateFirewall:     updateFirewall,
+		DeleteFirewall:     deleteFirewall,
 	}), mcp.WithLogger(logger))
 	if err != nil {
 		return err
