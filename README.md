@@ -115,7 +115,7 @@ Once connected, the assistant has tools covering (Parspack, phase 1):
 
 - **VM / cloud server lifecycle** -- create, list, get, delete
 - **VPC** -- create, list, get, delete
-- **Firewalls** -- create, list, get, delete
+- **Firewalls** -- create, list, get, update, delete
 - **Load balancers** -- create, list, get, update, delete
 - **Reserved IPs** -- reserve, release, assign to/unassign from a server
 - **SSH keys** -- register, list, delete
