@@ -60,6 +60,8 @@ type JobType string
 const (
 	JobTypeProvisionServer       JobType = "provision_server"
 	JobTypeProvisionLoadBalancer JobType = "provision_load_balancer"
+	JobTypeCreateSnapshot        JobType = "create_snapshot"
+	JobTypeRestoreVM             JobType = "restore_vm"
 )
 
 // InterruptedReason marks a job whose in-process execution was lost to a

@@ -94,7 +94,30 @@ func (uc *GetOperationStatus) reconcile(ctx context.Context, job *domain.Job, cr
 			return json.Marshal(lb)
 		}
 
+	case domain.JobTypeCreateSnapshot:
+		var payload createSnapshotPayload
+		if err := json.Unmarshal(job.Payload, &payload); err != nil {
+			return fmt.Errorf("decoding payload of operation %s: %w", job.ID, err)
+		}
+		resourceName = payload.Name
+		failReason = "interrupted by process restart before the snapshot was created; the request can be safely retried"
+		finder = func(ctx context.Context, creds domain.ProviderCredentials, name string) (json.RawMessage, error) {
+			// Snapshots are not addressable by name alone — the provider lists
+			// them per account — so the server they belong to disambiguates.
+			snaps, err := uc.provider.ListVMSnapshots(ctx, creds)
+			if err != nil {
+				return nil, err
+			}
+			found, err := findSnapshotByServerAndName(snaps, payload.ServerID, name)
+			if err != nil {
+				return nil, err
+			}
+			return json.Marshal(found)
+		}
+
 	default:
+		// Restore converges on the same state when replayed, so an interrupted
+		// restore needs no reconciliation; nothing else is interrupted here.
 		return nil
 	}
 
@@ -122,4 +145,15 @@ func (uc *GetOperationStatus) reconcile(ctx context.Context, job *domain.Job, cr
 		return fmt.Errorf("persisting reconciled operation %s: %w", job.ID, err)
 	}
 	return nil
+}
+
+// findSnapshotByServerAndName returns the snapshot matching both the server it
+// was taken from and its name, or domain.ErrNotFound.
+func findSnapshotByServerAndName(snapshots []domain.VMSnapshot, serverID, name string) (*domain.VMSnapshot, error) {
+	for i := range snapshots {
+		if snapshots[i].ServerID == serverID && snapshots[i].Name == name {
+			return &snapshots[i], nil
+		}
+	}
+	return nil, fmt.Errorf("snapshot %q of server %s: %w", name, serverID, domain.ErrNotFound)
 }
