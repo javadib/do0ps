@@ -11,41 +11,11 @@ import (
 // for exactly two things: calling the right endpoint, and translating the
 // provider's payload into the domain types. Provider-specific JSON shapes stay
 // in this package — nothing above the adapter boundary should ever see them.
-
-// CreateServer provisions a compute instance.
-func (c *Client) CreateServer(ctx context.Context, creds domain.ProviderCredentials, spec domain.ServerSpec) (*domain.Server, error) {
-	return nil, fmt.Errorf("create server %q: %w", spec.Name, errNotImplemented)
-}
-
-// GetServer returns a single instance by provider ID.
-func (c *Client) GetServer(ctx context.Context, creds domain.ProviderCredentials, id string) (*domain.Server, error) {
-	return nil, fmt.Errorf("get server %s: %w", id, errNotImplemented)
-}
-
-// ListServers returns every instance visible to the credentials.
-func (c *Client) ListServers(ctx context.Context, creds domain.ProviderCredentials) ([]domain.Server, error) {
-	return nil, fmt.Errorf("list servers: %w", errNotImplemented)
-}
-
-// DeleteServer removes an instance by provider ID.
-func (c *Client) DeleteServer(ctx context.Context, creds domain.ProviderCredentials, id string) error {
-	return fmt.Errorf("delete server %s: %w", id, errNotImplemented)
-}
-
-// FindServerByName supports crash reconciliation. It must return
-// domain.ErrNotFound — not a nil server — when no instance matches.
-func (c *Client) FindServerByName(ctx context.Context, creds domain.ProviderCredentials, name string) (*domain.Server, error) {
-	servers, err := c.ListServers(ctx, creds)
-	if err != nil {
-		return nil, err
-	}
-	for i := range servers {
-		if servers[i].Name == name {
-			return &servers[i], nil
-		}
-	}
-	return nil, fmt.Errorf("server %q: %w", name, domain.ErrNotFound)
-}
+//
+// VM lifecycle methods (CreateServer, GetServer, ListServers, DeleteServer,
+// FindServerByName) live in vms.go, wired to the real cloud-server API
+// (issue #9). Everything below remains a stub — issues #10 (SSH keys) and
+// #19 (CDN zones/DNS) wire these up against their own confirmed endpoints.
 
 // CreateSSHKey registers a public key with the provider.
 func (c *Client) CreateSSHKey(ctx context.Context, creds domain.ProviderCredentials, key domain.SSHKey) (*domain.SSHKey, error) {

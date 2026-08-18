@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -81,6 +82,31 @@ type fakeProvider struct {
 
 	zones   []domain.DNSZone
 	created *domain.DNSRecord
+
+	servers   []domain.Server
+	deletedID string
+	deleteErr error
+}
+
+func (p *fakeProvider) ListServers(context.Context, domain.ProviderCredentials) ([]domain.Server, error) {
+	return p.servers, nil
+}
+
+func (p *fakeProvider) GetServer(_ context.Context, _ domain.ProviderCredentials, id string) (*domain.Server, error) {
+	for i := range p.servers {
+		if p.servers[i].ID == id {
+			return &p.servers[i], nil
+		}
+	}
+	return nil, fmt.Errorf("server %q: %w", id, domain.ErrNotFound)
+}
+
+func (p *fakeProvider) DeleteServer(_ context.Context, _ domain.ProviderCredentials, id string) error {
+	if p.deleteErr != nil {
+		return p.deleteErr
+	}
+	p.deletedID = id
+	return nil
 }
 
 func (p *fakeProvider) ListDNSZones(context.Context, domain.ProviderCredentials) ([]domain.DNSZone, error) {
@@ -184,5 +210,96 @@ func TestProvisionServerRejectsUnderspecifiedRequest(t *testing.T) {
 	})
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+}
+
+func TestListServersReturnsProviderResult(t *testing.T) {
+	provider := &fakeProvider{servers: []domain.Server{{ID: "vm-1", Name: "web-01"}, {ID: "vm-2", Name: "web-02"}}}
+	uc := app.NewListServers(&inlineQueue{}, provider)
+
+	servers, err := uc.Execute(context.Background(), app.ListServersInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if len(servers) != 2 {
+		t.Fatalf("len(servers) = %d, want 2", len(servers))
+	}
+}
+
+func TestListServersRequiresCredentials(t *testing.T) {
+	uc := app.NewListServers(&inlineQueue{}, &fakeProvider{})
+
+	_, err := uc.Execute(context.Background(), app.ListServersInput{})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+}
+
+func TestGetServerReturnsMatchingServer(t *testing.T) {
+	provider := &fakeProvider{servers: []domain.Server{{ID: "vm-1", Name: "web-01"}}}
+	uc := app.NewGetServer(&inlineQueue{}, provider)
+
+	srv, err := uc.Execute(context.Background(), app.GetServerInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ServerID:    "vm-1",
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if srv.Name != "web-01" {
+		t.Errorf("Name = %q, want web-01", srv.Name)
+	}
+}
+
+func TestGetServerUnknownID(t *testing.T) {
+	uc := app.NewGetServer(&inlineQueue{}, &fakeProvider{})
+
+	_, err := uc.Execute(context.Background(), app.GetServerInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ServerID:    "missing",
+	})
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("error = %v, want domain.ErrNotFound", err)
+	}
+}
+
+func TestGetServerRequiresServerID(t *testing.T) {
+	uc := app.NewGetServer(&inlineQueue{}, &fakeProvider{})
+
+	_, err := uc.Execute(context.Background(), app.GetServerInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+}
+
+func TestDeleteServerCallsProvider(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewDeleteServer(&inlineQueue{}, provider)
+
+	err := uc.Execute(context.Background(), app.DeleteServerInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ServerID:    "vm-1",
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if provider.deletedID != "vm-1" {
+		t.Errorf("deletedID = %q, want vm-1", provider.deletedID)
+	}
+}
+
+// TestDeleteServerTreatsAlreadyGoneAsSuccess proves delete_server can be
+// called more than once safely: a not-found response from the provider is
+// not surfaced as an error.
+func TestDeleteServerTreatsAlreadyGoneAsSuccess(t *testing.T) {
+	provider := &fakeProvider{deleteErr: fmt.Errorf("server vm-1: %w", domain.ErrNotFound)}
+	uc := app.NewDeleteServer(&inlineQueue{}, provider)
+
+	err := uc.Execute(context.Background(), app.DeleteServerInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ServerID:    "vm-1",
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v, want nil for an already-deleted server", err)
 	}
 }
