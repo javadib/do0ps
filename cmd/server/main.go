@@ -91,8 +91,20 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	listServers := app.NewListServers(pool, provider)
 	getServer := app.NewGetServer(pool, provider)
 	deleteServer := app.NewDeleteServer(pool, provider)
+	registerSSHKey := app.NewRegisterSSHKey(pool, provider)
+	listSSHKeys := app.NewListSSHKeys(pool, provider)
+	deleteSSHKey := app.NewDeleteSSHKey(pool, provider)
 	setupDNS := app.NewSetupDNS(pool, provider)
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
+
+	listSSLProducts := app.NewListSSLProducts(pool, provider)
+	createSSLOrder := app.NewCreateSSLOrder(pool, provider)
+	processSSLOrder := app.NewProcessSSLOrder(pool, provider)
+	getSSLChallenge := app.NewGetSSLChallenge(pool, provider)
+	reloadSSLChallenge := app.NewReloadSSLChallenge(pool, provider)
+	verifySSLChallenge := app.NewVerifySSLChallenge(pool, provider)
+	getSSLCertificate := app.NewGetSSLCertificate(pool, provider)
+	reissueSSLCertificate := app.NewReissueSSLCertificate(pool, provider)
 	recovery := app.NewRecovery(jobs, clock)
 
 	provisionLoadBalancer, err := app.NewProvisionLoadBalancer(jobs, pool, provider, clock, ids,
