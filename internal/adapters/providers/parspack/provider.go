@@ -1,12 +1,5 @@
 package parspack
 
-import (
-	"context"
-	"fmt"
-
-	"github.com/javadib/do0ps/internal/core/domain"
-)
-
 // The methods below implement ports.ParspackProvider. Each one is responsible
 // for exactly two things: calling the right endpoint, and translating the
 // provider's payload into the domain types. Provider-specific JSON shapes stay
@@ -25,15 +18,12 @@ func (c *Client) CreateSSHKey(ctx context.Context, creds domain.ProviderCredenti
 	return nil, fmt.Errorf("create SSH key %q: %w", key.Name, errNotImplemented)
 }
 
-// ListSSHKeys returns every key registered with the credentials.
-func (c *Client) ListSSHKeys(ctx context.Context, creds domain.ProviderCredentials) ([]domain.SSHKey, error) {
-	return nil, fmt.Errorf("list SSH keys: %w", errNotImplemented)
-}
+import (
+	"context"
+	"fmt"
 
-// DeleteSSHKey removes a registered key by provider ID.
-func (c *Client) DeleteSSHKey(ctx context.Context, creds domain.ProviderCredentials, id string) error {
-	return fmt.Errorf("delete SSH key %s: %w", id, errNotImplemented)
-}
+	"github.com/javadib/do0ps/internal/core/domain"
+)
 
 // ListDNSZones returns the domains hosted on the account.
 func (c *Client) ListDNSZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.DNSZone, error) {
