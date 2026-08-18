@@ -15,12 +15,51 @@ type UseCases struct {
 	ListServers        *app.ListServers
 	GetServer          *app.GetServer
 	DeleteServer       *app.DeleteServer
-	CreateVPC          *app.CreateVPC
-	ListVPCs           *app.ListVPCs
-	GetVPC             *app.GetVPC
-	DeleteVPC          *app.DeleteVPC
-	SetupDNS           *app.SetupDNS
+	RegisterSSHKey     *app.RegisterSSHKey
+	ListSSHKeys        *app.ListSSHKeys
+	DeleteSSHKey       *app.DeleteSSHKey
 	GetOperationStatus *app.GetOperationStatus
+
+	CreateVPC *app.CreateVPC
+	ListVPCs  *app.ListVPCs
+	GetVPC    *app.GetVPC
+	DeleteVPC *app.DeleteVPC
+
+	CreateCDNZone        *app.CreateCDNZone
+	ListCDNZones         *app.ListCDNZones
+	GetCDNZone           *app.GetCDNZone
+	DeleteCDNZone        *app.DeleteCDNZone
+	ListCDNZonePlans     *app.ListCDNZonePlans
+	GetNameserverRecords *app.GetNameserverRecords
+	ListDNSRecords       *app.ListDNSRecords
+	CreateDNSRecord      *app.CreateDNSRecord
+	UpdateDNSRecord      *app.UpdateDNSRecord
+	DeleteDNSRecord      *app.DeleteDNSRecord
+	ReserveIP            *app.ReserveIP
+	ReleaseIP            *app.ReleaseIP
+	AssignIPToServer     *app.AssignIPToServer
+	UnassignIP           *app.UnassignIP
+
+	ListSSLProducts       *app.ListSSLProducts
+	CreateSSLOrder        *app.CreateSSLOrder
+	ProcessSSLOrder       *app.ProcessSSLOrder
+	GetSSLChallenge       *app.GetSSLChallenge
+	ReloadSSLChallenge    *app.ReloadSSLChallenge
+	VerifySSLChallenge    *app.VerifySSLChallenge
+	GetSSLCertificate     *app.GetSSLCertificate
+	ReissueSSLCertificate *app.ReissueSSLCertificate
+
+	CreateFirewall *app.CreateFirewall
+	GetFirewall    *app.GetFirewall
+	ListFirewalls  *app.ListFirewalls
+	UpdateFirewall *app.UpdateFirewall
+	DeleteFirewall *app.DeleteFirewall
+
+	ProvisionLoadBalancer *app.ProvisionLoadBalancer
+	GetLoadBalancer       *app.GetLoadBalancer
+	ListLoadBalancers     *app.ListLoadBalancers
+	UpdateLoadBalancer    *app.UpdateLoadBalancer
+	DeleteLoadBalancer    *app.DeleteLoadBalancer
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -56,12 +95,46 @@ func Tools(uc UseCases) []Tool {
 		listServersTool(uc.ListServers),
 		getServerTool(uc.GetServer),
 		deleteServerTool(uc.DeleteServer),
+		registerSSHKeyTool(uc.RegisterSSHKey),
+		listSSHKeysTool(uc.ListSSHKeys),
+		deleteSSHKeyTool(uc.DeleteSSHKey),
+		getOperationStatusTool(uc.GetOperationStatus),
 		createVPCTool(uc.CreateVPC),
 		listVPCsTool(uc.ListVPCs),
 		getVPCTool(uc.GetVPC),
 		deleteVPCTool(uc.DeleteVPC),
-		createDNSRecordTool(uc.SetupDNS),
-		getOperationStatusTool(uc.GetOperationStatus),
+		createCDNZoneTool(uc.CreateCDNZone),
+		listCDNZonesTool(uc.ListCDNZones),
+		getCDNZoneTool(uc.GetCDNZone),
+		deleteCDNZoneTool(uc.DeleteCDNZone),
+		listCDNZonePlansTool(uc.ListCDNZonePlans),
+		getNameserverRecordsTool(uc.GetNameserverRecords),
+		listDNSRecordsTool(uc.ListDNSRecords),
+		createDNSRecordTool(uc.CreateDNSRecord),
+		updateDNSRecordTool(uc.UpdateDNSRecord),
+		deleteDNSRecordTool(uc.DeleteDNSRecord),
+		reserveIPTool(uc.ReserveIP),
+		releaseIPTool(uc.ReleaseIP),
+		assignIPToServerTool(uc.AssignIPToServer),
+		unassignIPTool(uc.UnassignIP),
+		listSSLProductsTool(uc.ListSSLProducts),
+		createSSLOrderTool(uc.CreateSSLOrder),
+		processSSLOrderTool(uc.ProcessSSLOrder),
+		getSSLChallengeTool(uc.GetSSLChallenge),
+		reloadSSLChallengeTool(uc.ReloadSSLChallenge),
+		verifySSLChallengeTool(uc.VerifySSLChallenge),
+		getSSLCertificateTool(uc.GetSSLCertificate),
+		reissueSSLCertificateTool(uc.ReissueSSLCertificate),
+		createFirewallTool(uc.CreateFirewall),
+		getFirewallTool(uc.GetFirewall),
+		listFirewallsTool(uc.ListFirewalls),
+		updateFirewallTool(uc.UpdateFirewall),
+		deleteFirewallTool(uc.DeleteFirewall),
+		createLoadBalancerTool(uc.ProvisionLoadBalancer),
+		getLoadBalancerTool(uc.GetLoadBalancer),
+		listLoadBalancersTool(uc.ListLoadBalancers),
+		updateLoadBalancerTool(uc.UpdateLoadBalancer),
+		deleteLoadBalancerTool(uc.DeleteLoadBalancer),
 	}
 }
 
@@ -300,72 +373,57 @@ func deleteServerTool(uc *app.DeleteServer) Tool {
 	}
 }
 
-type createVPCArgs struct {
+type registerSSHKeyArgs struct {
 	credentialArgs
-	Name        string `json:"name"`
-	Region      string `json:"region"`
-	Description string `json:"description"`
-	IPRange     string `json:"ip_range"`
+	Name      string `json:"name"`
+	PublicKey string `json:"public_key"`
 }
 
-func createVPCTool(uc *app.CreateVPC) Tool {
+func registerSSHKeyTool(uc *app.RegisterSSHKey) Tool {
 	props := credentialProperties()
 	props["name"] = map[string]any{
 		"type":        "string",
-		"description": "A name for the VPC, e.g. \"web-net\". Must be unique within the account and contain alphanumeric characters only.",
+		"description": "Human-readable label for the key, e.g. \"laptop\" or \"ci-runner\". Must be unique within the account.",
 	}
-	props["region"] = map[string]any{
+	props["public_key"] = map[string]any{
 		"type":        "string",
-		"description": "Provider datacenter region, e.g. \"tehran\".",
-	}
-	props["description"] = map[string]any{
-		"type":        "string",
-		"description": "Free-form text up to 255 characters describing the VPC, e.g. \"network for the web tier\".",
-	}
-	props["ip_range"] = map[string]any{
-		"type":        "string",
-		"description": "Private IP range for the VPC, e.g. \"10.10.10.0/24\". Must be RFC1918, no larger than /16 and no smaller than /24. Omit to use the provider default.",
+		"description": "The public key contents, e.g. \"ssh-ed25519 AAAAC3... user@host\". Sent to the provider as-is.",
 	}
 
 	return Tool{
-		Name: "create_vpc",
-		Description: "Create an isolated private network (VPC) at Parspack. Servers can later be placed into it via " +
-			"create_server's vpc_uuid parameter. This is a fast operation: the created VPC (with its provider id and " +
-			"default flag) is returned within this call.",
+		Name: "register_ssh_key",
+		Description: "Register an SSH public key with the provider so it can be installed on new servers via " +
+			"create_server's ssh_keys parameter. This is a fast operation: the created key (with its provider id " +
+			"and fingerprint) is returned within this call.",
 		InputSchema: map[string]any{
 			"type":       "object",
 			"properties": props,
-			"required":   []string{"api_key", "name", "region"},
+			"required":   []string{"api_key", "name", "public_key"},
 		},
 		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args createVPCArgs
+			var args registerSSHKeyArgs
 			if err := decodeArgs(raw, &args); err != nil {
 				return nil, err
 			}
 
-			vpc, err := uc.Execute(ctx, app.CreateVPCInput{
+			key, err := uc.Execute(ctx, app.RegisterSSHKeyInput{
 				Credentials: args.domain(),
-				VPC: domain.VPC{
-					Name:        args.Name,
-					Region:      args.Region,
-					Description: args.Description,
-					IPRange:     args.IPRange,
-				},
+				Key:         domain.SSHKey{Name: args.Name, PublicKey: args.PublicKey},
 			})
 			if err != nil {
 				return nil, err
 			}
-			return vpcToMap(*vpc), nil
+			return sshKeyToMap(*key), nil
 		},
 	}
 }
 
-func listVPCsTool(uc *app.ListVPCs) Tool {
+func listSSHKeysTool(uc *app.ListSSHKeys) Tool {
 	props := credentialProperties()
 
 	return Tool{
-		Name: "list_vpcs",
-		Description: "List every VPC (private network) at Parspack visible to the given credentials. This is a fast " +
+		Name: "list_ssh_keys",
+		Description: "List every SSH key registered with the provider for the given credentials. This is a fast " +
 			"operation: the list is returned within this call.",
 		InputSchema: map[string]any{
 			"type":       "object",
@@ -378,189 +436,366 @@ func listVPCsTool(uc *app.ListVPCs) Tool {
 				return nil, err
 			}
 
-			vpcs, err := uc.Execute(ctx, app.ListVPCsInput{Credentials: args.domain()})
+			keys, err := uc.Execute(ctx, app.ListSSHKeysInput{Credentials: args.domain()})
 			if err != nil {
 				return nil, err
 			}
 
-			out := make([]map[string]any, len(vpcs))
-			for i, vpc := range vpcs {
-				out[i] = vpcToMap(vpc)
+			out := make([]map[string]any, len(keys))
+			for i, key := range keys {
+				out[i] = sshKeyToMap(key)
 			}
-			return map[string]any{"vpcs": out}, nil
+			return map[string]any{"ssh_keys": out}, nil
 		},
 	}
 }
 
-type vpcIDArgs struct {
+type sshKeyIDArgs struct {
 	credentialArgs
-	VPCID string `json:"vpc_id"`
+	KeyID string `json:"key_id"`
 }
 
-func getVPCTool(uc *app.GetVPC) Tool {
+func deleteSSHKeyTool(uc *app.DeleteSSHKey) Tool {
 	props := credentialProperties()
-	props["vpc_id"] = map[string]any{
+	props["key_id"] = map[string]any{
 		"type":        "string",
-		"description": "The provider ID of the VPC to look up, as returned by create_vpc or list_vpcs.",
+		"description": "The provider ID (or fingerprint) of the key to delete, as returned by register_ssh_key or list_ssh_keys.",
 	}
 
 	return Tool{
-		Name: "get_vpc",
-		Description: "Get the current state of one VPC (private network) at Parspack by its provider ID. This is a fast " +
-			"operation: the result is returned within this call.",
-		InputSchema: map[string]any{
-			"type":       "object",
-			"properties": props,
-			"required":   []string{"api_key", "vpc_id"},
-		},
-		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args vpcIDArgs
-			if err := decodeArgs(raw, &args); err != nil {
-				return nil, err
-			}
-
-			vpc, err := uc.Execute(ctx, app.GetVPCInput{
-				Credentials: args.domain(),
-				VPCID:       args.VPCID,
-			})
-			if err != nil {
-				return nil, err
-			}
-			return vpcToMap(*vpc), nil
-		},
-	}
-}
-
-func deleteVPCTool(uc *app.DeleteVPC) Tool {
-	props := credentialProperties()
-	props["vpc_id"] = map[string]any{
-		"type":        "string",
-		"description": "The provider ID of the VPC to delete, as returned by create_vpc or list_vpcs.",
-	}
-
-	return Tool{
-		Name: "delete_vpc",
-		Description: "Permanently delete a VPC (private network) at Parspack by its provider ID. This is a fast " +
-			"operation and cannot be undone. Deleting a VPC that no longer exists is treated as already done rather " +
+		Name: "delete_ssh_key",
+		Description: "Permanently delete a registered SSH key by its provider ID or fingerprint. This is a fast " +
+			"operation and cannot be undone. Deleting a key that no longer exists is treated as already done rather " +
 			"than an error.",
 		InputSchema: map[string]any{
 			"type":       "object",
 			"properties": props,
-			"required":   []string{"api_key", "vpc_id"},
+			"required":   []string{"api_key", "key_id"},
 		},
 		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args vpcIDArgs
+			var args sshKeyIDArgs
 			if err := decodeArgs(raw, &args); err != nil {
 				return nil, err
 			}
 
-			if err := uc.Execute(ctx, app.DeleteVPCInput{
+			if err := uc.Execute(ctx, app.DeleteSSHKeyInput{
 				Credentials: args.domain(),
-				VPCID:       args.VPCID,
+				KeyID:       args.KeyID,
 			}); err != nil {
 				return nil, err
 			}
-			return map[string]any{"deleted": true, "vpc_id": args.VPCID}, nil
+			return map[string]any{"deleted": true, "key_id": args.KeyID}, nil
 		},
 	}
 }
 
-// vpcToMap renders a domain.VPC the way every VPC-returning tool reports it
-// back to the caller.
-func vpcToMap(vpc domain.VPC) map[string]any {
+// sshKeyToMap renders a domain.SSHKey the way every key-returning tool reports
+// it back to the caller.
+func sshKeyToMap(key domain.SSHKey) map[string]any {
 	return map[string]any{
-		"id":          vpc.ID,
-		"name":        vpc.Name,
-		"region":      vpc.Region,
-		"description": vpc.Description,
-		"ip_range":    vpc.IPRange,
-		"default":     vpc.Default,
-		"created_at":  vpc.CreatedAt,
+		"id":          key.ID,
+		"name":        key.Name,
+		"fingerprint": key.Fingerprint,
+		"public_key":  key.PublicKey,
 	}
 }
 
-type createDNSRecordArgs struct {
+type firewallRuleArgs struct {
+	Protocol  string   `json:"protocol"`
+	PortRange string   `json:"port_range"`
+	Addresses []string `json:"addresses"`
+}
+
+type firewallArgs struct {
 	credentialArgs
-	Zone     string `json:"zone"`
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Value    string `json:"value"`
-	TTL      int    `json:"ttl"`
-	Priority int    `json:"priority"`
+	Name          string             `json:"name"`
+	ServerIDs     []string           `json:"server_ids"`
+	InboundRules  []firewallRuleArgs `json:"inbound_rules"`
+	OutboundRules []firewallRuleArgs `json:"outbound_rules"`
 }
 
-func createDNSRecordTool(uc *app.SetupDNS) Tool {
-	props := credentialProperties()
-	props["zone"] = map[string]any{
-		"type":        "string",
-		"description": "The DNS zone (domain) the record belongs to, e.g. \"example.com\".",
+type firewallIDArgs struct {
+	credentialArgs
+	FirewallID string `json:"firewall_id"`
+}
+
+type updateFirewallArgs struct {
+	firewallArgs
+	FirewallID string `json:"firewall_id"`
+}
+
+func (a firewallArgs) firewall() domain.Firewall {
+	fw := domain.Firewall{
+		Name:      a.Name,
+		ServerIDs: a.ServerIDs,
 	}
+	for _, r := range a.InboundRules {
+		fw.InboundRules = append(fw.InboundRules, firewallRuleArgsToDomain(r))
+	}
+	for _, r := range a.OutboundRules {
+		fw.OutboundRules = append(fw.OutboundRules, firewallRuleArgsToDomain(r))
+	}
+	return fw
+}
+
+func firewallRuleArgsToDomain(r firewallRuleArgs) domain.FirewallRule {
+	return domain.FirewallRule{Protocol: r.Protocol, PortRange: r.PortRange, Addresses: r.Addresses}
+}
+
+// firewallRuleProperties is the JSON Schema for one inbound/outbound rule
+// block, shared by create_firewall and update_firewall.
+func firewallRuleProperties() map[string]any {
+	return map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"protocol": map[string]any{
+				"type":        "string",
+				"enum":        []string{"tcp", "udp", "icmp"},
+				"description": "The type of traffic the rule allows: \"tcp\", \"udp\", or \"icmp\".",
+			},
+			"port_range": map[string]any{
+				"type":        "string",
+				"description": "A single port, a range like \"8000-9000\", or \"1-65535\" for all ports. Required for tcp and udp rules, ignored for icmp.",
+			},
+			"addresses": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Source addresses (CIDRs or single IPs) for an inbound rule, or destination addresses for an outbound rule. Omit to mean all addresses.",
+			},
+		},
+		"required": []string{"protocol"},
+	}
+}
+
+func createFirewallTool(uc *app.CreateFirewall) Tool {
+	props := credentialProperties()
 	props["name"] = map[string]any{
 		"type":        "string",
-		"description": "Record name relative to the zone, e.g. \"api\" for api.example.com. Use \"@\" for the zone apex.",
+		"description": "Human-readable firewall name, e.g. \"only-22-80-and-443\".",
 	}
-	props["type"] = map[string]any{
-		"type":        "string",
-		"enum":        []string{"A", "AAAA", "CNAME", "TXT", "MX", "NS", "SRV"},
-		"description": "DNS record type, e.g. \"A\" for an IPv4 address.",
+	props["server_ids"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "IDs of the servers (VMs) the firewall is applied to, as returned by create_server or list_servers. Omit to create the firewall without attaching any server yet.",
 	}
-	props["value"] = map[string]any{
-		"type":        "string",
-		"description": "Record value: an IPv4 address for A, a hostname for CNAME, arbitrary text for TXT.",
+	props["inbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Inbound rules: traffic allowed INTO the attached servers. Each rule lists its source addresses under \"addresses\".",
 	}
-	props["ttl"] = map[string]any{
-		"type":        "integer",
-		"description": "Time to live in seconds, e.g. 3600 for one hour. Omit to use the provider default.",
-		"minimum":     60,
-	}
-	props["priority"] = map[string]any{
-		"type":        "integer",
-		"description": "Priority, e.g. 10. Only meaningful for MX and SRV records.",
+	props["outbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Outbound rules: traffic allowed OUT of the attached servers. Each rule lists its destination addresses under \"addresses\".",
 	}
 
 	return Tool{
-		Name: "create_dns_record",
-		Description: "Create a DNS record in a Parspack-hosted zone. This is a fast operation: the created record is " +
-			"returned within this call. The zone is looked up by domain name, so no zone id is needed.",
+		Name: "create_firewall",
+		Description: "Create a new rules-based network firewall at Parspack and optionally attach it to servers. This is a " +
+			"fast operation: the created firewall is returned within this call.",
 		InputSchema: map[string]any{
 			"type":       "object",
 			"properties": props,
-			"required":   []string{"api_key", "zone", "name", "type", "value"},
+			"required":   []string{"api_key", "name"},
 		},
 		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args createDNSRecordArgs
+			var args firewallArgs
 			if err := decodeArgs(raw, &args); err != nil {
 				return nil, err
 			}
 
-			recordType, err := domain.ParseDNSRecordType(args.Type)
-			if err != nil {
-				return nil, fmt.Errorf("record type %q is not supported: %w", args.Type, err)
-			}
-
-			rec, err := uc.Execute(ctx, app.SetupDNSInput{
+			fw, err := uc.Execute(ctx, app.CreateFirewallInput{
 				Credentials: args.domain(),
-				ZoneName:    args.Zone,
-				Record: domain.DNSRecord{
-					Name:     args.Name,
-					Type:     recordType,
-					Value:    args.Value,
-					TTL:      args.TTL,
-					Priority: args.Priority,
-				},
+				Firewall:    args.firewall(),
 			})
 			if err != nil {
 				return nil, err
 			}
-			return map[string]any{
-				"id":    rec.ID,
-				"zone":  args.Zone,
-				"name":  rec.Name,
-				"type":  rec.Type.String(),
-				"value": rec.Value,
-				"ttl":   rec.TTL,
-			}, nil
+			return firewallToMap(*fw), nil
 		},
+	}
+}
+
+func getFirewallTool(uc *app.GetFirewall) Tool {
+	props := credentialProperties()
+	props["firewall_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the firewall to look up, as returned by create_firewall or list_firewalls.",
+	}
+
+	return Tool{
+		Name: "get_firewall",
+		Description: "Get the current state of one firewall at Parspack by its provider ID. This is a fast " +
+			"operation: the result is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "firewall_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args firewallIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			fw, err := uc.Execute(ctx, app.GetFirewallInput{
+				Credentials: args.domain(),
+				FirewallID:  args.FirewallID,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return firewallToMap(*fw), nil
+		},
+	}
+}
+
+func listFirewallsTool(uc *app.ListFirewalls) Tool {
+	props := credentialProperties()
+
+	return Tool{
+		Name: "list_firewalls",
+		Description: "List every firewall at Parspack visible to the given credentials. This is a fast operation: " +
+			"the list is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args credentialArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			firewalls, err := uc.Execute(ctx, app.ListFirewallsInput{Credentials: args.domain()})
+			if err != nil {
+				return nil, err
+			}
+
+			out := make([]map[string]any, len(firewalls))
+			for i, fw := range firewalls {
+				out[i] = firewallToMap(fw)
+			}
+			return map[string]any{"firewalls": out}, nil
+		},
+	}
+}
+
+func updateFirewallTool(uc *app.UpdateFirewall) Tool {
+	props := credentialProperties()
+	props["firewall_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the firewall to update, as returned by create_firewall or list_firewalls.",
+	}
+	props["name"] = map[string]any{
+		"type":        "string",
+		"description": "New human-readable firewall name, e.g. \"only-22-80-and-443\".",
+	}
+	props["server_ids"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "IDs of the servers (VMs) the firewall should be applied to, replacing the previous set.",
+	}
+	props["inbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Inbound rules: traffic allowed INTO the attached servers. Replaces the previous inbound rules. Each rule lists its source addresses under \"addresses\".",
+	}
+	props["outbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Outbound rules: traffic allowed OUT of the attached servers. Replaces the previous outbound rules. Each rule lists its destination addresses under \"addresses\".",
+	}
+
+	return Tool{
+		Name: "update_firewall",
+		Description: "Replace the configuration of an existing firewall at Parspack (rules, server attachments, and " +
+			"name). This is a fast operation: the updated firewall is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "firewall_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args updateFirewallArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			fw, err := uc.Execute(ctx, app.UpdateFirewallInput{
+				Credentials: args.domain(),
+				FirewallID:  args.FirewallID,
+				Firewall:    args.firewall(),
+			})
+			if err != nil {
+				return nil, err
+			}
+			return firewallToMap(*fw), nil
+		},
+	}
+}
+
+func deleteFirewallTool(uc *app.DeleteFirewall) Tool {
+	props := credentialProperties()
+	props["firewall_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the firewall to delete, as returned by create_firewall or list_firewalls.",
+	}
+
+	return Tool{
+		Name: "delete_firewall",
+		Description: "Permanently delete a firewall at Parspack by its provider ID. This is a fast operation and " +
+			"cannot be undone. Deleting a firewall that no longer exists is treated as already done rather than an error.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "firewall_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args firewallIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			if err := uc.Execute(ctx, app.DeleteFirewallInput{
+				Credentials: args.domain(),
+				FirewallID:  args.FirewallID,
+			}); err != nil {
+				return nil, err
+			}
+			return map[string]any{"deleted": true, "firewall_id": args.FirewallID}, nil
+		},
+	}
+}
+
+// firewallToMap renders a domain.Firewall the way every firewall-returning
+// tool reports it back to the caller.
+func firewallToMap(fw domain.Firewall) map[string]any {
+	inbound := make([]map[string]any, len(fw.InboundRules))
+	for i, r := range fw.InboundRules {
+		inbound[i] = firewallRuleToMap(r)
+	}
+	outbound := make([]map[string]any, len(fw.OutboundRules))
+	for i, r := range fw.OutboundRules {
+		outbound[i] = firewallRuleToMap(r)
+	}
+	return map[string]any{
+		"id":             fw.ID,
+		"name":           fw.Name,
+		"status":         fw.Status,
+		"server_ids":     fw.ServerIDs,
+		"inbound_rules":  inbound,
+		"outbound_rules": outbound,
+		"created_at":     fw.CreatedAt,
+	}
+}
+
+func firewallRuleToMap(r domain.FirewallRule) map[string]any {
+	return map[string]any{
+		"protocol":   r.Protocol,
+		"port_range": r.PortRange,
+		"addresses":  r.Addresses,
 	}
 }
 
@@ -614,6 +849,427 @@ func getOperationStatusTool(uc *app.GetOperationStatus) Tool {
 			}
 			return out, nil
 		},
+	}
+}
+
+// loadBalancerConfigArgs carries the mutable configuration shared by
+// create_load_balancer and update_load_balancer.
+type loadBalancerConfigArgs struct {
+	Name              string               `json:"name"`
+	Algorithm         string               `json:"algorithm"`
+	Region            string               `json:"region"`
+	ForwardingRules   []forwardingRuleArgs `json:"forwarding_rules"`
+	HealthCheck       *healthCheckArgs     `json:"health_check"`
+	ServerIDs         []string             `json:"server_ids"`
+	RedirectHTTPToTLS bool                 `json:"redirect_http_to_tls"`
+	VPCUUID           string               `json:"vpc_uuid"`
+}
+
+func (a loadBalancerConfigArgs) loadBalancer() domain.LoadBalancer {
+	lb := domain.LoadBalancer{
+		Name:              a.Name,
+		Algorithm:         a.Algorithm,
+		Region:            a.Region,
+		ServerIDs:         a.ServerIDs,
+		RedirectHTTPToTLS: a.RedirectHTTPToTLS,
+		VPCUUID:           a.VPCUUID,
+	}
+	for _, r := range a.ForwardingRules {
+		lb.ForwardingRules = append(lb.ForwardingRules, r.domain())
+	}
+	if a.HealthCheck != nil {
+		lb.HealthCheck = a.HealthCheck.domain()
+	}
+	return lb
+}
+
+type forwardingRuleArgs struct {
+	EntryProtocol  string `json:"entry_protocol"`
+	EntryPort      int    `json:"entry_port"`
+	TargetProtocol string `json:"target_protocol"`
+	TargetPort     int    `json:"target_port"`
+}
+
+func (a forwardingRuleArgs) domain() domain.ForwardingRule {
+	return domain.ForwardingRule{
+		EntryProtocol:  a.EntryProtocol,
+		EntryPort:      a.EntryPort,
+		TargetProtocol: a.TargetProtocol,
+		TargetPort:     a.TargetPort,
+	}
+}
+
+type healthCheckArgs struct {
+	Protocol               string `json:"protocol"`
+	Port                   int    `json:"port"`
+	Path                   string `json:"path"`
+	CheckIntervalSeconds   int    `json:"check_interval_seconds"`
+	ResponseTimeoutSeconds int    `json:"response_timeout_seconds"`
+	UnhealthyThreshold     int    `json:"unhealthy_threshold"`
+	HealthyThreshold       int    `json:"healthy_threshold"`
+}
+
+func (a healthCheckArgs) domain() *domain.LoadBalancerHealthCheck {
+	return &domain.LoadBalancerHealthCheck{
+		Protocol:               a.Protocol,
+		Port:                   a.Port,
+		Path:                   a.Path,
+		CheckIntervalSeconds:   a.CheckIntervalSeconds,
+		ResponseTimeoutSeconds: a.ResponseTimeoutSeconds,
+		UnhealthyThreshold:     a.UnhealthyThreshold,
+		HealthyThreshold:       a.HealthyThreshold,
+	}
+}
+
+type createLoadBalancerArgs struct {
+	credentialArgs
+	loadBalancerConfigArgs
+}
+
+type updateLoadBalancerArgs struct {
+	credentialArgs
+	LoadBalancerID string `json:"load_balancer_id"`
+	loadBalancerConfigArgs
+}
+
+type loadBalancerIDArgs struct {
+	credentialArgs
+	LoadBalancerID string `json:"load_balancer_id"`
+}
+
+// loadBalancerConfigProperties is the JSON Schema for the mutable
+// configuration shared by create_load_balancer and update_load_balancer.
+func loadBalancerConfigProperties() map[string]any {
+	return map[string]any{
+		"name": map[string]any{
+			"type":        "string",
+			"description": "Human-readable load balancer name, e.g. \"api-lb\". Must be unique within the account; it is also how a retry recognizes an already-created balancer.",
+		},
+		"algorithm": map[string]any{
+			"type":        "string",
+			"enum":        []string{"round_robin", "least_connections"},
+			"description": "Balancing algorithm. Omit to use the provider default (round_robin).",
+		},
+		"region": map[string]any{
+			"type":        "string",
+			"description": "Provider datacenter region, e.g. \"tehran\".",
+		},
+		"forwarding_rules": map[string]any{
+			"type":        "array",
+			"items":       forwardingRuleProperties(),
+			"description": "Rules mapping the balancer's public protocol/port to the backend servers' protocol/port. At least one is required.",
+		},
+		"health_check": map[string]any{
+			"type":        "object",
+			"properties":  healthCheckProperties(),
+			"description": "Health check that probes the backend servers. Omit to use the provider default.",
+		},
+		"server_ids": map[string]any{
+			"type":        "array",
+			"items":       map[string]any{"type": "string"},
+			"description": "IDs of the backend servers (VMs) traffic is balanced across, as returned by create_server or list_servers.",
+		},
+		"redirect_http_to_tls": map[string]any{
+			"type":        "boolean",
+			"description": "Redirect HTTP traffic to HTTPS (TLS). Defaults to false.",
+		},
+		"vpc_uuid": map[string]any{
+			"type":        "string",
+			"description": "ID of the VPC the load balancer is placed into. Omit for the default networking.",
+		},
+	}
+}
+
+func forwardingRuleProperties() map[string]any {
+	return map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"entry_protocol": map[string]any{
+				"type":        "string",
+				"enum":        []string{"http", "https", "http2", "http3", "tcp", "udp"},
+				"description": "Protocol the load balancer listens on, e.g. \"http\".",
+			},
+			"entry_port": map[string]any{
+				"type":        "integer",
+				"minimum":     1,
+				"maximum":     65535,
+				"description": "Public-facing port the load balancer listens on, e.g. 80.",
+			},
+			"target_protocol": map[string]any{
+				"type":        "string",
+				"enum":        []string{"http", "https", "http2", "http3", "tcp", "udp"},
+				"description": "Protocol the backend servers receive on, e.g. \"http\".",
+			},
+			"target_port": map[string]any{
+				"type":        "integer",
+				"minimum":     1,
+				"maximum":     65535,
+				"description": "Port on the backend servers the traffic is forwarded to, e.g. 8080.",
+			},
+		},
+		"required": []string{"entry_protocol", "entry_port", "target_protocol", "target_port"},
+	}
+}
+
+func healthCheckProperties() map[string]any {
+	return map[string]any{
+		"protocol": map[string]any{
+			"type":        "string",
+			"enum":        []string{"http", "https", "tcp"},
+			"description": "Health check protocol, e.g. \"http\".",
+		},
+		"port": map[string]any{
+			"type":        "integer",
+			"minimum":     1,
+			"maximum":     65535,
+			"description": "Port the health check probes on each backend server, e.g. 80.",
+		},
+		"path": map[string]any{
+			"type":        "string",
+			"description": "Path probed for http/https checks, e.g. \"/health\". Required for http and https protocols.",
+		},
+		"check_interval_seconds": map[string]any{
+			"type":        "integer",
+			"minimum":     3,
+			"maximum":     300,
+			"description": "Seconds between checks, e.g. 10.",
+		},
+		"response_timeout_seconds": map[string]any{
+			"type":        "integer",
+			"minimum":     3,
+			"maximum":     300,
+			"description": "Seconds before a check is considered failed, e.g. 5.",
+		},
+		"unhealthy_threshold": map[string]any{
+			"type":        "integer",
+			"minimum":     2,
+			"maximum":     10,
+			"description": "Failed checks before a backend server is marked unhealthy, e.g. 3.",
+		},
+		"healthy_threshold": map[string]any{
+			"type":        "integer",
+			"minimum":     2,
+			"maximum":     10,
+			"description": "Successful checks before a backend server is marked healthy again, e.g. 5.",
+		},
+	}
+}
+
+func createLoadBalancerTool(uc *app.ProvisionLoadBalancer) Tool {
+	props := credentialProperties()
+	for k, v := range loadBalancerConfigProperties() {
+		props[k] = v
+	}
+
+	return Tool{
+		Name: "create_load_balancer",
+		Description: "Provision a new cloud-server-level load balancer at Parspack and attach backend servers to it. " +
+			"This is a long operation: it returns immediately with an operation_id and status \"pending\". Poll " +
+			"get_operation_status with that id to learn when the balancer is active.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "name", "forwarding_rules"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args createLoadBalancerArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			out, err := uc.Execute(ctx, app.ProvisionLoadBalancerInput{
+				Credentials:  args.domain(),
+				LoadBalancer: args.loadBalancer(),
+			})
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{
+				"operation_id": out.OperationID,
+				"status":       out.Status.String(),
+				"note":         "Load balancer provisioning runs in the background. Call get_operation_status with this operation_id to check progress.",
+			}, nil
+		},
+	}
+}
+
+func getLoadBalancerTool(uc *app.GetLoadBalancer) Tool {
+	props := credentialProperties()
+	props["load_balancer_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the load balancer to look up, as returned by create_load_balancer or list_load_balancers.",
+	}
+
+	return Tool{
+		Name: "get_load_balancer",
+		Description: "Get the current state of one load balancer at Parspack by its provider ID. This is a fast " +
+			"operation: the result is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "load_balancer_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args loadBalancerIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			lb, err := uc.Execute(ctx, app.GetLoadBalancerInput{
+				Credentials:    args.domain(),
+				LoadBalancerID: args.LoadBalancerID,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return loadBalancerToMap(*lb), nil
+		},
+	}
+}
+
+func listLoadBalancersTool(uc *app.ListLoadBalancers) Tool {
+	props := credentialProperties()
+
+	return Tool{
+		Name: "list_load_balancers",
+		Description: "List every cloud-server-level load balancer at Parspack visible to the given credentials. " +
+			"This is a fast operation: the list is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args credentialArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			balancers, err := uc.Execute(ctx, app.ListLoadBalancersInput{Credentials: args.domain()})
+			if err != nil {
+				return nil, err
+			}
+
+			out := make([]map[string]any, len(balancers))
+			for i, lb := range balancers {
+				out[i] = loadBalancerToMap(lb)
+			}
+			return map[string]any{"load_balancers": out}, nil
+		},
+	}
+}
+
+func updateLoadBalancerTool(uc *app.UpdateLoadBalancer) Tool {
+	props := credentialProperties()
+	props["load_balancer_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the load balancer to reconfigure, as returned by create_load_balancer or list_load_balancers.",
+	}
+	for k, v := range loadBalancerConfigProperties() {
+		props[k] = v
+	}
+
+	return Tool{
+		Name: "update_load_balancer",
+		Description: "Replace the configuration of an existing cloud-server-level load balancer at Parspack by its " +
+			"provider ID. This is a fast operation: the updated balancer is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "load_balancer_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args updateLoadBalancerArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			lb, err := uc.Execute(ctx, app.UpdateLoadBalancerInput{
+				Credentials:    args.domain(),
+				LoadBalancerID: args.LoadBalancerID,
+				LoadBalancer:   args.loadBalancer(),
+			})
+			if err != nil {
+				return nil, err
+			}
+			return loadBalancerToMap(*lb), nil
+		},
+	}
+}
+
+func deleteLoadBalancerTool(uc *app.DeleteLoadBalancer) Tool {
+	props := credentialProperties()
+	props["load_balancer_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the load balancer to delete, as returned by create_load_balancer or list_load_balancers.",
+	}
+
+	return Tool{
+		Name: "delete_load_balancer",
+		Description: "Permanently delete a cloud-server-level load balancer at Parspack by its provider ID. This is a " +
+			"fast operation and cannot be undone. Deleting a balancer that no longer exists is treated as already " +
+			"done rather than an error.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "load_balancer_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args loadBalancerIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			if err := uc.Execute(ctx, app.DeleteLoadBalancerInput{
+				Credentials:    args.domain(),
+				LoadBalancerID: args.LoadBalancerID,
+			}); err != nil {
+				return nil, err
+			}
+			return map[string]any{"deleted": true, "load_balancer_id": args.LoadBalancerID}, nil
+		},
+	}
+}
+
+// loadBalancerToMap renders a domain.LoadBalancer the way every
+// load-balancer-returning tool reports it back to the caller.
+func loadBalancerToMap(lb domain.LoadBalancer) map[string]any {
+	var hc map[string]any
+	if lb.HealthCheck != nil {
+		hc = map[string]any{
+			"protocol":                 lb.HealthCheck.Protocol,
+			"port":                     lb.HealthCheck.Port,
+			"path":                     lb.HealthCheck.Path,
+			"check_interval_seconds":   lb.HealthCheck.CheckIntervalSeconds,
+			"response_timeout_seconds": lb.HealthCheck.ResponseTimeoutSeconds,
+			"unhealthy_threshold":      lb.HealthCheck.UnhealthyThreshold,
+			"healthy_threshold":        lb.HealthCheck.HealthyThreshold,
+		}
+	}
+
+	rules := make([]map[string]any, len(lb.ForwardingRules))
+	for i, r := range lb.ForwardingRules {
+		rules[i] = map[string]any{
+			"entry_protocol":  r.EntryProtocol,
+			"entry_port":      r.EntryPort,
+			"target_protocol": r.TargetProtocol,
+			"target_port":     r.TargetPort,
+		}
+	}
+
+	return map[string]any{
+		"id":                   lb.ID,
+		"name":                 lb.Name,
+		"algorithm":            lb.Algorithm,
+		"region":               lb.Region,
+		"ip":                   lb.IP,
+		"status":               lb.Status,
+		"forwarding_rules":     rules,
+		"health_check":         hc,
+		"server_ids":           lb.ServerIDs,
+		"redirect_http_to_tls": lb.RedirectHTTPToTLS,
+		"vpc_uuid":             lb.VPCUUID,
+		"created_at":           lb.CreatedAt,
 	}
 }
 
