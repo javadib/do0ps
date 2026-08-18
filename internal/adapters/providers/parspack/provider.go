@@ -14,8 +14,9 @@ import (
 //
 // VM lifecycle methods (CreateServer, GetServer, ListServers, DeleteServer,
 // FindServerByName) live in vms.go, wired to the real cloud-server API
-// (issue #9). Everything below remains a stub — issues #10 (SSH keys) and
-// #19 (CDN zones/DNS) wire these up against their own confirmed endpoints.
+// (issue #9). CDN zone management and DNS records live in cdn.go, wired to
+// the CDN API (issue #19). SSH keys below remain a stub — issue #10 wires
+// them up against their own confirmed cloud-server endpoints.
 
 // CreateSSHKey registers a public key with the provider.
 func (c *Client) CreateSSHKey(ctx context.Context, creds domain.ProviderCredentials, key domain.SSHKey) (*domain.SSHKey, error) {
@@ -30,24 +31,4 @@ func (c *Client) ListSSHKeys(ctx context.Context, creds domain.ProviderCredentia
 // DeleteSSHKey removes a registered key by provider ID.
 func (c *Client) DeleteSSHKey(ctx context.Context, creds domain.ProviderCredentials, id string) error {
 	return fmt.Errorf("delete SSH key %s: %w", id, errNotImplemented)
-}
-
-// ListDNSZones returns the domains hosted on the account.
-func (c *Client) ListDNSZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.DNSZone, error) {
-	return nil, fmt.Errorf("list DNS zones: %w", errNotImplemented)
-}
-
-// ListDNSRecords returns the records of one zone.
-func (c *Client) ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneID string) ([]domain.DNSRecord, error) {
-	return nil, fmt.Errorf("list DNS records of zone %s: %w", zoneID, errNotImplemented)
-}
-
-// CreateDNSRecord adds a record to a zone.
-func (c *Client) CreateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, rec domain.DNSRecord) (*domain.DNSRecord, error) {
-	return nil, fmt.Errorf("create %s record %q: %w", rec.Type, rec.Name, errNotImplemented)
-}
-
-// DeleteDNSRecord removes a record from a zone.
-func (c *Client) DeleteDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneID, recordID string) error {
-	return fmt.Errorf("delete DNS record %s: %w", recordID, errNotImplemented)
 }

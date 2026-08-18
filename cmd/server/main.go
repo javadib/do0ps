@@ -91,9 +91,19 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	listServers := app.NewListServers(pool, provider)
 	getServer := app.NewGetServer(pool, provider)
 	deleteServer := app.NewDeleteServer(pool, provider)
-	setupDNS := app.NewSetupDNS(pool, provider)
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
 	recovery := app.NewRecovery(jobs, clock)
+
+	createCDNZone := app.NewCreateCDNZone(pool, provider)
+	listCDNZones := app.NewListCDNZones(pool, provider)
+	getCDNZone := app.NewGetCDNZone(pool, provider)
+	deleteCDNZone := app.NewDeleteCDNZone(pool, provider)
+	listCDNZonePlans := app.NewListCDNZonePlans(pool, provider)
+	getNameserverRecords := app.NewGetNameserverRecords(pool, provider)
+	listDNSRecords := app.NewListDNSRecords(pool, provider)
+	createDNSRecord := app.NewCreateDNSRecord(pool, provider)
+	updateDNSRecord := app.NewUpdateDNSRecord(pool, provider)
+	deleteDNSRecord := app.NewDeleteDNSRecord(pool, provider)
 
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Start(ctx)
@@ -113,8 +123,18 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		ListServers:        listServers,
 		GetServer:          getServer,
 		DeleteServer:       deleteServer,
-		SetupDNS:           setupDNS,
 		GetOperationStatus: operationStatus,
+
+		CreateCDNZone:        createCDNZone,
+		ListCDNZones:         listCDNZones,
+		GetCDNZone:           getCDNZone,
+		DeleteCDNZone:        deleteCDNZone,
+		ListCDNZonePlans:     listCDNZonePlans,
+		GetNameserverRecords: getNameserverRecords,
+		ListDNSRecords:       listDNSRecords,
+		CreateDNSRecord:      createDNSRecord,
+		UpdateDNSRecord:      updateDNSRecord,
+		DeleteDNSRecord:      deleteDNSRecord,
 	}), mcp.WithLogger(logger))
 	if err != nil {
 		return err
