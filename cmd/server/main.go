@@ -91,10 +91,13 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	listServers := app.NewListServers(pool, provider)
 	getServer := app.NewGetServer(pool, provider)
 	deleteServer := app.NewDeleteServer(pool, provider)
+	reserveIP := app.NewReserveIP(pool, provider)
+	releaseIP := app.NewReleaseIP(pool, provider)
+	assignIPToServer := app.NewAssignIPToServer(pool, provider)
+	unassignIP := app.NewUnassignIP(pool, provider)
 	registerSSHKey := app.NewRegisterSSHKey(pool, provider)
 	listSSHKeys := app.NewListSSHKeys(pool, provider)
 	deleteSSHKey := app.NewDeleteSSHKey(pool, provider)
-	setupDNS := app.NewSetupDNS(pool, provider)
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
 
 	listSSLProducts := app.NewListSSLProducts(pool, provider)
@@ -107,7 +110,37 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	reissueSSLCertificate := app.NewReissueSSLCertificate(pool, provider)
 	recovery := app.NewRecovery(jobs, clock)
 
+	createCDNZone := app.NewCreateCDNZone(pool, provider)
+	listCDNZones := app.NewListCDNZones(pool, provider)
+	getCDNZone := app.NewGetCDNZone(pool, provider)
+	deleteCDNZone := app.NewDeleteCDNZone(pool, provider)
+	listCDNZonePlans := app.NewListCDNZonePlans(pool, provider)
+	getNameserverRecords := app.NewGetNameserverRecords(pool, provider)
+	listDNSRecords := app.NewListDNSRecords(pool, provider)
+	createDNSRecord := app.NewCreateDNSRecord(pool, provider)
+	updateDNSRecord := app.NewUpdateDNSRecord(pool, provider)
+	deleteDNSRecord := app.NewDeleteDNSRecord(pool, provider)
+
+	createFirewall := app.NewCreateFirewall(pool, provider)
+	getFirewall := app.NewGetFirewall(pool, provider)
+	listFirewalls := app.NewListFirewalls(pool, provider)
+	updateFirewall := app.NewUpdateFirewall(pool, provider)
+	deleteFirewall := app.NewDeleteFirewall(pool, provider)
+
+	provisionLoadBalancer, err := app.NewProvisionLoadBalancer(jobs, pool, provider, clock, ids,
+		app.WithLoadBalancerPollInterval(cfg.PollInterval),
+		app.WithLoadBalancerPollTimeout(cfg.PollTimeout),
+	)
+	if err != nil {
+		return err
+	}
+	getLoadBalancer := app.NewGetLoadBalancer(pool, provider)
+	listLoadBalancers := app.NewListLoadBalancers(pool, provider)
+	updateLoadBalancer := app.NewUpdateLoadBalancer(pool, provider)
+	deleteLoadBalancer := app.NewDeleteLoadBalancer(pool, provider)
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
+	pool.Register(domain.JobTypeProvisionLoadBalancer, provisionLoadBalancer.Handle)
 	pool.Start(ctx)
 
 	flagged, err := recovery.Run(ctx)
@@ -125,11 +158,33 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		ListServers:        listServers,
 		GetServer:          getServer,
 		DeleteServer:       deleteServer,
-		RegisterSSHKey:     registerSSHKey,
-		ListSSHKeys:        listSSHKeys,
-		DeleteSSHKey:       deleteSSHKey,
-		SetupDNS:           setupDNS,
 		GetOperationStatus: operationStatus,
+
+		CreateCDNZone:        createCDNZone,
+		ListCDNZones:         listCDNZones,
+		GetCDNZone:           getCDNZone,
+		DeleteCDNZone:        deleteCDNZone,
+		ListCDNZonePlans:     listCDNZonePlans,
+		GetNameserverRecords: getNameserverRecords,
+		ListDNSRecords:       listDNSRecords,
+		CreateDNSRecord:      createDNSRecord,
+		UpdateDNSRecord:      updateDNSRecord,
+		DeleteDNSRecord:      deleteDNSRecord,
+
+		RegisterSSHKey: registerSSHKey,
+		ListSSHKeys:    listSSHKeys,
+		DeleteSSHKey:   deleteSSHKey,
+
+		CreateFirewall: createFirewall,
+		GetFirewall:    getFirewall,
+		ListFirewalls:  listFirewalls,
+		UpdateFirewall: updateFirewall,
+		DeleteFirewall: deleteFirewall,
+
+		ReserveIP:        reserveIP,
+		ReleaseIP:        releaseIP,
+		AssignIPToServer: assignIPToServer,
+		UnassignIP:       unassignIP,
 
 		ListSSLProducts:       listSSLProducts,
 		CreateSSLOrder:        createSSLOrder,
@@ -139,6 +194,11 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		VerifySSLChallenge:    verifySSLChallenge,
 		GetSSLCertificate:     getSSLCertificate,
 		ReissueSSLCertificate: reissueSSLCertificate,
+		ProvisionLoadBalancer: provisionLoadBalancer,
+		GetLoadBalancer:       getLoadBalancer,
+		ListLoadBalancers:     listLoadBalancers,
+		UpdateLoadBalancer:    updateLoadBalancer,
+		DeleteLoadBalancer:    deleteLoadBalancer,
 	}), mcp.WithLogger(logger))
 	if err != nil {
 		return err
