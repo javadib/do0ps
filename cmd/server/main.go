@@ -93,6 +93,15 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	deleteServer := app.NewDeleteServer(pool, provider)
 	setupDNS := app.NewSetupDNS(pool, provider)
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
+
+	listSSLProducts := app.NewListSSLProducts(pool, provider)
+	createSSLOrder := app.NewCreateSSLOrder(pool, provider)
+	processSSLOrder := app.NewProcessSSLOrder(pool, provider)
+	getSSLChallenge := app.NewGetSSLChallenge(pool, provider)
+	reloadSSLChallenge := app.NewReloadSSLChallenge(pool, provider)
+	verifySSLChallenge := app.NewVerifySSLChallenge(pool, provider)
+	getSSLCertificate := app.NewGetSSLCertificate(pool, provider)
+	reissueSSLCertificate := app.NewReissueSSLCertificate(pool, provider)
 	recovery := app.NewRecovery(jobs, clock)
 
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
@@ -115,6 +124,15 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		DeleteServer:       deleteServer,
 		SetupDNS:           setupDNS,
 		GetOperationStatus: operationStatus,
+
+		ListSSLProducts:       listSSLProducts,
+		CreateSSLOrder:        createSSLOrder,
+		ProcessSSLOrder:       processSSLOrder,
+		GetSSLChallenge:       getSSLChallenge,
+		ReloadSSLChallenge:    reloadSSLChallenge,
+		VerifySSLChallenge:    verifySSLChallenge,
+		GetSSLCertificate:     getSSLCertificate,
+		ReissueSSLCertificate: reissueSSLCertificate,
 	}), mcp.WithLogger(logger))
 	if err != nil {
 		return err

@@ -17,6 +17,15 @@ type UseCases struct {
 	DeleteServer       *app.DeleteServer
 	SetupDNS           *app.SetupDNS
 	GetOperationStatus *app.GetOperationStatus
+
+	ListSSLProducts       *app.ListSSLProducts
+	CreateSSLOrder        *app.CreateSSLOrder
+	ProcessSSLOrder       *app.ProcessSSLOrder
+	GetSSLChallenge       *app.GetSSLChallenge
+	ReloadSSLChallenge    *app.ReloadSSLChallenge
+	VerifySSLChallenge    *app.VerifySSLChallenge
+	GetSSLCertificate     *app.GetSSLCertificate
+	ReissueSSLCertificate *app.ReissueSSLCertificate
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -54,6 +63,14 @@ func Tools(uc UseCases) []Tool {
 		deleteServerTool(uc.DeleteServer),
 		createDNSRecordTool(uc.SetupDNS),
 		getOperationStatusTool(uc.GetOperationStatus),
+		listSSLProductsTool(uc.ListSSLProducts),
+		createSSLOrderTool(uc.CreateSSLOrder),
+		processSSLOrderTool(uc.ProcessSSLOrder),
+		getSSLChallengeTool(uc.GetSSLChallenge),
+		reloadSSLChallengeTool(uc.ReloadSSLChallenge),
+		verifySSLChallengeTool(uc.VerifySSLChallenge),
+		getSSLCertificateTool(uc.GetSSLCertificate),
+		reissueSSLCertificateTool(uc.ReissueSSLCertificate),
 	}
 }
 
