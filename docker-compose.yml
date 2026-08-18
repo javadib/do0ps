@@ -1,0 +1,42 @@
+# One-command self-hosted deployment for the do0ps MCP server.
+#
+# Requirements:
+#   - a filled-in `.env` (copy `.env.example`, set at least MCP_AUTH_TOKENS)
+#   - Docker with the Compose plugin (`docker compose`, not `docker-compose`)
+#
+# Usage:
+#   cp .env.example .env   # then fill in MCP_AUTH_TOKENS
+#   docker compose up -d
+#
+# The SQLite job-store database lives in the `do0ps-data` named volume,
+# mounted at /data inside the container. THAT VOLUME IS THE ONLY COPY OF JOB
+# HISTORY: `docker compose down` keeps it, `docker compose down -v` deletes
+# it. Back it up; losing it loses every pending/running operation record.
+name: do0ps
+
+services:
+  do0ps:
+    build:
+      context: .
+      args:
+        # Overridable from the shell, e.g. `DO0PS_VERSION=v1.2.3 docker compose build`.
+        APP_VERSION: ${DO0PS_VERSION:-dev}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Always store the DB inside the mounted volume, whatever the relative
+      # default in .env says. The server itself listens on $HTTP_PORT (from
+      # .env, default 8080), which the port mapping below mirrors.
+      DB_PATH: /data/do0ps.db
+    ports:
+      - "${HTTP_PORT:-8080}:${HTTP_PORT:-8080}"
+    volumes:
+      # Named volume for DB persistence. For a bind mount visible on the host
+      # instead (e.g. ./data:/data), note the server runs as UID 65532 --
+      # chown the host directory to 65532:65532 first or the server cannot
+      # write its database file.
+      - do0ps-data:/data
+
+volumes:
+  do0ps-data:
