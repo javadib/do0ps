@@ -10,6 +10,9 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"time"
+
+	"github.com/cenkalti/backoff/v4"
 
 	"github.com/javadib/do0ps/internal/core/domain"
 	"github.com/javadib/do0ps/internal/core/ports"
@@ -22,6 +25,9 @@ var ErrQueueFull = errors.New("queue is full")
 
 // ErrClosed is returned once the pool has been shut down.
 var ErrClosed = errors.New("queue is closed")
+
+// defaultMaxAttempts bounds retries when a job type has no explicit policy.
+const defaultMaxAttempts = 5
 
 type unit func(ctx context.Context)
 
@@ -46,6 +52,20 @@ type Pool struct {
 	// provider polling stops instead of outliving the process teardown.
 	runCtx    context.Context
 	runCancel context.CancelFunc
+
+	maxAttempts int
+	newBackOff  func() backoff.BackOff
+
+	// retry tracks the in-progress backoff sequence and pending retry timer
+	// for each job currently waiting to be re-attempted, keyed by job ID. Both
+	// are cleared once the job reaches a terminal state or its timer fires.
+	retryMu sync.Mutex
+	retry   map[string]*retryState
+}
+
+type retryState struct {
+	backOff backoff.BackOff
+	timer   *time.Timer
 }
 
 var _ ports.Queue = (*Pool)(nil)
@@ -87,15 +107,57 @@ func WithLogger(l *slog.Logger) Option {
 	}
 }
 
+// WithMaxAttempts sets how many times a submitted job's handler may be
+// attempted (the initial try plus retries) before it is recorded as failed.
+func WithMaxAttempts(n int) Option {
+	return func(p *Pool) error {
+		if n <= 0 {
+			return fmt.Errorf("max attempts must be positive, got %d", n)
+		}
+		p.maxAttempts = n
+		return nil
+	}
+}
+
+// WithBackOff overrides the backoff sequence used between retries of a failed
+// job. f is called once per job, the first time it fails, to build a fresh
+// backoff.BackOff whose NextBackOff is then called once per subsequent
+// failure of that same job.
+func WithBackOff(f func() backoff.BackOff) Option {
+	return func(p *Pool) error {
+		if f == nil {
+			return errors.New("backoff factory must not be nil")
+		}
+		p.newBackOff = f
+		return nil
+	}
+}
+
+// defaultBackOff returns sane exponential-backoff-with-jitter defaults.
+// MaxElapsedTime is left at zero (unbounded): the pool's own maxAttempts
+// governs when retries stop, not elapsed wall-clock time.
+func defaultBackOff() backoff.BackOff {
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = 500 * time.Millisecond
+	b.Multiplier = 2
+	b.RandomizationFactor = 0.3
+	b.MaxInterval = 30 * time.Second
+	b.MaxElapsedTime = 0
+	return b
+}
+
 // New builds a pool. Call Start before submitting work.
 func New(jobs ports.JobRepository, clock ports.Clock, opts ...Option) (*Pool, error) {
 	p := &Pool{
-		jobs:     jobs,
-		clock:    clock,
-		logger:   slog.Default(),
-		workers:  8,
-		capacity: 256,
-		handlers: make(map[domain.JobType]ports.JobHandler),
+		jobs:        jobs,
+		clock:       clock,
+		logger:      slog.Default(),
+		workers:     8,
+		capacity:    256,
+		handlers:    make(map[domain.JobType]ports.JobHandler),
+		maxAttempts: defaultMaxAttempts,
+		newBackOff:  defaultBackOff,
+		retry:       make(map[string]*retryState),
 	}
 	for _, opt := range opts {
 		if err := opt(p); err != nil {
@@ -139,7 +201,10 @@ func (p *Pool) worker() {
 }
 
 // Shutdown stops accepting work, waits for in-flight units to finish, and
-// gives up when ctx expires.
+// gives up when ctx expires. Jobs waiting out a retry backoff are left
+// pending in the job store rather than force-fired: their NextRetryAt is
+// already persisted, so the next process (or a future poller reading
+// ports.JobRepository.ListDue) picks them back up.
 func (p *Pool) Shutdown(ctx context.Context) error {
 	p.mu.Lock()
 	if p.closed {
@@ -150,6 +215,8 @@ func (p *Pool) Shutdown(ctx context.Context) error {
 	close(p.work)
 	cancel := p.runCancel
 	p.mu.Unlock()
+
+	p.stopPendingRetries()
 
 	done := make(chan struct{})
 	go func() {
@@ -219,7 +286,9 @@ func (p *Pool) Submit(ctx context.Context, job *domain.Job) error {
 }
 
 // runJob executes a persisted job and records its outcome. Background work
-// must not lose state on the way out, so every branch persists.
+// must not lose state on the way out, so every branch persists. A failed
+// attempt is retried with backoff until maxAttempts is reached, at which
+// point the job is recorded as terminally failed.
 func (p *Pool) runJob(ctx context.Context, job *domain.Job, handler ports.JobHandler) {
 	now := p.clock.Now()
 	if err := job.MarkRunning(now); err != nil {
@@ -232,33 +301,129 @@ func (p *Pool) runJob(ctx context.Context, job *domain.Job, handler ports.JobHan
 	}
 
 	result, runErr := handler(ctx, job)
-
 	now = p.clock.Now()
-	if runErr != nil {
-		if err := job.MarkFailed(runErr.Error(), now); err != nil {
-			p.logger.Error("marking job failed", "job_id", job.ID, "error", err)
+
+	if runErr == nil {
+		p.clearRetry(job.ID)
+		if err := job.MarkDone(result, now); err != nil {
+			p.logger.Error("marking job done", "job_id", job.ID, "error", err)
 			return
 		}
-		p.logger.Error("job failed", "job_id", job.ID, "type", string(job.Type), "attempts", job.Attempts, "error", runErr)
-	} else if err := job.MarkDone(result, now); err != nil {
-		p.logger.Error("marking job done", "job_id", job.ID, "error", err)
+		if err := p.jobs.Update(ctx, job); err != nil {
+			p.logger.Error("persisting job outcome", "job_id", job.ID, "status", job.Status.String(), "error", err)
+		}
 		return
 	}
 
+	if job.Attempts < p.maxAttempts {
+		p.retryJob(job, handler, runErr, now)
+		return
+	}
+
+	p.clearRetry(job.ID)
+	if err := job.MarkFailed(runErr.Error(), now); err != nil {
+		p.logger.Error("marking job failed", "job_id", job.ID, "error", err)
+		return
+	}
+	p.logger.Error("job failed, retries exhausted", "job_id", job.ID, "type", string(job.Type), "attempts", job.Attempts, "error", runErr)
 	if err := p.jobs.Update(ctx, job); err != nil {
 		p.logger.Error("persisting job outcome", "job_id", job.ID, "status", job.Status.String(), "error", err)
 	}
 }
 
+// retryJob reschedules job for another attempt after a backoff delay. The job
+// is persisted as pending immediately so its retry survives a process crash
+// during the wait, and a timer re-enqueues it once the delay elapses.
+func (p *Pool) retryJob(job *domain.Job, handler ports.JobHandler, runErr error, now time.Time) {
+	delay := p.nextDelay(job.ID)
+	nextAttemptAt := now.Add(delay)
+	if err := job.Reschedule(nextAttemptAt, runErr.Error(), now); err != nil {
+		p.logger.Error("rescheduling job for retry", "job_id", job.ID, "error", err)
+		return
+	}
+	if err := p.jobs.Update(context.Background(), job); err != nil {
+		p.logger.Error("persisting rescheduled job", "job_id", job.ID, "error", err)
+		return
+	}
+	p.logger.Warn("job failed, retrying", "job_id", job.ID, "type", string(job.Type), "attempts", job.Attempts, "delay", delay, "error", runErr)
+
+	p.scheduleRetry(job, handler, delay)
+}
+
+// nextDelay returns the next backoff duration for job, creating a fresh
+// backoff sequence on the job's first failure and advancing an existing one
+// on subsequent failures.
+func (p *Pool) nextDelay(jobID string) time.Duration {
+	p.retryMu.Lock()
+	defer p.retryMu.Unlock()
+	st, ok := p.retry[jobID]
+	if !ok {
+		st = &retryState{backOff: p.newBackOff()}
+		p.retry[jobID] = st
+	}
+	return st.backOff.NextBackOff()
+}
+
+// scheduleRetry arranges for job to be re-enqueued after delay, tracking the
+// timer so Shutdown can stop it instead of leaving it to fire after teardown.
+func (p *Pool) scheduleRetry(job *domain.Job, handler ports.JobHandler, delay time.Duration) {
+	timer := time.AfterFunc(delay, func() {
+		if err := p.enqueue(context.Background(), func(runCtx context.Context) {
+			p.runJob(runCtx, job, handler)
+		}); err != nil {
+			p.logger.Error("re-enqueueing retry", "job_id", job.ID, "error", err)
+		}
+	})
+
+	p.retryMu.Lock()
+	st, ok := p.retry[job.ID]
+	if !ok {
+		st = &retryState{backOff: p.newBackOff()}
+		p.retry[job.ID] = st
+	}
+	st.timer = timer
+	p.retryMu.Unlock()
+}
+
+// clearRetry drops any backoff sequence and pending timer tracked for jobID.
+// Called once the job reaches a terminal state so retry state never leaks.
+func (p *Pool) clearRetry(jobID string) {
+	p.retryMu.Lock()
+	defer p.retryMu.Unlock()
+	if st, ok := p.retry[jobID]; ok {
+		if st.timer != nil {
+			st.timer.Stop()
+		}
+		delete(p.retry, jobID)
+	}
+}
+
+// stopPendingRetries cancels every retry timer still waiting to fire. Called
+// from Shutdown; the jobs themselves stay pending in the job store.
+func (p *Pool) stopPendingRetries() {
+	p.retryMu.Lock()
+	defer p.retryMu.Unlock()
+	for id, st := range p.retry {
+		if st.timer != nil {
+			st.timer.Stop()
+		}
+		delete(p.retry, id)
+	}
+}
+
 // enqueue offers a unit to the workers without ever blocking indefinitely.
+//
+// The closed check and the channel send happen under the same read lock so
+// Shutdown (which takes the write lock before closing the channel) can never
+// interleave with a send here — otherwise a send could race a close of
+// p.work and panic.
 func (p *Pool) enqueue(ctx context.Context, u unit) error {
 	p.mu.RLock()
-	closed, started := p.closed, p.started
-	p.mu.RUnlock()
-	if closed {
+	defer p.mu.RUnlock()
+	if p.closed {
 		return ErrClosed
 	}
-	if !started {
+	if !p.started {
 		return errors.New("queue not started")
 	}
 	if err := ctx.Err(); err != nil {
