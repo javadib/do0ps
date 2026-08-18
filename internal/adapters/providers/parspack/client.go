@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	defaultBaseURL = "https://my.parspack.com/cserver"
-	defaultTimeout = 30 * time.Second
+	defaultBaseURL    = "https://my.parspack.com/cserver"
+	defaultSSLBaseURL = "https://my.parspack.com/sslv2"
+	defaultTimeout    = 30 * time.Second
 )
 
 // errNotImplemented marks provider methods not yet wired to a real endpoint,
@@ -35,12 +36,14 @@ var errNotImplemented = errors.New("parspack endpoint not implemented yet")
 // body where one was expected.
 var errEmptyResponse = errors.New("parspack returned an empty response body")
 
-// Client talks to the Parspack cloud-server API. It holds no credentials:
-// every method receives the caller's credentials, which belong to the
-// chatbot session (AGENTS.md 4.2).
+// Client talks to the Parspack cloud-server and SSL APIs — same host and
+// Bearer-token auth scheme, distinct path prefixes (AGENTS.md 4.5). It holds
+// no credentials: every method receives the caller's credentials, which
+// belong to the chatbot session (AGENTS.md 4.2).
 type Client struct {
-	baseURL string
-	http    *http.Client
+	baseURL    string // cloud-server surface, e.g. .../cserver
+	sslBaseURL string // SSL ordering surface, e.g. .../sslv2
+	http       *http.Client
 }
 
 var _ ports.ParspackProvider = (*Client)(nil)
@@ -48,13 +51,26 @@ var _ ports.ParspackProvider = (*Client)(nil)
 // Option configures a Client.
 type Option func(*Client) error
 
-// WithBaseURL overrides the API root, mainly for tests against a fake server.
+// WithBaseURL overrides the cloud-server API root, mainly for tests against
+// a fake server.
 func WithBaseURL(u string) Option {
 	return func(c *Client) error {
 		if u == "" {
 			return errors.New("base URL must not be empty")
 		}
 		c.baseURL = u
+		return nil
+	}
+}
+
+// WithSSLBaseURL overrides the SSL ordering API root, mainly for tests
+// against a fake server.
+func WithSSLBaseURL(u string) Option {
+	return func(c *Client) error {
+		if u == "" {
+			return errors.New("SSL base URL must not be empty")
+		}
+		c.sslBaseURL = u
 		return nil
 	}
 }
@@ -84,8 +100,9 @@ func WithTimeout(d time.Duration) Option {
 // New builds a Parspack client.
 func New(opts ...Option) (*Client, error) {
 	c := &Client{
-		baseURL: defaultBaseURL,
-		http:    &http.Client{Timeout: defaultTimeout},
+		baseURL:    defaultBaseURL,
+		sslBaseURL: defaultSSLBaseURL,
+		http:       &http.Client{Timeout: defaultTimeout},
 	}
 	for _, opt := range opts {
 		if err := opt(c); err != nil {
@@ -102,11 +119,23 @@ type errorResponse struct {
 	RequestID string `json:"request_id"`
 }
 
-// doJSON sends a request with an optional JSON body and decodes a JSON
-// response into out (nil to discard the body, e.g. for DELETE). Non-2xx
-// responses are translated into the sentinel domain errors ports callers are
-// expected to check with errors.Is (AGENTS.md 4.2, 4.4).
+// doJSON sends a request with an optional JSON body to the cloud-server
+// surface and decodes a JSON response into out (nil to discard the body,
+// e.g. for DELETE). Non-2xx responses are translated into the sentinel
+// domain errors ports callers are expected to check with errors.Is
+// (AGENTS.md 4.2, 4.4).
 func (c *Client) doJSON(ctx context.Context, creds domain.ProviderCredentials, method, path string, body, out any) error {
+	return c.doJSONBase(ctx, creds, c.baseURL, method, path, body, out)
+}
+
+// doJSONSSL is doJSON against the SSL ordering surface instead of the
+// cloud-server one — same auth and error-mapping, different base URL
+// (AGENTS.md 4.5).
+func (c *Client) doJSONSSL(ctx context.Context, creds domain.ProviderCredentials, method, path string, body, out any) error {
+	return c.doJSONBase(ctx, creds, c.sslBaseURL, method, path, body, out)
+}
+
+func (c *Client) doJSONBase(ctx context.Context, creds domain.ProviderCredentials, baseURL, method, path string, body, out any) error {
 	var reqBody io.Reader
 	if body != nil {
 		encoded, err := json.Marshal(body)
@@ -116,7 +145,7 @@ func (c *Client) doJSON(ctx context.Context, creds domain.ProviderCredentials, m
 		reqBody = bytes.NewReader(encoded)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+"/"+path, reqBody)
+	req, err := http.NewRequestWithContext(ctx, method, baseURL+"/"+path, reqBody)
 	if err != nil {
 		return fmt.Errorf("building %s %s request: %w", method, path, err)
 	}
@@ -152,8 +181,13 @@ func (c *Client) doJSON(ctx context.Context, creds domain.ProviderCredentials, m
 }
 
 // mapErrorResponse turns a non-2xx HTTP response into one of the sentinel
-// domain errors, per the status codes AGENTS.md 4.5 confirms for the Parspack
-// APIs (200/400/401/404/500).
+// domain errors, per the status codes AGENTS.md 4.5 confirms across the
+// Parspack APIs (200/400/401/404/500). Statuses outside that confirmed set
+// (403, 409, 422, ...) carry surface-specific meaning that differs between
+// the cloud-server and SSL APIs — e.g. the SSL API's 403 means "order not in
+// the right state", not "bad credentials" — so they fall through to a plain
+// wrapped error with the provider's message rather than being forced onto a
+// sentinel that would mislead callers checking it with errors.Is.
 func mapErrorResponse(method, path string, status int, body []byte) error {
 	var parsed errorResponse
 	message := ""
@@ -165,7 +199,7 @@ func mapErrorResponse(method, path string, status int, body []byte) error {
 	}
 
 	switch {
-	case status == http.StatusUnauthorized || status == http.StatusForbidden:
+	case status == http.StatusUnauthorized:
 		return fmt.Errorf("%s %s: %s: %w", method, path, message, domain.ErrInvalidCredentials)
 	case status == http.StatusNotFound:
 		return fmt.Errorf("%s %s: %s: %w", method, path, message, domain.ErrNotFound)
@@ -174,6 +208,6 @@ func mapErrorResponse(method, path string, status int, body []byte) error {
 	case status >= 500:
 		return fmt.Errorf("%s %s: %s: %w", method, path, message, domain.ErrProviderUnavailable)
 	default:
-		return fmt.Errorf("%s %s: unexpected status %d: %s", method, path, status, message)
+		return fmt.Errorf("%s %s: status %d: %s", method, path, status, message)
 	}
 }
