@@ -209,6 +209,16 @@ type ParspackProvider interface {
 	// RestoreVM wipes the disk of the given server and replaces it with the
 	// given snapshot's contents.
 	RestoreVM(ctx context.Context, creds domain.ProviderCredentials, serverID, snapshotID string) (*domain.VMAction, error)
+	// CreateVPC provisions an isolated private network. The input VPC carries
+	// Name, Region, Description and IPRange; the returned copy carries the
+	// provider-assigned ID and default flag.
+	CreateVPC(ctx context.Context, creds domain.ProviderCredentials, vpc domain.VPC) (*domain.VPC, error)
+	GetVPC(ctx context.Context, creds domain.ProviderCredentials, id string) (*domain.VPC, error)
+	ListVPCs(ctx context.Context, creds domain.ProviderCredentials) ([]domain.VPC, error)
+
+	// DeleteVPC removes a VPC by provider ID. Deleting an ID the provider no
+	// longer has must be tolerated by callers: it returns domain.ErrNotFound.
+	DeleteVPC(ctx context.Context, creds domain.ProviderCredentials, id string) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic

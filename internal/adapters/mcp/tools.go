@@ -24,6 +24,10 @@ type UseCases struct {
 	ListSnapshots  *app.ListSnapshots
 	DeleteSnapshot *app.DeleteSnapshot
 	RestoreVM      *app.RestoreVM
+	CreateVPC      *app.CreateVPC
+	ListVPCs       *app.ListVPCs
+	GetVPC         *app.GetVPC
+	DeleteVPC      *app.DeleteVPC
 
 	CreateCDNZone        *app.CreateCDNZone
 	ListCDNZones         *app.ListCDNZones
@@ -103,6 +107,10 @@ func Tools(uc UseCases) []Tool {
 		listSnapshotsTool(uc.ListSnapshots),
 		deleteSnapshotTool(uc.DeleteSnapshot),
 		restoreVMTool(uc.RestoreVM),
+		createVPCTool(uc.CreateVPC),
+		listVPCsTool(uc.ListVPCs),
+		getVPCTool(uc.GetVPC),
+		deleteVPCTool(uc.DeleteVPC),
 		createCDNZoneTool(uc.CreateCDNZone),
 		listCDNZonesTool(uc.ListCDNZones),
 		getCDNZoneTool(uc.GetCDNZone),

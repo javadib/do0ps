@@ -92,10 +92,16 @@ type fakeProvider struct {
 	deleteSnapErr   error
 	restoreCalls    int
 	restoreErr      error
-	keys            []domain.SSHKey
-	createdKey      *domain.SSHKey
-	deletedKeyID    string
-	keyDeleteErr    error
+
+	keys         []domain.SSHKey
+	createdKey   *domain.SSHKey
+	deletedKeyID string
+	keyDeleteErr error
+
+	vpcs         []domain.VPC
+	createdVPC   *domain.VPC
+	deletedVPCID string
+	vpcDeleteErr error
 
 	cdnZones        []domain.CDNZone
 	createdZone     *domain.CDNZone
