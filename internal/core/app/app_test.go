@@ -87,6 +87,11 @@ type fakeProvider struct {
 	deletedID string
 	deleteErr error
 
+	keys         []domain.SSHKey
+	createdKey   *domain.SSHKey
+	deletedKeyID string
+	keyDeleteErr error
+
 	reserved   []domain.ReservedIP
 	reserveErr error
 	released   string
@@ -98,6 +103,52 @@ type fakeProvider struct {
 	assignErr   error
 	unassigned  string
 	unassignErr error
+
+	sslProducts      []domain.SSLProduct
+	sslOrder         *domain.SSLOrder
+	sslChallengeSet  *domain.SSLChallengeSet
+	sslVerifyResult  *domain.SSLVerifyResult
+	sslCertificate   *domain.SSLCertificate
+	processedContact domain.SSLContact
+	reloadedMethod   string
+	verifiedMethod   string
+	reissuedCSR      string
+}
+
+func (p *fakeProvider) ListSSLProducts(context.Context, domain.ProviderCredentials) ([]domain.SSLProduct, error) {
+	return p.sslProducts, nil
+}
+
+func (p *fakeProvider) CreateSSLOrder(_ context.Context, _ domain.ProviderCredentials, spec domain.SSLOrderSpec) (*domain.SSLOrder, error) {
+	return p.sslOrder, nil
+}
+
+func (p *fakeProvider) ProcessSSLOrder(_ context.Context, _ domain.ProviderCredentials, _, _ string, contact domain.SSLContact) (*domain.SSLChallengeSet, error) {
+	p.processedContact = contact
+	return p.sslChallengeSet, nil
+}
+
+func (p *fakeProvider) GetSSLChallenge(context.Context, domain.ProviderCredentials, string) (*domain.SSLChallengeSet, error) {
+	return p.sslChallengeSet, nil
+}
+
+func (p *fakeProvider) ReloadSSLChallenge(_ context.Context, _ domain.ProviderCredentials, _, method, _ string) (*domain.SSLChallengeSet, error) {
+	p.reloadedMethod = method
+	return p.sslChallengeSet, nil
+}
+
+func (p *fakeProvider) VerifySSLChallenge(_ context.Context, _ domain.ProviderCredentials, _, method string) (*domain.SSLVerifyResult, error) {
+	p.verifiedMethod = method
+	return p.sslVerifyResult, nil
+}
+
+func (p *fakeProvider) GetSSLCertificate(context.Context, domain.ProviderCredentials, string) (*domain.SSLCertificate, error) {
+	return p.sslCertificate, nil
+}
+
+func (p *fakeProvider) ReissueSSLCertificate(_ context.Context, _ domain.ProviderCredentials, _, csr string) (*domain.SSLCertificate, error) {
+	p.reissuedCSR = csr
+	return p.sslCertificate, nil
 }
 
 func (p *fakeProvider) ListServers(context.Context, domain.ProviderCredentials) ([]domain.Server, error) {
@@ -131,38 +182,23 @@ func (p *fakeProvider) CreateDNSRecord(_ context.Context, _ domain.ProviderCrede
 	return &rec, nil
 }
 
-func (p *fakeProvider) ReserveIP(_ context.Context, _ domain.ProviderCredentials, region string) (*domain.ReservedIP, error) {
-	if p.reserveErr != nil {
-		return nil, p.reserveErr
-	}
-	ip := &domain.ReservedIP{IPAddress: "203.0.113.10", Region: region, URN: "do:reservedip:203.0.113.10"}
-	p.reserved = append(p.reserved, *ip)
-	return ip, nil
+func (p *fakeProvider) CreateSSHKey(_ context.Context, _ domain.ProviderCredentials, key domain.SSHKey) (*domain.SSHKey, error) {
+	key.ID = "key-1"
+	key.Fingerprint = "aa:bb:cc"
+	p.createdKey = &key
+	return &key, nil
 }
 
-func (p *fakeProvider) ReleaseIP(_ context.Context, _ domain.ProviderCredentials, ip string) error {
-	if p.releaseErr != nil {
-		return p.releaseErr
+func (p *fakeProvider) ListSSHKeys(context.Context, domain.ProviderCredentials) ([]domain.SSHKey, error) {
+	return p.keys, nil
+}
+
+func (p *fakeProvider) DeleteSSHKey(_ context.Context, _ domain.ProviderCredentials, id string) error {
+	if p.keyDeleteErr != nil {
+		return p.keyDeleteErr
 	}
-	p.released = ip
+	p.deletedKeyID = id
 	return nil
-}
-
-func (p *fakeProvider) AssignIPToServer(_ context.Context, _ domain.ProviderCredentials, ip, serverID string) (*domain.ReservedIP, error) {
-	if p.assignErr != nil {
-		return nil, p.assignErr
-	}
-	p.assigned.ip = ip
-	p.assigned.serverID = serverID
-	return &domain.ReservedIP{IPAddress: ip, Region: "tehran", ServerID: serverID}, nil
-}
-
-func (p *fakeProvider) UnassignIP(_ context.Context, _ domain.ProviderCredentials, ip string) (*domain.ReservedIP, error) {
-	if p.unassignErr != nil {
-		return nil, p.unassignErr
-	}
-	p.unassigned = ip
-	return &domain.ReservedIP{IPAddress: ip, Region: "tehran"}, nil
 }
 
 func TestSetupDNSResolvesZoneAndCreatesRecord(t *testing.T) {
@@ -350,122 +386,98 @@ func TestDeleteServerTreatsAlreadyGoneAsSuccess(t *testing.T) {
 	}
 }
 
-func TestReserveIPReturnsReservedAddress(t *testing.T) {
+func TestRegisterSSHKeyReturnsProviderCopy(t *testing.T) {
 	provider := &fakeProvider{}
-	uc := app.NewReserveIP(&inlineQueue{}, provider)
+	uc := app.NewRegisterSSHKey(&inlineQueue{}, provider)
 
-	ip, err := uc.Execute(context.Background(), app.ReserveIPInput{
+	key, err := uc.Execute(context.Background(), app.RegisterSSHKeyInput{
 		Credentials: domain.ProviderCredentials{APIKey: "k"},
-		Region:      "tehran",
+		Key:         domain.SSHKey{Name: "laptop", PublicKey: "ssh-ed25519 AAAAC3..."},
 	})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
-	if ip.IPAddress != "203.0.113.10" {
-		t.Errorf("IPAddress = %q, want 203.0.113.10", ip.IPAddress)
+	if key.ID != "key-1" || key.Fingerprint != "aa:bb:cc" {
+		t.Errorf("key = %+v, want id key-1 and fingerprint aa:bb:cc", key)
 	}
-	if ip.ServerID != "" {
-		t.Errorf("ServerID = %q, want empty — reservation does not attach the IP", ip.ServerID)
+	if provider.createdKey.Name != "laptop" {
+		t.Errorf("createdKey.Name = %q, want laptop", provider.createdKey.Name)
 	}
 }
 
-func TestReserveIPRequiresRegion(t *testing.T) {
-	uc := app.NewReserveIP(&inlineQueue{}, &fakeProvider{})
+func TestRegisterSSHKeyRequiresNameAndPublicKey(t *testing.T) {
+	uc := app.NewRegisterSSHKey(&inlineQueue{}, &fakeProvider{})
 
-	_, err := uc.Execute(context.Background(), app.ReserveIPInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
+	for name, in := range map[string]app.RegisterSSHKeyInput{
+		"missing name":  {Credentials: domain.ProviderCredentials{APIKey: "k"}, Key: domain.SSHKey{PublicKey: "ssh-ed25519 AAAA"}},
+		"missing key":   {Credentials: domain.ProviderCredentials{APIKey: "k"}, Key: domain.SSHKey{Name: "laptop"}},
+		"missing creds": {Key: domain.SSHKey{Name: "laptop", PublicKey: "ssh-ed25519 AAAA"}},
+	} {
+		if _, err := uc.Execute(context.Background(), in); !errors.Is(err, domain.ErrInvalidInput) {
+			t.Errorf("%s: error = %v, want domain.ErrInvalidInput", name, err)
+		}
+	}
+}
+
+func TestListSSHKeysReturnsProviderResult(t *testing.T) {
+	provider := &fakeProvider{keys: []domain.SSHKey{{ID: "key-1", Name: "laptop"}, {ID: "key-2", Name: "ci-runner"}}}
+	uc := app.NewListSSHKeys(&inlineQueue{}, provider)
+
+	keys, err := uc.Execute(context.Background(), app.ListSSHKeysInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if len(keys) != 2 {
+		t.Fatalf("len(keys) = %d, want 2", len(keys))
+	}
+}
+
+func TestListSSHKeysRequiresCredentials(t *testing.T) {
+	uc := app.NewListSSHKeys(&inlineQueue{}, &fakeProvider{})
+
+	_, err := uc.Execute(context.Background(), app.ListSSHKeysInput{})
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
 	}
 }
 
-func TestReleaseIPCallsProvider(t *testing.T) {
+func TestDeleteSSHKeyCallsProvider(t *testing.T) {
 	provider := &fakeProvider{}
-	uc := app.NewReleaseIP(&inlineQueue{}, provider)
+	uc := app.NewDeleteSSHKey(&inlineQueue{}, provider)
 
-	err := uc.Execute(context.Background(), app.ReleaseIPInput{
+	err := uc.Execute(context.Background(), app.DeleteSSHKeyInput{
 		Credentials: domain.ProviderCredentials{APIKey: "k"},
-		IPAddress:   "203.0.113.10",
+		KeyID:       "key-1",
 	})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
-	if provider.released != "203.0.113.10" {
-		t.Errorf("released = %q, want 203.0.113.10", provider.released)
+	if provider.deletedKeyID != "key-1" {
+		t.Errorf("deletedKeyID = %q, want key-1", provider.deletedKeyID)
 	}
 }
 
-func TestReleaseIPRequiresAddress(t *testing.T) {
-	uc := app.NewReleaseIP(&inlineQueue{}, &fakeProvider{})
+func TestDeleteSSHKeyRequiresKeyID(t *testing.T) {
+	uc := app.NewDeleteSSHKey(&inlineQueue{}, &fakeProvider{})
 
-	err := uc.Execute(context.Background(), app.ReleaseIPInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
+	err := uc.Execute(context.Background(), app.DeleteSSHKeyInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
 	}
 }
 
-// TestReleaseIPTreatsAlreadyGoneAsSuccess proves release_ip can be called more
-// than once safely: a not-found response from the provider is not surfaced as
-// an error.
-func TestReleaseIPTreatsAlreadyGoneAsSuccess(t *testing.T) {
-	provider := &fakeProvider{releaseErr: fmt.Errorf("reserved IP 203.0.113.99: %w", domain.ErrNotFound)}
-	uc := app.NewReleaseIP(&inlineQueue{}, provider)
+// TestDeleteSSHKeyTreatsAlreadyGoneAsSuccess proves delete_ssh_key can be
+// called more than once safely: a not-found response from the provider is not
+// surfaced as an error.
+func TestDeleteSSHKeyTreatsAlreadyGoneAsSuccess(t *testing.T) {
+	provider := &fakeProvider{keyDeleteErr: fmt.Errorf("SSH key key-1: %w", domain.ErrNotFound)}
+	uc := app.NewDeleteSSHKey(&inlineQueue{}, provider)
 
-	err := uc.Execute(context.Background(), app.ReleaseIPInput{
+	err := uc.Execute(context.Background(), app.DeleteSSHKeyInput{
 		Credentials: domain.ProviderCredentials{APIKey: "k"},
-		IPAddress:   "203.0.113.99",
+		KeyID:       "key-1",
 	})
 	if err != nil {
-		t.Fatalf("Execute: %v, want nil for an already-released address", err)
-	}
-}
-
-func TestAssignIPToServerCallsProvider(t *testing.T) {
-	provider := &fakeProvider{}
-	uc := app.NewAssignIPToServer(&inlineQueue{}, provider)
-
-	ip, err := uc.Execute(context.Background(), app.AssignIPToServerInput{
-		Credentials: domain.ProviderCredentials{APIKey: "k"},
-		IPAddress:   "203.0.113.10",
-		ServerID:    "vm-1",
-	})
-	if err != nil {
-		t.Fatalf("Execute: %v", err)
-	}
-	if provider.assigned.ip != "203.0.113.10" || provider.assigned.serverID != "vm-1" {
-		t.Errorf("assigned = %+v, want ip 203.0.113.10 to server vm-1", provider.assigned)
-	}
-	if ip.ServerID != "vm-1" {
-		t.Errorf("returned ServerID = %q, want vm-1", ip.ServerID)
-	}
-}
-
-func TestAssignIPToServerRequiresServerID(t *testing.T) {
-	uc := app.NewAssignIPToServer(&inlineQueue{}, &fakeProvider{})
-
-	_, err := uc.Execute(context.Background(), app.AssignIPToServerInput{
-		Credentials: domain.ProviderCredentials{APIKey: "k"},
-		IPAddress:   "203.0.113.10",
-	})
-	if !errors.Is(err, domain.ErrInvalidInput) {
-		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
-	}
-}
-
-func TestUnassignIPCallsProvider(t *testing.T) {
-	provider := &fakeProvider{}
-	uc := app.NewUnassignIP(&inlineQueue{}, provider)
-
-	ip, err := uc.Execute(context.Background(), app.UnassignIPInput{
-		Credentials: domain.ProviderCredentials{APIKey: "k"},
-		IPAddress:   "203.0.113.10",
-	})
-	if err != nil {
-		t.Fatalf("Execute: %v", err)
-	}
-	if provider.unassigned != "203.0.113.10" {
-		t.Errorf("unassigned = %q, want 203.0.113.10", provider.unassigned)
-	}
-	if ip.ServerID != "" {
-		t.Errorf("returned ServerID = %q, want empty after unassign", ip.ServerID)
+		t.Fatalf("Execute: %v, want nil for an already-deleted key", err)
 	}
 }

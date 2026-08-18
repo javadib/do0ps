@@ -14,23 +14,11 @@ import (
 //
 // VM lifecycle methods (CreateServer, GetServer, ListServers, DeleteServer,
 // FindServerByName) live in vms.go, wired to the real cloud-server API
-// (issue #9). Everything below remains a stub — issues #10 (SSH keys) and
-// #19 (CDN zones/DNS) wire these up against their own confirmed endpoints.
-
-// CreateSSHKey registers a public key with the provider.
-func (c *Client) CreateSSHKey(ctx context.Context, creds domain.ProviderCredentials, key domain.SSHKey) (*domain.SSHKey, error) {
-	return nil, fmt.Errorf("create SSH key %q: %w", key.Name, errNotImplemented)
-}
-
-// ListSSHKeys returns every key registered with the credentials.
-func (c *Client) ListSSHKeys(ctx context.Context, creds domain.ProviderCredentials) ([]domain.SSHKey, error) {
-	return nil, fmt.Errorf("list SSH keys: %w", errNotImplemented)
-}
-
-// DeleteSSHKey removes a registered key by provider ID.
-func (c *Client) DeleteSSHKey(ctx context.Context, creds domain.ProviderCredentials, id string) error {
-	return fmt.Errorf("delete SSH key %s: %w", id, errNotImplemented)
-}
+// (issue #9). SSH key methods live in keys.go (issue #10), firewall methods in
+// firewalls.go (issue #11), reserved IP methods in reserved_ips.go (issue #13),
+// and the SSL ordering workflow in ssl.go (issue #18). Everything below remains
+// a stub — issue #19 (CDN zones/DNS) wires these up against the CDN API's own
+// confirmed endpoints.
 
 // ListDNSZones returns the domains hosted on the account.
 func (c *Client) ListDNSZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.DNSZone, error) {

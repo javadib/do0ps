@@ -108,10 +108,50 @@ type ParspackProvider interface {
 	AssignIPToServer(ctx context.Context, creds domain.ProviderCredentials, ip, serverID string) (*domain.ReservedIP, error)
 	UnassignIP(ctx context.Context, creds domain.ProviderCredentials, ip string) (*domain.ReservedIP, error)
 
+	// Firewall management. All fast operations (AGENTS.md 4.3). These are the
+	// cloud-server/VM-network-level firewalls of the Abrha-based cloud-server
+	// API (base URL .../cserver, path api/public/v1/firewalls), NOT the CDN
+	// API's edge-level firewall concept (tracked separately in issue #24) —
+	// the two live on different API surfaces and must not be conflated.
+	//
+	// Create-style methods are not expected to be idempotent on their own;
+	// callers that must not duplicate a firewall on retry are expected to
+	// check first via ListFirewalls (AGENTS.md 4.4).
+	CreateFirewall(ctx context.Context, creds domain.ProviderCredentials, fw domain.Firewall) (*domain.Firewall, error)
+	GetFirewall(ctx context.Context, creds domain.ProviderCredentials, id string) (*domain.Firewall, error)
+	ListFirewalls(ctx context.Context, creds domain.ProviderCredentials) ([]domain.Firewall, error)
+	UpdateFirewall(ctx context.Context, creds domain.ProviderCredentials, id string, fw domain.Firewall) (*domain.Firewall, error)
+
+	// DeleteFirewall removes a firewall by provider ID. As with DeleteServer,
+	// an already-absent ID reports domain.ErrNotFound rather than succeeding
+	// silently, so callers decide for themselves whether that counts as done.
+	DeleteFirewall(ctx context.Context, creds domain.ProviderCredentials, id string) error
+
 	ListDNSZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.DNSZone, error)
 	ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneID string) ([]domain.DNSRecord, error)
 	CreateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, rec domain.DNSRecord) (*domain.DNSRecord, error)
 	DeleteDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneID, recordID string) error
+
+	// SSL certificate ordering workflow (AGENTS.md 4.5's SSL surface). All
+	// fast operations: each is a single HTTP round trip, even though driving
+	// a certificate to issuance takes a caller several separate calls
+	// (create order, process, verify challenge, poll certificate).
+	ListSSLProducts(ctx context.Context, creds domain.ProviderCredentials) ([]domain.SSLProduct, error)
+	CreateSSLOrder(ctx context.Context, creds domain.ProviderCredentials, spec domain.SSLOrderSpec) (*domain.SSLOrder, error)
+	// ProcessSSLOrder submits the CSR and contact details for a paid order
+	// and returns the domain-ownership challenges to complete next.
+	ProcessSSLOrder(ctx context.Context, creds domain.ProviderCredentials, orderID, csr string, contact domain.SSLContact) (*domain.SSLChallengeSet, error)
+	// GetSSLChallenge re-shows the challenges of an already-processed order.
+	GetSSLChallenge(ctx context.Context, creds domain.ProviderCredentials, orderID string) (*domain.SSLChallengeSet, error)
+	// ReloadSSLChallenge switches the verification method, invalidating any
+	// previously shown challenge tokens. emailPrefix is only meaningful when
+	// method is "ADMIN".
+	ReloadSSLChallenge(ctx context.Context, creds domain.ProviderCredentials, orderID, method, emailPrefix string) (*domain.SSLChallengeSet, error)
+	// VerifySSLChallenge checks the completed challenge for method and, on
+	// success, returns the certificate if it is ready immediately.
+	VerifySSLChallenge(ctx context.Context, creds domain.ProviderCredentials, orderID, method string) (*domain.SSLVerifyResult, error)
+	GetSSLCertificate(ctx context.Context, creds domain.ProviderCredentials, orderID string) (*domain.SSLCertificate, error)
+	ReissueSSLCertificate(ctx context.Context, creds domain.ProviderCredentials, orderID, csr string) (*domain.SSLCertificate, error)
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
