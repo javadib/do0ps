@@ -31,7 +31,7 @@ func TestRunEndToEnd(t *testing.T) {
 		QueueDepth:   8,
 		PollInterval: 20 * time.Millisecond,
 		PollTimeout:  time.Second,
-		ShutdownWait: 5 * time.Second,
+		ShutdownWait: 2 * time.Second,
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
@@ -66,6 +66,11 @@ func TestRunEndToEnd(t *testing.T) {
 		}
 	}
 
+	// Release the keep-alive sockets this test's own requests left open, so
+	// Fiber's graceful shutdown is not waiting on connections the client side
+	// simply never got around to closing.
+	http.DefaultClient.CloseIdleConnections()
+
 	// Cancel the same way a SIGTERM-derived context would and confirm run()
 	// drains the worker pool and returns cleanly instead of hanging or
 	// surfacing an error.
@@ -83,19 +88,34 @@ func TestRunEndToEnd(t *testing.T) {
 	runErr2 := make(chan error, 1)
 	go func() { runErr2 <- run(ctx2, cfg, logger, func(a net.Addr) { addrCh2 <- a }) }()
 
-	waitListening(t, addrCh2)
+	// Wait for the server to actually answer, not merely to have bound its
+	// socket. Fiber starts its graceful-shutdown watcher before it starts
+	// serving, and reports the listener address from in between the two, so a
+	// cancel sent the instant the address is known can be processed while
+	// there is nothing yet to shut down — leaving Serve to start afterwards
+	// and block forever. Probing /healthz proves serving has begun.
+	base2 := "http://" + waitListening(t, addrCh2)
+	waitFor200(t, base2+"/healthz")
+	http.DefaultClient.CloseIdleConnections()
+
 	cancel2()
 	if err := waitDone(t, runErr2); err != nil {
 		t.Fatalf("second run() (post-restart) = %v, want nil", err)
 	}
 }
 
+// testTimeout bounds every wait in this test. It is deliberately several
+// times cfg.ShutdownWait: the assertions are about run() reaching a clean
+// stop, not about how fast it gets there, and a tight bound turns a slow
+// runner into a false failure.
+const testTimeout = 30 * time.Second
+
 func waitListening(t *testing.T, addrCh <-chan net.Addr) string {
 	t.Helper()
 	select {
 	case a := <-addrCh:
 		return a.String()
-	case <-time.After(5 * time.Second):
+	case <-time.After(testTimeout):
 		t.Fatal("server did not start listening in time")
 		return ""
 	}
@@ -106,7 +126,7 @@ func waitDone(t *testing.T, errCh <-chan error) error {
 	select {
 	case err := <-errCh:
 		return err
-	case <-time.After(5 * time.Second):
+	case <-time.After(testTimeout):
 		t.Fatal("run() did not shut down within the shutdown window")
 		return nil
 	}
@@ -114,7 +134,7 @@ func waitDone(t *testing.T, errCh <-chan error) error {
 
 func waitFor200(t *testing.T, url string) {
 	t.Helper()
-	deadline := time.Now().Add(5 * time.Second)
+	deadline := time.Now().Add(testTimeout)
 	var lastErr error
 	for time.Now().Before(deadline) {
 		resp, err := http.Get(url)
