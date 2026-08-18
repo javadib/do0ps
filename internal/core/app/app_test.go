@@ -63,7 +63,15 @@ func (r *memJobs) Update(_ context.Context, job *domain.Job) error {
 	return nil
 }
 
-func (r *memJobs) ListUnfinished(context.Context) ([]*domain.Job, error) { return nil, nil }
+func (r *memJobs) ListUnfinished(context.Context) ([]*domain.Job, error) {
+	var unfinished []*domain.Job
+	for _, job := range r.jobs {
+		if !job.IsTerminal() {
+			unfinished = append(unfinished, job)
+		}
+	}
+	return unfinished, nil
+}
 
 func (r *memJobs) ListDue(context.Context, time.Time, int) ([]*domain.Job, error) { return nil, nil }
 

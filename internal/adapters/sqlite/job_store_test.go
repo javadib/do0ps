@@ -90,3 +90,109 @@ func TestJobStoreGetUnknown(t *testing.T) {
 		t.Fatalf("error = %v, want domain.ErrNotFound", err)
 	}
 }
+
+// TestJobStoreSurvivesRestart simulates a process restart: jobs are written
+// through one *sql.DB handle, that handle is closed (as happens on process
+// exit), and a fresh Open against the same file must still see them. This is
+// the persistence guarantee the startup-recovery use case (app.Recovery)
+// depends on — recovery is worthless if pending/running jobs don't actually
+// survive the restart they're meant to be recovered from.
+func TestJobStoreSurvivesRestart(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "restart.db")
+	now := time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC)
+
+	func() {
+		db, err := sqlite.Open(ctx, dbPath)
+		if err != nil {
+			t.Fatalf("Open (first process): %v", err)
+		}
+		defer db.Close()
+
+		store := sqlite.NewJobStore(db)
+		emptyPayload := json.RawMessage(`{}`)
+		pending := &domain.Job{
+			ID:          "op-pending",
+			Type:        domain.JobTypeProvisionServer,
+			Payload:     emptyPayload,
+			Status:      domain.JobStatusPending,
+			NextRetryAt: now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+		if err := store.Create(ctx, pending); err != nil {
+			t.Fatalf("Create pending: %v", err)
+		}
+
+		running := &domain.Job{
+			ID:        "op-running",
+			Type:      domain.JobTypeProvisionServer,
+			Payload:   emptyPayload,
+			Status:    domain.JobStatusPending,
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		if err := store.Create(ctx, running); err != nil {
+			t.Fatalf("Create running: %v", err)
+		}
+		if err := running.MarkRunning(now); err != nil {
+			t.Fatalf("MarkRunning: %v", err)
+		}
+		if err := store.Update(ctx, running); err != nil {
+			t.Fatalf("Update running: %v", err)
+		}
+
+		done := &domain.Job{
+			ID:        "op-done",
+			Type:      domain.JobTypeProvisionServer,
+			Payload:   emptyPayload,
+			Status:    domain.JobStatusPending,
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		if err := store.Create(ctx, done); err != nil {
+			t.Fatalf("Create done: %v", err)
+		}
+		if err := done.MarkRunning(now); err != nil {
+			t.Fatalf("MarkRunning done: %v", err)
+		}
+		if err := done.MarkDone(json.RawMessage(`{}`), now); err != nil {
+			t.Fatalf("MarkDone: %v", err)
+		}
+		if err := store.Update(ctx, done); err != nil {
+			t.Fatalf("Update done: %v", err)
+		}
+		// db.Close() below stands in for the process dying.
+	}()
+
+	// A brand new *sql.DB against the same path stands in for the next
+	// process starting up.
+	db, err := sqlite.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatalf("Open (second process): %v", err)
+	}
+	defer db.Close()
+	store := sqlite.NewJobStore(db)
+
+	unfinished, err := store.ListUnfinished(ctx)
+	if err != nil {
+		t.Fatalf("ListUnfinished after restart: %v", err)
+	}
+
+	byID := make(map[string]*domain.Job, len(unfinished))
+	for _, job := range unfinished {
+		byID[job.ID] = job
+	}
+	if len(byID) != 2 {
+		t.Fatalf("unfinished after restart = %d, want 2 (pending + running, not done): %+v", len(byID), unfinished)
+	}
+	if got := byID["op-pending"]; got == nil || got.Status != domain.JobStatusPending {
+		t.Errorf("op-pending after restart = %+v, want a pending job", got)
+	}
+	if got := byID["op-running"]; got == nil || got.Status != domain.JobStatusRunning {
+		t.Errorf("op-running after restart = %+v, want a running job", got)
+	}
+	if _, ok := byID["op-done"]; ok {
+		t.Errorf("op-done reappeared in ListUnfinished after restart, want it excluded (terminal)")
+	}
+}
