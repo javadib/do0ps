@@ -11,8 +11,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/sse"
 
 	"github.com/javadib/do0ps/internal/core/domain"
 )
@@ -35,6 +37,11 @@ type Server struct {
 	logger *slog.Logger
 	tools  []Tool
 	index  map[string]int
+
+	// heartbeatInterval overrides the SSE heartbeat used to detect a
+	// disconnected client. Zero means "let the sse middleware use its
+	// default" (see WithHeartbeatInterval).
+	heartbeatInterval time.Duration
 }
 
 // Option configures a Server.
@@ -47,6 +54,20 @@ func WithLogger(l *slog.Logger) Option {
 			return errors.New("logger must not be nil")
 		}
 		s.logger = l
+		return nil
+	}
+}
+
+// WithHeartbeatInterval overrides the SSE stream's heartbeat interval, used
+// to bound how quickly a disconnected client is noticed. Production traffic
+// is fine with the middleware default (15s); tests set this shorter so a
+// closed connection is detected without a slow test run.
+func WithHeartbeatInterval(d time.Duration) Option {
+	return func(s *Server) error {
+		if d <= 0 {
+			return errors.New("heartbeat interval must be positive")
+		}
+		s.heartbeatInterval = d
 		return nil
 	}
 }
@@ -90,13 +111,38 @@ func (s *Server) Call(ctx context.Context, name string, args json.RawMessage) (a
 
 // Register mounts the MCP endpoint on a Fiber router.
 //
-// This is the non-streaming half of Streamable HTTP: a single POST that
-// answers tools/list and tools/call. The SSE half (server-initiated messages
-// via github.com/gofiber/fiber/v3/middleware/sse) is the next step, and
-// AGENTS.md 5 asks for a round-trip test against a real MCP client before the
-// rest of the transport is built on top of it.
+// Streamable HTTP has two halves on the same path: POST answers tools/list
+// and tools/call directly with a JSON-RPC response, and GET opens an SSE
+// stream (via github.com/gofiber/fiber/v3/middleware/sse, per AGENTS.md 5)
+// for server-initiated messages. No use case pushes anything down the stream
+// yet, so it currently just proves the transport round-trip.
 func (s *Server) Register(router fiber.Router) {
 	router.Post("/mcp", s.handleRPC)
+	router.Get("/mcp", sse.New(sse.Config{
+		Handler:           s.handleStream,
+		HeartbeatInterval: s.heartbeatInterval,
+		OnClose: func(_ fiber.Ctx, err error) {
+			if err != nil && !errors.Is(err, context.Canceled) {
+				s.logger.Error("mcp stream closed", "error", err)
+			}
+		},
+	}))
+}
+
+// handleStream serves the SSE half of Streamable HTTP: a long-lived
+// connection a client can open to receive server-initiated messages. It
+// sends a "ready" event so a client (or test) can confirm the stream is live,
+// then holds the connection open until the client disconnects — surfaced
+// through stream.Context() being canceled, per AGENTS.md 5.
+func (s *Server) handleStream(_ fiber.Ctx, stream *sse.Stream) error {
+	if err := stream.Event(sse.Event{
+		Name: "ready",
+		Data: fiber.Map{"protocol": "mcp-streamable-http"},
+	}); err != nil {
+		return err
+	}
+	<-stream.Context().Done()
+	return nil
 }
 
 type rpcRequest struct {

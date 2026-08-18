@@ -44,9 +44,28 @@ func (a credentialArgs) domain() domain.ProviderCredentials {
 // Tools builds the tool set backed by the given use cases.
 func Tools(uc UseCases) []Tool {
 	return []Tool{
+		PingTool(),
 		createServerTool(uc.ProvisionServer),
 		createDNSRecordTool(uc.SetupDNS),
 		getOperationStatusTool(uc.GetOperationStatus),
+	}
+}
+
+// PingTool is a trivial built-in tool with no use case or provider behind it.
+// It proves the full MCP transport round-trip end-to-end — a client can
+// connect, list tools, and call one successfully — before any real business
+// tool exists (AGENTS.md 5).
+func PingTool() Tool {
+	return Tool{
+		Name:        "ping",
+		Description: "Health-check tool with no side effects. Returns \"pong\" to confirm the MCP server is reachable.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": map[string]any{},
+		},
+		Handler: func(_ context.Context, _ json.RawMessage) (any, error) {
+			return map[string]any{"message": "pong"}, nil
+		},
 	}
 }
 
