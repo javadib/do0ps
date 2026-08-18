@@ -107,6 +107,12 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	reissueSSLCertificate := app.NewReissueSSLCertificate(pool, provider)
 	recovery := app.NewRecovery(jobs, clock)
 
+	createFirewall := app.NewCreateFirewall(pool, provider)
+	getFirewall := app.NewGetFirewall(pool, provider)
+	listFirewalls := app.NewListFirewalls(pool, provider)
+	updateFirewall := app.NewUpdateFirewall(pool, provider)
+	deleteFirewall := app.NewDeleteFirewall(pool, provider)
+
 	provisionLoadBalancer, err := app.NewProvisionLoadBalancer(jobs, pool, provider, clock, ids,
 		app.WithLoadBalancerPollInterval(cfg.PollInterval),
 		app.WithLoadBalancerPollTimeout(cfg.PollTimeout),
@@ -138,8 +144,24 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		ListServers:           listServers,
 		GetServer:             getServer,
 		DeleteServer:          deleteServer,
+		RegisterSSHKey:        registerSSHKey,
+		ListSSHKeys:           listSSHKeys,
+		DeleteSSHKey:          deleteSSHKey,
 		SetupDNS:              setupDNS,
 		GetOperationStatus:    operationStatus,
+		CreateFirewall:        createFirewall,
+		GetFirewall:           getFirewall,
+		ListFirewalls:         listFirewalls,
+		UpdateFirewall:        updateFirewall,
+		DeleteFirewall:        deleteFirewall,
+		ListSSLProducts:       listSSLProducts,
+		CreateSSLOrder:        createSSLOrder,
+		ProcessSSLOrder:       processSSLOrder,
+		GetSSLChallenge:       getSSLChallenge,
+		ReloadSSLChallenge:    reloadSSLChallenge,
+		VerifySSLChallenge:    verifySSLChallenge,
+		GetSSLCertificate:     getSSLCertificate,
+		ReissueSSLCertificate: reissueSSLCertificate,
 		ProvisionLoadBalancer: provisionLoadBalancer,
 		GetLoadBalancer:       getLoadBalancer,
 		ListLoadBalancers:     listLoadBalancers,

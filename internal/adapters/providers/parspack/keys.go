@@ -21,7 +21,11 @@ const sshKeysBasePath = "api/public/v1/account/keys"
 // internal/core/domain types.
 
 type sshKeyWire struct {
-	ID          int    `json:"id,float64,omitempty"`
+	// The upstream client tags ID as `json:"id,float64,omitempty"`;
+	// encoding/json has no "float64" option and silently ignores it, so it is
+	// dropped here to keep staticcheck (SA5008) quiet. The decoded value is
+	// identical either way.
+	ID          int    `json:"id,omitempty"`
 	Name        string `json:"name,omitempty"`
 	Fingerprint string `json:"fingerprint,omitempty"`
 	PublicKey   string `json:"public_key,omitempty"`

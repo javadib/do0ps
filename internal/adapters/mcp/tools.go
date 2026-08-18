@@ -21,6 +21,21 @@ type UseCases struct {
 	SetupDNS           *app.SetupDNS
 	GetOperationStatus *app.GetOperationStatus
 
+	CreateFirewall *app.CreateFirewall
+	GetFirewall    *app.GetFirewall
+	ListFirewalls  *app.ListFirewalls
+	UpdateFirewall *app.UpdateFirewall
+	DeleteFirewall *app.DeleteFirewall
+
+	ListSSLProducts       *app.ListSSLProducts
+	CreateSSLOrder        *app.CreateSSLOrder
+	ProcessSSLOrder       *app.ProcessSSLOrder
+	GetSSLChallenge       *app.GetSSLChallenge
+	ReloadSSLChallenge    *app.ReloadSSLChallenge
+	VerifySSLChallenge    *app.VerifySSLChallenge
+	GetSSLCertificate     *app.GetSSLCertificate
+	ReissueSSLCertificate *app.ReissueSSLCertificate
+
 	ProvisionLoadBalancer *app.ProvisionLoadBalancer
 	GetLoadBalancer       *app.GetLoadBalancer
 	ListLoadBalancers     *app.ListLoadBalancers
@@ -66,6 +81,19 @@ func Tools(uc UseCases) []Tool {
 		deleteSSHKeyTool(uc.DeleteSSHKey),
 		createDNSRecordTool(uc.SetupDNS),
 		getOperationStatusTool(uc.GetOperationStatus),
+		createFirewallTool(uc.CreateFirewall),
+		getFirewallTool(uc.GetFirewall),
+		listFirewallsTool(uc.ListFirewalls),
+		updateFirewallTool(uc.UpdateFirewall),
+		deleteFirewallTool(uc.DeleteFirewall),
+		listSSLProductsTool(uc.ListSSLProducts),
+		createSSLOrderTool(uc.CreateSSLOrder),
+		processSSLOrderTool(uc.ProcessSSLOrder),
+		getSSLChallengeTool(uc.GetSSLChallenge),
+		reloadSSLChallengeTool(uc.ReloadSSLChallenge),
+		verifySSLChallengeTool(uc.VerifySSLChallenge),
+		getSSLCertificateTool(uc.GetSSLCertificate),
+		reissueSSLCertificateTool(uc.ReissueSSLCertificate),
 		createLoadBalancerTool(uc.ProvisionLoadBalancer),
 		getLoadBalancerTool(uc.GetLoadBalancer),
 		listLoadBalancersTool(uc.ListLoadBalancers),

@@ -87,11 +87,62 @@ type fakeProvider struct {
 	deletedID string
 	deleteErr error
 
+	keys         []domain.SSHKey
+	createdKey   *domain.SSHKey
+	deletedKeyID string
+	keyDeleteErr error
+
+	sslProducts      []domain.SSLProduct
+	sslOrder         *domain.SSLOrder
+	sslChallengeSet  *domain.SSLChallengeSet
+	sslVerifyResult  *domain.SSLVerifyResult
+	sslCertificate   *domain.SSLCertificate
+	processedContact domain.SSLContact
+	reloadedMethod   string
+	verifiedMethod   string
+	reissuedCSR      string
+
 	loadBalancers []domain.LoadBalancer
 	createdLB     *domain.LoadBalancer
 	updatedLB     *domain.LoadBalancer
 	deletedLBID   string
 	deleteLBErr   error
+}
+
+func (p *fakeProvider) ListSSLProducts(context.Context, domain.ProviderCredentials) ([]domain.SSLProduct, error) {
+	return p.sslProducts, nil
+}
+
+func (p *fakeProvider) CreateSSLOrder(_ context.Context, _ domain.ProviderCredentials, spec domain.SSLOrderSpec) (*domain.SSLOrder, error) {
+	return p.sslOrder, nil
+}
+
+func (p *fakeProvider) ProcessSSLOrder(_ context.Context, _ domain.ProviderCredentials, _, _ string, contact domain.SSLContact) (*domain.SSLChallengeSet, error) {
+	p.processedContact = contact
+	return p.sslChallengeSet, nil
+}
+
+func (p *fakeProvider) GetSSLChallenge(context.Context, domain.ProviderCredentials, string) (*domain.SSLChallengeSet, error) {
+	return p.sslChallengeSet, nil
+}
+
+func (p *fakeProvider) ReloadSSLChallenge(_ context.Context, _ domain.ProviderCredentials, _, method, _ string) (*domain.SSLChallengeSet, error) {
+	p.reloadedMethod = method
+	return p.sslChallengeSet, nil
+}
+
+func (p *fakeProvider) VerifySSLChallenge(_ context.Context, _ domain.ProviderCredentials, _, method string) (*domain.SSLVerifyResult, error) {
+	p.verifiedMethod = method
+	return p.sslVerifyResult, nil
+}
+
+func (p *fakeProvider) GetSSLCertificate(context.Context, domain.ProviderCredentials, string) (*domain.SSLCertificate, error) {
+	return p.sslCertificate, nil
+}
+
+func (p *fakeProvider) ReissueSSLCertificate(_ context.Context, _ domain.ProviderCredentials, _, csr string) (*domain.SSLCertificate, error) {
+	p.reissuedCSR = csr
+	return p.sslCertificate, nil
 }
 
 func (p *fakeProvider) ListServers(context.Context, domain.ProviderCredentials) ([]domain.Server, error) {
