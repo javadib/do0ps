@@ -99,6 +99,23 @@ type ParspackProvider interface {
 	ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneID string) ([]domain.DNSRecord, error)
 	CreateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, rec domain.DNSRecord) (*domain.DNSRecord, error)
 	DeleteDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneID, recordID string) error
+
+	// VM snapshot management. CreateVMSnapshot and RestoreVM are long
+	// operations: they start an async VM action and return it in
+	// "in-progress" state; callers poll GetVMAction until it reaches a
+	// terminal state (see AGENTS.md 4.3). ListVMSnapshots and
+	// DeleteVMSnapshot are fast.
+	CreateVMSnapshot(ctx context.Context, creds domain.ProviderCredentials, serverID, name string) (*domain.VMAction, error)
+	GetVMAction(ctx context.Context, creds domain.ProviderCredentials, serverID, actionID string) (*domain.VMAction, error)
+	ListVMSnapshots(ctx context.Context, creds domain.ProviderCredentials) ([]domain.VMSnapshot, error)
+	// DeleteVMSnapshot removes a snapshot by provider ID. As with
+	// DeleteServer, an already-absent ID reports domain.ErrNotFound rather
+	// than succeeding silently, so callers decide for themselves whether that
+	// counts as done.
+	DeleteVMSnapshot(ctx context.Context, creds domain.ProviderCredentials, id string) error
+	// RestoreVM wipes the disk of the given server and replaces it with the
+	// given snapshot's contents.
+	RestoreVM(ctx context.Context, creds domain.ProviderCredentials, serverID, snapshotID string) (*domain.VMAction, error)
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic

@@ -286,3 +286,23 @@ type VMSnapshot struct {
 	SizeGB    int      // billable size of the snapshot
 	CreatedAt time.Time
 }
+
+// VMAction is an asynchronous operation a server's disk is running, e.g.
+// snapshotting or restoring from a snapshot. Parspack reports these through
+// the VM actions endpoints (github.com/abrhacom/go-api-abrha/vm_actions.go),
+// and snapshot creation/restore both complete behind one.
+type VMAction struct {
+	ID          string
+	ServerID    string // the VM the action runs on
+	Type        string // provider verb, e.g. "snapshot" or "restore"
+	Status      string // "in-progress", "completed", or "errored"
+	StartedAt   time.Time
+	CompletedAt time.Time
+}
+
+// VMAction statuses reported by Abrha-based APIs.
+const (
+	VMActionStatusInProgress = "in-progress"
+	VMActionStatusCompleted  = "completed"
+	VMActionStatusErrored    = "errored"
+)

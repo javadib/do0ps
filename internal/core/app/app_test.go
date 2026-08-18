@@ -86,6 +86,15 @@ type fakeProvider struct {
 	servers   []domain.Server
 	deletedID string
 	deleteErr error
+
+	snapshots       []domain.VMSnapshot
+	actions         map[string]*domain.VMAction
+	snapshotCalls   int
+	snapshotErr     error
+	deletedSnapshot string
+	deleteSnapErr   error
+	restoreCalls    int
+	restoreErr      error
 }
 
 func (p *fakeProvider) ListServers(context.Context, domain.ProviderCredentials) ([]domain.Server, error) {

@@ -93,9 +93,27 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	deleteServer := app.NewDeleteServer(pool, provider)
 	setupDNS := app.NewSetupDNS(pool, provider)
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
+	createSnapshot, err := app.NewCreateSnapshot(jobs, pool, provider, clock, ids,
+		app.WithActionPollInterval(cfg.PollInterval),
+		app.WithActionPollTimeout(cfg.PollTimeout),
+	)
+	if err != nil {
+		return err
+	}
+	listSnapshots := app.NewListSnapshots(pool, provider)
+	deleteSnapshot := app.NewDeleteSnapshot(pool, provider)
+	restoreVM, err := app.NewRestoreVM(jobs, pool, provider, clock, ids,
+		app.WithActionPollInterval(cfg.PollInterval),
+		app.WithActionPollTimeout(cfg.PollTimeout),
+	)
+	if err != nil {
+		return err
+	}
 	recovery := app.NewRecovery(jobs, clock)
 
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
+	pool.Register(domain.JobTypeCreateSnapshot, createSnapshot.Handle)
+	pool.Register(domain.JobTypeRestoreVM, restoreVM.Handle)
 	pool.Start(ctx)
 
 	flagged, err := recovery.Run(ctx)
@@ -115,6 +133,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		DeleteServer:       deleteServer,
 		SetupDNS:           setupDNS,
 		GetOperationStatus: operationStatus,
+		CreateSnapshot:     createSnapshot,
+		ListSnapshots:      listSnapshots,
+		DeleteSnapshot:     deleteSnapshot,
+		RestoreVM:          restoreVM,
 	}), mcp.WithLogger(logger))
 	if err != nil {
 		return err
