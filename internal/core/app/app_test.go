@@ -80,9 +80,6 @@ func (r *memJobs) ListDue(context.Context, time.Time, int) ([]*domain.Job, error
 type fakeProvider struct {
 	ports.ParspackProvider
 
-	zones   []domain.DNSZone
-	created *domain.DNSRecord
-
 	servers   []domain.Server
 	deletedID string
 	deleteErr error
@@ -92,11 +89,26 @@ type fakeProvider struct {
 	deletedKeyID string
 	keyDeleteErr error
 
-	reserved   []domain.ReservedIP
-	reserveErr error
-	released   string
-	releaseErr error
-	assigned   struct {
+	cdnZones        []domain.CDNZone
+	createdZone     *domain.CDNZone
+	createZoneErr   error
+	deletedZoneUUID string
+	deleteZoneErr   error
+	cdnZonePlans    []domain.CDNZonePlanPricing
+	nsRecords       *domain.NameserverRecords
+
+	dnsRecords           []domain.DNSRecord
+	createdRecord        *domain.DNSRecord
+	updatedRecord        *domain.DNSRecord
+	deletedRecordHost    string
+	deletedRecordType    domain.DNSRecordType
+	deletedRecordContent string
+	deleteRecordErr      error
+	reserved             []domain.ReservedIP
+	reserveErr           error
+	released             string
+	releaseErr           error
+	assigned             struct {
 		ip       string
 		serverID string
 	}
@@ -178,16 +190,6 @@ func (p *fakeProvider) DeleteServer(_ context.Context, _ domain.ProviderCredenti
 	return nil
 }
 
-func (p *fakeProvider) ListDNSZones(context.Context, domain.ProviderCredentials) ([]domain.DNSZone, error) {
-	return p.zones, nil
-}
-
-func (p *fakeProvider) CreateDNSRecord(_ context.Context, _ domain.ProviderCredentials, rec domain.DNSRecord) (*domain.DNSRecord, error) {
-	rec.ID = "rec-1"
-	p.created = &rec
-	return &rec, nil
-}
-
 func (p *fakeProvider) CreateSSHKey(_ context.Context, _ domain.ProviderCredentials, key domain.SSHKey) (*domain.SSHKey, error) {
 	key.ID = "key-1"
 	key.Fingerprint = "aa:bb:cc"
@@ -205,44 +207,6 @@ func (p *fakeProvider) DeleteSSHKey(_ context.Context, _ domain.ProviderCredenti
 	}
 	p.deletedKeyID = id
 	return nil
-}
-
-func TestSetupDNSResolvesZoneAndCreatesRecord(t *testing.T) {
-	provider := &fakeProvider{zones: []domain.DNSZone{{ID: "zone-1", Name: "example.com"}}}
-	uc := app.NewSetupDNS(&inlineQueue{}, provider)
-
-	rec, err := uc.Execute(context.Background(), app.SetupDNSInput{
-		Credentials: domain.ProviderCredentials{APIKey: "k"},
-		ZoneName:    "example.com",
-		Record: domain.DNSRecord{
-			Name:  "api",
-			Type:  domain.DNSRecordTypeA,
-			Value: "203.0.113.10",
-			TTL:   3600,
-		},
-	})
-	if err != nil {
-		t.Fatalf("Execute: %v", err)
-	}
-	if rec.ID != "rec-1" {
-		t.Errorf("record ID = %q, want %q", rec.ID, "rec-1")
-	}
-	if provider.created.ZoneID != "zone-1" {
-		t.Errorf("zone ID = %q, want %q — the zone name was not resolved", provider.created.ZoneID, "zone-1")
-	}
-}
-
-func TestSetupDNSUnknownZone(t *testing.T) {
-	uc := app.NewSetupDNS(&inlineQueue{}, &fakeProvider{})
-
-	_, err := uc.Execute(context.Background(), app.SetupDNSInput{
-		Credentials: domain.ProviderCredentials{APIKey: "k"},
-		ZoneName:    "missing.example",
-		Record:      domain.DNSRecord{Name: "api", Type: domain.DNSRecordTypeA, Value: "203.0.113.10"},
-	})
-	if !errors.Is(err, domain.ErrNotFound) {
-		t.Fatalf("error = %v, want domain.ErrNotFound", err)
-	}
 }
 
 func TestProvisionServerReturnsPendingOperation(t *testing.T) {

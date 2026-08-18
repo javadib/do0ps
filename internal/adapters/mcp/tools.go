@@ -18,13 +18,22 @@ type UseCases struct {
 	RegisterSSHKey     *app.RegisterSSHKey
 	ListSSHKeys        *app.ListSSHKeys
 	DeleteSSHKey       *app.DeleteSSHKey
-	SetupDNS           *app.SetupDNS
 	GetOperationStatus *app.GetOperationStatus
 
-	ReserveIP        *app.ReserveIP
-	ReleaseIP        *app.ReleaseIP
-	AssignIPToServer *app.AssignIPToServer
-	UnassignIP       *app.UnassignIP
+	CreateCDNZone        *app.CreateCDNZone
+	ListCDNZones         *app.ListCDNZones
+	GetCDNZone           *app.GetCDNZone
+	DeleteCDNZone        *app.DeleteCDNZone
+	ListCDNZonePlans     *app.ListCDNZonePlans
+	GetNameserverRecords *app.GetNameserverRecords
+	ListDNSRecords       *app.ListDNSRecords
+	CreateDNSRecord      *app.CreateDNSRecord
+	UpdateDNSRecord      *app.UpdateDNSRecord
+	DeleteDNSRecord      *app.DeleteDNSRecord
+	ReserveIP            *app.ReserveIP
+	ReleaseIP            *app.ReleaseIP
+	AssignIPToServer     *app.AssignIPToServer
+	UnassignIP           *app.UnassignIP
 
 	ListSSLProducts       *app.ListSSLProducts
 	CreateSSLOrder        *app.CreateSSLOrder
@@ -84,8 +93,17 @@ func Tools(uc UseCases) []Tool {
 		registerSSHKeyTool(uc.RegisterSSHKey),
 		listSSHKeysTool(uc.ListSSHKeys),
 		deleteSSHKeyTool(uc.DeleteSSHKey),
-		createDNSRecordTool(uc.SetupDNS),
 		getOperationStatusTool(uc.GetOperationStatus),
+		createCDNZoneTool(uc.CreateCDNZone),
+		listCDNZonesTool(uc.ListCDNZones),
+		getCDNZoneTool(uc.GetCDNZone),
+		deleteCDNZoneTool(uc.DeleteCDNZone),
+		listCDNZonePlansTool(uc.ListCDNZonePlans),
+		getNameserverRecordsTool(uc.GetNameserverRecords),
+		listDNSRecordsTool(uc.ListDNSRecords),
+		createDNSRecordTool(uc.CreateDNSRecord),
+		updateDNSRecordTool(uc.UpdateDNSRecord),
+		deleteDNSRecordTool(uc.DeleteDNSRecord),
 		reserveIPTool(uc.ReserveIP),
 		releaseIPTool(uc.ReleaseIP),
 		assignIPToServerTool(uc.AssignIPToServer),
@@ -470,91 +488,6 @@ func sshKeyToMap(key domain.SSHKey) map[string]any {
 		"name":        key.Name,
 		"fingerprint": key.Fingerprint,
 		"public_key":  key.PublicKey,
-	}
-}
-
-type createDNSRecordArgs struct {
-	credentialArgs
-	Zone     string `json:"zone"`
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Value    string `json:"value"`
-	TTL      int    `json:"ttl"`
-	Priority int    `json:"priority"`
-}
-
-func createDNSRecordTool(uc *app.SetupDNS) Tool {
-	props := credentialProperties()
-	props["zone"] = map[string]any{
-		"type":        "string",
-		"description": "The DNS zone (domain) the record belongs to, e.g. \"example.com\".",
-	}
-	props["name"] = map[string]any{
-		"type":        "string",
-		"description": "Record name relative to the zone, e.g. \"api\" for api.example.com. Use \"@\" for the zone apex.",
-	}
-	props["type"] = map[string]any{
-		"type":        "string",
-		"enum":        []string{"A", "AAAA", "CNAME", "TXT", "MX", "NS", "SRV"},
-		"description": "DNS record type, e.g. \"A\" for an IPv4 address.",
-	}
-	props["value"] = map[string]any{
-		"type":        "string",
-		"description": "Record value: an IPv4 address for A, a hostname for CNAME, arbitrary text for TXT.",
-	}
-	props["ttl"] = map[string]any{
-		"type":        "integer",
-		"description": "Time to live in seconds, e.g. 3600 for one hour. Omit to use the provider default.",
-		"minimum":     60,
-	}
-	props["priority"] = map[string]any{
-		"type":        "integer",
-		"description": "Priority, e.g. 10. Only meaningful for MX and SRV records.",
-	}
-
-	return Tool{
-		Name: "create_dns_record",
-		Description: "Create a DNS record in a Parspack-hosted zone. This is a fast operation: the created record is " +
-			"returned within this call. The zone is looked up by domain name, so no zone id is needed.",
-		InputSchema: map[string]any{
-			"type":       "object",
-			"properties": props,
-			"required":   []string{"api_key", "zone", "name", "type", "value"},
-		},
-		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
-			var args createDNSRecordArgs
-			if err := decodeArgs(raw, &args); err != nil {
-				return nil, err
-			}
-
-			recordType, err := domain.ParseDNSRecordType(args.Type)
-			if err != nil {
-				return nil, fmt.Errorf("record type %q is not supported: %w", args.Type, err)
-			}
-
-			rec, err := uc.Execute(ctx, app.SetupDNSInput{
-				Credentials: args.domain(),
-				ZoneName:    args.Zone,
-				Record: domain.DNSRecord{
-					Name:     args.Name,
-					Type:     recordType,
-					Value:    args.Value,
-					TTL:      args.TTL,
-					Priority: args.Priority,
-				},
-			})
-			if err != nil {
-				return nil, err
-			}
-			return map[string]any{
-				"id":    rec.ID,
-				"zone":  args.Zone,
-				"name":  rec.Name,
-				"type":  rec.Type.String(),
-				"value": rec.Value,
-				"ttl":   rec.TTL,
-			}, nil
-		},
 	}
 }
 

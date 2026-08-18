@@ -127,11 +127,6 @@ type ParspackProvider interface {
 	// silently, so callers decide for themselves whether that counts as done.
 	DeleteFirewall(ctx context.Context, creds domain.ProviderCredentials, id string) error
 
-	ListDNSZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.DNSZone, error)
-	ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneID string) ([]domain.DNSRecord, error)
-	CreateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, rec domain.DNSRecord) (*domain.DNSRecord, error)
-	DeleteDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneID, recordID string) error
-
 	// SSL certificate ordering workflow (AGENTS.md 4.5's SSL surface). All
 	// fast operations: each is a single HTTP round trip, even though driving
 	// a certificate to issuance takes a caller several separate calls
@@ -152,6 +147,31 @@ type ParspackProvider interface {
 	VerifySSLChallenge(ctx context.Context, creds domain.ProviderCredentials, orderID, method string) (*domain.SSLVerifyResult, error)
 	GetSSLCertificate(ctx context.Context, creds domain.ProviderCredentials, orderID string) (*domain.SSLCertificate, error)
 	ReissueSSLCertificate(ctx context.Context, creds domain.ProviderCredentials, orderID, csr string) (*domain.SSLCertificate, error)
+
+	// CDN zone management (issue #19). CreateCDNZone is a fast operation: the
+	// provider's order endpoint returns a final zone_id and status
+	// synchronously — there is no further "provisioning" state to poll, unlike
+	// CreateServer (AGENTS.md 4.3).
+	CreateCDNZone(ctx context.Context, creds domain.ProviderCredentials, spec domain.CDNZoneSpec) (*domain.CDNZone, error)
+	ListCDNZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.CDNZone, error)
+	GetCDNZone(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNZone, error)
+	// DeleteCDNZone removes a zone by UUID. As with DeleteServer, an
+	// already-absent zone reports domain.ErrNotFound rather than succeeding
+	// silently, so callers decide for themselves whether that counts as done.
+	DeleteCDNZone(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) error
+	ListCDNZonePlans(ctx context.Context, creds domain.ProviderCredentials) ([]domain.CDNZonePlanPricing, error)
+	GetNameserverRecords(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.NameserverRecords, error)
+
+	// DNS records, scoped to a CDN zone — Parspack has no standalone DNS
+	// product (AGENTS.md 4.1). All fast operations.
+	ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.DNSRecord, error)
+	CreateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, rec domain.DNSRecord) (*domain.DNSRecord, error)
+	UpdateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, rec domain.DNSRecord) (*domain.DNSRecord, error)
+	// DeleteDNSRecord removes a record from a zone by host+type. When content
+	// is empty every value under that host+type is deleted; otherwise only the
+	// value matching content is removed (a host+type can hold more than one
+	// value, e.g. multiple NS records).
+	DeleteDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, host string, recordType domain.DNSRecordType, content string) error
 
 	// LoadBalancer management (cloud-server/VM-network level, NOT the CDN
 	// API's separate edge-level Load Balance concept — issue #24). Create is a
