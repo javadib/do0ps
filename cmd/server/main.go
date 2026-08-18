@@ -91,6 +91,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	listServers := app.NewListServers(pool, provider)
 	getServer := app.NewGetServer(pool, provider)
 	deleteServer := app.NewDeleteServer(pool, provider)
+	createVPC := app.NewCreateVPC(pool, provider)
+	listVPCs := app.NewListVPCs(pool, provider)
+	getVPC := app.NewGetVPC(pool, provider)
+	deleteVPC := app.NewDeleteVPC(pool, provider)
 	setupDNS := app.NewSetupDNS(pool, provider)
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
 	recovery := app.NewRecovery(jobs, clock)
@@ -113,6 +117,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		ListServers:        listServers,
 		GetServer:          getServer,
 		DeleteServer:       deleteServer,
+		CreateVPC:          createVPC,
+		ListVPCs:           listVPCs,
+		GetVPC:             getVPC,
+		DeleteVPC:          deleteVPC,
 		SetupDNS:           setupDNS,
 		GetOperationStatus: operationStatus,
 	}), mcp.WithLogger(logger))
