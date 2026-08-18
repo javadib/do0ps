@@ -1,5 +1,12 @@
 package parspack
 
+import (
+	"context"
+	"fmt"
+
+	"github.com/javadib/do0ps/internal/core/domain"
+)
+
 // The methods below implement ports.ParspackProvider. Each one is responsible
 // for exactly two things: calling the right endpoint, and translating the
 // provider's payload into the domain types. Provider-specific JSON shapes stay
@@ -7,23 +14,11 @@ package parspack
 //
 // VM lifecycle methods (CreateServer, GetServer, ListServers, DeleteServer,
 // FindServerByName) live in vms.go, wired to the real cloud-server API
-// (issue #9). Firewall methods (CreateFirewall, GetFirewall, ListFirewalls,
-// UpdateFirewall, DeleteFirewall) live in firewalls.go, wired to the same
-// cloud-server API (issue #11). Everything below remains a stub — issues #10
-// (SSH keys) and #19 (CDN zones/DNS) wire these up against their own confirmed
-// endpoints.
-
-// CreateSSHKey registers a public key with the provider.
-func (c *Client) CreateSSHKey(ctx context.Context, creds domain.ProviderCredentials, key domain.SSHKey) (*domain.SSHKey, error) {
-	return nil, fmt.Errorf("create SSH key %q: %w", key.Name, errNotImplemented)
-}
-
-import (
-	"context"
-	"fmt"
-
-	"github.com/javadib/do0ps/internal/core/domain"
-)
+// (issue #9). SSH key methods live in keys.go (issue #10), firewall methods in
+// firewalls.go (issue #11), load balancer methods in loadbalancers.go
+// (issue #12), and the SSL ordering workflow in ssl.go (issue #18). Everything
+// below remains a stub — issue #19 (CDN zones/DNS) wires these up against the
+// CDN API's own confirmed endpoints.
 
 // ListDNSZones returns the domains hosted on the account.
 func (c *Client) ListDNSZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.DNSZone, error) {
