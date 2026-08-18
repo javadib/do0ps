@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -42,19 +43,25 @@ func main() {
 	}
 	slog.SetDefault(logger)
 
-	if err := run(cfg, logger); err != nil {
+	// Signals bound the whole process: the same context stops the workers and
+	// triggers Fiber's graceful shutdown. Kept here, not inside run, so run
+	// can be driven by an arbitrary context (e.g. a test's own cancellation)
+	// without touching process-wide signal handling.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if err := run(ctx, cfg, logger, nil); err != nil {
 		logger.Error("server stopped", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(cfg config.Config, logger *slog.Logger) error {
-
-	// Signals bound the whole process: the same context stops the workers and
-	// triggers Fiber's graceful shutdown.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
+// run builds every adapter, wires the use cases behind their ports, and
+// serves the MCP endpoint until ctx is canceled. onListen, if non-nil, is
+// invoked with the address Fiber actually bound to — nil in production,
+// where cfg.Addr is already a fixed host:port; tests use it to discover an
+// ephemeral port.
+func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen func(net.Addr)) error {
 	// --- secondary adapters ---------------------------------------------
 	db, err := sqlite.Open(ctx, cfg.DatabasePath)
 	if err != nil {
@@ -263,6 +270,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	listenErr := fiberApp.Listen(cfg.Addr, fiber.ListenConfig{
 		DisableStartupMessage: true,
 		GracefulContext:       ctx,
+		ListenerAddrFunc:      onListen,
 	})
 
 	// Fiber has stopped accepting requests; drain the workers before the
