@@ -13,6 +13,7 @@ package parspack
 //	keys.go            SSH keys, cloud-server surface (issue #10)
 //	firewalls.go       firewalls, cloud-server surface (issue #11)
 //	loadbalancers.go   load balancers, cloud-server surface (issue #12)
+//	reserved_ips.go    reserved IPs, cloud-server surface (issue #13)
 //	ssl.go             certificate ordering, SSL surface (issue #18)
 //	cdn.go             CDN zones and their DNS records, CDN surface (issue #19)
 //

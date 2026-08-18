@@ -104,6 +104,17 @@ type fakeProvider struct {
 	deletedRecordType    domain.DNSRecordType
 	deletedRecordContent string
 	deleteRecordErr      error
+	reserved             []domain.ReservedIP
+	reserveErr           error
+	released             string
+	releaseErr           error
+	assigned             struct {
+		ip       string
+		serverID string
+	}
+	assignErr   error
+	unassigned  string
+	unassignErr error
 
 	sslProducts      []domain.SSLProduct
 	sslOrder         *domain.SSLOrder

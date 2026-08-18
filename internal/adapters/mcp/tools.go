@@ -30,6 +30,10 @@ type UseCases struct {
 	CreateDNSRecord      *app.CreateDNSRecord
 	UpdateDNSRecord      *app.UpdateDNSRecord
 	DeleteDNSRecord      *app.DeleteDNSRecord
+	ReserveIP            *app.ReserveIP
+	ReleaseIP            *app.ReleaseIP
+	AssignIPToServer     *app.AssignIPToServer
+	UnassignIP           *app.UnassignIP
 
 	ListSSLProducts       *app.ListSSLProducts
 	CreateSSLOrder        *app.CreateSSLOrder
@@ -100,6 +104,10 @@ func Tools(uc UseCases) []Tool {
 		createDNSRecordTool(uc.CreateDNSRecord),
 		updateDNSRecordTool(uc.UpdateDNSRecord),
 		deleteDNSRecordTool(uc.DeleteDNSRecord),
+		reserveIPTool(uc.ReserveIP),
+		releaseIPTool(uc.ReleaseIP),
+		assignIPToServerTool(uc.AssignIPToServer),
+		unassignIPTool(uc.UnassignIP),
 		listSSLProductsTool(uc.ListSSLProducts),
 		createSSLOrderTool(uc.CreateSSLOrder),
 		processSSLOrderTool(uc.ProcessSSLOrder),
