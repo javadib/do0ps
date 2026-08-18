@@ -96,6 +96,11 @@ type fakeProvider struct {
 	reloadedMethod   string
 	verifiedMethod   string
 	reissuedCSR      string
+
+	keys         []domain.SSHKey
+	createdKey   *domain.SSHKey
+	deletedKeyID string
+	keyDeleteErr error
 }
 
 func (p *fakeProvider) ListSSLProducts(context.Context, domain.ProviderCredentials) ([]domain.SSLProduct, error) {
@@ -132,10 +137,6 @@ func (p *fakeProvider) GetSSLCertificate(context.Context, domain.ProviderCredent
 func (p *fakeProvider) ReissueSSLCertificate(_ context.Context, _ domain.ProviderCredentials, _, csr string) (*domain.SSLCertificate, error) {
 	p.reissuedCSR = csr
 	return p.sslCertificate, nil
-	keys         []domain.SSHKey
-	createdKey   *domain.SSHKey
-	deletedKeyID string
-	keyDeleteErr error
 }
 
 func (p *fakeProvider) ListServers(context.Context, domain.ProviderCredentials) ([]domain.Server, error) {
