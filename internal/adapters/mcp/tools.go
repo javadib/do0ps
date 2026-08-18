@@ -12,6 +12,9 @@ import (
 // UseCases collects the application entry points this adapter exposes.
 type UseCases struct {
 	ProvisionServer    *app.ProvisionServer
+	ListServers        *app.ListServers
+	GetServer          *app.GetServer
+	DeleteServer       *app.DeleteServer
 	SetupDNS           *app.SetupDNS
 	GetOperationStatus *app.GetOperationStatus
 }
@@ -46,6 +49,9 @@ func Tools(uc UseCases) []Tool {
 	return []Tool{
 		PingTool(),
 		createServerTool(uc.ProvisionServer),
+		listServersTool(uc.ListServers),
+		getServerTool(uc.GetServer),
+		deleteServerTool(uc.DeleteServer),
 		createDNSRecordTool(uc.SetupDNS),
 		getOperationStatusTool(uc.GetOperationStatus),
 	}
@@ -156,6 +162,132 @@ func createServerTool(uc *app.ProvisionServer) Tool {
 				"status":       out.Status.String(),
 				"note":         "Server provisioning runs in the background. Call get_operation_status with this operation_id to check progress.",
 			}, nil
+		},
+	}
+}
+
+// serverToMap renders a domain.Server the way every server-returning tool
+// reports it back to the caller.
+func serverToMap(srv domain.Server) map[string]any {
+	return map[string]any{
+		"id":           srv.ID,
+		"name":         srv.Name,
+		"status":       srv.Status.String(),
+		"region":       srv.Region,
+		"image":        srv.Image,
+		"plan_id":      srv.PlanID,
+		"cpu_cores":    srv.CPUCores,
+		"ram_mb":       srv.RAMMB,
+		"disk_gb":      srv.DiskGB,
+		"ipv4":         srv.IPv4,
+		"ipv4_private": srv.IPv4Private,
+		"ipv6":         srv.IPv6,
+		"vpc_uuid":     srv.VPCUUID,
+		"created_at":   srv.CreatedAt,
+	}
+}
+
+func listServersTool(uc *app.ListServers) Tool {
+	props := credentialProperties()
+
+	return Tool{
+		Name: "list_servers",
+		Description: "List every server (VPS) at Parspack visible to the given credentials. This is a fast operation: " +
+			"the list is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args credentialArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			servers, err := uc.Execute(ctx, app.ListServersInput{Credentials: args.domain()})
+			if err != nil {
+				return nil, err
+			}
+
+			out := make([]map[string]any, len(servers))
+			for i, srv := range servers {
+				out[i] = serverToMap(srv)
+			}
+			return map[string]any{"servers": out}, nil
+		},
+	}
+}
+
+type serverIDArgs struct {
+	credentialArgs
+	ServerID string `json:"server_id"`
+}
+
+func getServerTool(uc *app.GetServer) Tool {
+	props := credentialProperties()
+	props["server_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the server to look up, as returned by create_server or list_servers.",
+	}
+
+	return Tool{
+		Name: "get_server",
+		Description: "Get the current state of one server (VPS) at Parspack by its provider ID. This is a fast " +
+			"operation: the result is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "server_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args serverIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			srv, err := uc.Execute(ctx, app.GetServerInput{
+				Credentials: args.domain(),
+				ServerID:    args.ServerID,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return serverToMap(*srv), nil
+		},
+	}
+}
+
+func deleteServerTool(uc *app.DeleteServer) Tool {
+	props := credentialProperties()
+	props["server_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the server to delete, as returned by create_server or list_servers.",
+	}
+
+	return Tool{
+		Name: "delete_server",
+		Description: "Permanently delete a server (VPS) at Parspack by its provider ID. This is a fast operation " +
+			"and cannot be undone. Deleting a server that no longer exists is treated as already done rather than " +
+			"an error.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "server_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args serverIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			if err := uc.Execute(ctx, app.DeleteServerInput{
+				Credentials: args.domain(),
+				ServerID:    args.ServerID,
+			}); err != nil {
+				return nil, err
+			}
+			return map[string]any{"deleted": true, "server_id": args.ServerID}, nil
 		},
 	}
 }

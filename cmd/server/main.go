@@ -88,6 +88,9 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	listServers := app.NewListServers(pool, provider)
+	getServer := app.NewGetServer(pool, provider)
+	deleteServer := app.NewDeleteServer(pool, provider)
 	setupDNS := app.NewSetupDNS(pool, provider)
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
 	recovery := app.NewRecovery(jobs, clock)
@@ -107,6 +110,9 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	// --- primary adapter -------------------------------------------------
 	mcpServer, err := mcp.NewServer(mcp.Tools(mcp.UseCases{
 		ProvisionServer:    provisionServer,
+		ListServers:        listServers,
+		GetServer:          getServer,
+		DeleteServer:       deleteServer,
 		SetupDNS:           setupDNS,
 		GetOperationStatus: operationStatus,
 	}), mcp.WithLogger(logger))
