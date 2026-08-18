@@ -15,6 +15,9 @@ type UseCases struct {
 	ListServers        *app.ListServers
 	GetServer          *app.GetServer
 	DeleteServer       *app.DeleteServer
+	RegisterSSHKey     *app.RegisterSSHKey
+	ListSSHKeys        *app.ListSSHKeys
+	DeleteSSHKey       *app.DeleteSSHKey
 	SetupDNS           *app.SetupDNS
 	GetOperationStatus *app.GetOperationStatus
 }
@@ -52,6 +55,9 @@ func Tools(uc UseCases) []Tool {
 		listServersTool(uc.ListServers),
 		getServerTool(uc.GetServer),
 		deleteServerTool(uc.DeleteServer),
+		registerSSHKeyTool(uc.RegisterSSHKey),
+		listSSHKeysTool(uc.ListSSHKeys),
+		deleteSSHKeyTool(uc.DeleteSSHKey),
 		createDNSRecordTool(uc.SetupDNS),
 		getOperationStatusTool(uc.GetOperationStatus),
 	}
@@ -289,6 +295,133 @@ func deleteServerTool(uc *app.DeleteServer) Tool {
 			}
 			return map[string]any{"deleted": true, "server_id": args.ServerID}, nil
 		},
+	}
+}
+
+type registerSSHKeyArgs struct {
+	credentialArgs
+	Name      string `json:"name"`
+	PublicKey string `json:"public_key"`
+}
+
+func registerSSHKeyTool(uc *app.RegisterSSHKey) Tool {
+	props := credentialProperties()
+	props["name"] = map[string]any{
+		"type":        "string",
+		"description": "Human-readable label for the key, e.g. \"laptop\" or \"ci-runner\". Must be unique within the account.",
+	}
+	props["public_key"] = map[string]any{
+		"type":        "string",
+		"description": "The public key contents, e.g. \"ssh-ed25519 AAAAC3... user@host\". Sent to the provider as-is.",
+	}
+
+	return Tool{
+		Name: "register_ssh_key",
+		Description: "Register an SSH public key with the provider so it can be installed on new servers via " +
+			"create_server's ssh_keys parameter. This is a fast operation: the created key (with its provider id " +
+			"and fingerprint) is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "name", "public_key"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args registerSSHKeyArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			key, err := uc.Execute(ctx, app.RegisterSSHKeyInput{
+				Credentials: args.domain(),
+				Key:         domain.SSHKey{Name: args.Name, PublicKey: args.PublicKey},
+			})
+			if err != nil {
+				return nil, err
+			}
+			return sshKeyToMap(*key), nil
+		},
+	}
+}
+
+func listSSHKeysTool(uc *app.ListSSHKeys) Tool {
+	props := credentialProperties()
+
+	return Tool{
+		Name: "list_ssh_keys",
+		Description: "List every SSH key registered with the provider for the given credentials. This is a fast " +
+			"operation: the list is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args credentialArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			keys, err := uc.Execute(ctx, app.ListSSHKeysInput{Credentials: args.domain()})
+			if err != nil {
+				return nil, err
+			}
+
+			out := make([]map[string]any, len(keys))
+			for i, key := range keys {
+				out[i] = sshKeyToMap(key)
+			}
+			return map[string]any{"ssh_keys": out}, nil
+		},
+	}
+}
+
+type sshKeyIDArgs struct {
+	credentialArgs
+	KeyID string `json:"key_id"`
+}
+
+func deleteSSHKeyTool(uc *app.DeleteSSHKey) Tool {
+	props := credentialProperties()
+	props["key_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID (or fingerprint) of the key to delete, as returned by register_ssh_key or list_ssh_keys.",
+	}
+
+	return Tool{
+		Name: "delete_ssh_key",
+		Description: "Permanently delete a registered SSH key by its provider ID or fingerprint. This is a fast " +
+			"operation and cannot be undone. Deleting a key that no longer exists is treated as already done rather " +
+			"than an error.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "key_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args sshKeyIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			if err := uc.Execute(ctx, app.DeleteSSHKeyInput{
+				Credentials: args.domain(),
+				KeyID:       args.KeyID,
+			}); err != nil {
+				return nil, err
+			}
+			return map[string]any{"deleted": true, "key_id": args.KeyID}, nil
+		},
+	}
+}
+
+// sshKeyToMap renders a domain.SSHKey the way every key-returning tool reports
+// it back to the caller.
+func sshKeyToMap(key domain.SSHKey) map[string]any {
+	return map[string]any{
+		"id":          key.ID,
+		"name":        key.Name,
+		"fingerprint": key.Fingerprint,
+		"public_key":  key.PublicKey,
 	}
 }
 
