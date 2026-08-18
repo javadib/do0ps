@@ -29,6 +29,12 @@ import (
 	"github.com/javadib/do0ps/internal/core/domain"
 )
 
+// version is the do0ps build version. It defaults to "dev" for local builds
+// and is overridden at build time via `-ldflags "-X main.version=$APP_VERSION"`
+// -- see Dockerfile and .github/workflows/docker-publish.yml, which pass this
+// on tagged releases.
+var version = "dev"
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -265,7 +271,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	protected := fiberApp.Group("", auth.Middleware(tokenStore))
 	mcpServer.Register(protected)
 
-	logger.Info("listening", "addr", cfg.Addr, "tools", len(mcpServer.Tools()))
+	logger.Info("listening", "addr", cfg.Addr, "tools", len(mcpServer.Tools()), "version", version)
 
 	listenErr := fiberApp.Listen(cfg.Addr, fiber.ListenConfig{
 		DisableStartupMessage: true,
