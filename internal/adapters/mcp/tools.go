@@ -17,6 +17,12 @@ type UseCases struct {
 	DeleteServer       *app.DeleteServer
 	SetupDNS           *app.SetupDNS
 	GetOperationStatus *app.GetOperationStatus
+
+	ProvisionLoadBalancer *app.ProvisionLoadBalancer
+	GetLoadBalancer       *app.GetLoadBalancer
+	ListLoadBalancers     *app.ListLoadBalancers
+	UpdateLoadBalancer    *app.UpdateLoadBalancer
+	DeleteLoadBalancer    *app.DeleteLoadBalancer
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -54,6 +60,11 @@ func Tools(uc UseCases) []Tool {
 		deleteServerTool(uc.DeleteServer),
 		createDNSRecordTool(uc.SetupDNS),
 		getOperationStatusTool(uc.GetOperationStatus),
+		createLoadBalancerTool(uc.ProvisionLoadBalancer),
+		getLoadBalancerTool(uc.GetLoadBalancer),
+		listLoadBalancersTool(uc.ListLoadBalancers),
+		updateLoadBalancerTool(uc.UpdateLoadBalancer),
+		deleteLoadBalancerTool(uc.DeleteLoadBalancer),
 	}
 }
 
@@ -427,6 +438,427 @@ func getOperationStatusTool(uc *app.GetOperationStatus) Tool {
 			}
 			return out, nil
 		},
+	}
+}
+
+// loadBalancerConfigArgs carries the mutable configuration shared by
+// create_load_balancer and update_load_balancer.
+type loadBalancerConfigArgs struct {
+	Name              string               `json:"name"`
+	Algorithm         string               `json:"algorithm"`
+	Region            string               `json:"region"`
+	ForwardingRules   []forwardingRuleArgs `json:"forwarding_rules"`
+	HealthCheck       *healthCheckArgs     `json:"health_check"`
+	ServerIDs         []string             `json:"server_ids"`
+	RedirectHTTPToTLS bool                 `json:"redirect_http_to_tls"`
+	VPCUUID           string               `json:"vpc_uuid"`
+}
+
+func (a loadBalancerConfigArgs) loadBalancer() domain.LoadBalancer {
+	lb := domain.LoadBalancer{
+		Name:              a.Name,
+		Algorithm:         a.Algorithm,
+		Region:            a.Region,
+		ServerIDs:         a.ServerIDs,
+		RedirectHTTPToTLS: a.RedirectHTTPToTLS,
+		VPCUUID:           a.VPCUUID,
+	}
+	for _, r := range a.ForwardingRules {
+		lb.ForwardingRules = append(lb.ForwardingRules, r.domain())
+	}
+	if a.HealthCheck != nil {
+		lb.HealthCheck = a.HealthCheck.domain()
+	}
+	return lb
+}
+
+type forwardingRuleArgs struct {
+	EntryProtocol  string `json:"entry_protocol"`
+	EntryPort      int    `json:"entry_port"`
+	TargetProtocol string `json:"target_protocol"`
+	TargetPort     int    `json:"target_port"`
+}
+
+func (a forwardingRuleArgs) domain() domain.ForwardingRule {
+	return domain.ForwardingRule{
+		EntryProtocol:  a.EntryProtocol,
+		EntryPort:      a.EntryPort,
+		TargetProtocol: a.TargetProtocol,
+		TargetPort:     a.TargetPort,
+	}
+}
+
+type healthCheckArgs struct {
+	Protocol               string `json:"protocol"`
+	Port                   int    `json:"port"`
+	Path                   string `json:"path"`
+	CheckIntervalSeconds   int    `json:"check_interval_seconds"`
+	ResponseTimeoutSeconds int    `json:"response_timeout_seconds"`
+	UnhealthyThreshold     int    `json:"unhealthy_threshold"`
+	HealthyThreshold       int    `json:"healthy_threshold"`
+}
+
+func (a healthCheckArgs) domain() *domain.LoadBalancerHealthCheck {
+	return &domain.LoadBalancerHealthCheck{
+		Protocol:               a.Protocol,
+		Port:                   a.Port,
+		Path:                   a.Path,
+		CheckIntervalSeconds:   a.CheckIntervalSeconds,
+		ResponseTimeoutSeconds: a.ResponseTimeoutSeconds,
+		UnhealthyThreshold:     a.UnhealthyThreshold,
+		HealthyThreshold:       a.HealthyThreshold,
+	}
+}
+
+type createLoadBalancerArgs struct {
+	credentialArgs
+	loadBalancerConfigArgs
+}
+
+type updateLoadBalancerArgs struct {
+	credentialArgs
+	LoadBalancerID string `json:"load_balancer_id"`
+	loadBalancerConfigArgs
+}
+
+type loadBalancerIDArgs struct {
+	credentialArgs
+	LoadBalancerID string `json:"load_balancer_id"`
+}
+
+// loadBalancerConfigProperties is the JSON Schema for the mutable
+// configuration shared by create_load_balancer and update_load_balancer.
+func loadBalancerConfigProperties() map[string]any {
+	return map[string]any{
+		"name": map[string]any{
+			"type":        "string",
+			"description": "Human-readable load balancer name, e.g. \"api-lb\". Must be unique within the account; it is also how a retry recognizes an already-created balancer.",
+		},
+		"algorithm": map[string]any{
+			"type":        "string",
+			"enum":        []string{"round_robin", "least_connections"},
+			"description": "Balancing algorithm. Omit to use the provider default (round_robin).",
+		},
+		"region": map[string]any{
+			"type":        "string",
+			"description": "Provider datacenter region, e.g. \"tehran\".",
+		},
+		"forwarding_rules": map[string]any{
+			"type":        "array",
+			"items":       forwardingRuleProperties(),
+			"description": "Rules mapping the balancer's public protocol/port to the backend servers' protocol/port. At least one is required.",
+		},
+		"health_check": map[string]any{
+			"type":        "object",
+			"properties":  healthCheckProperties(),
+			"description": "Health check that probes the backend servers. Omit to use the provider default.",
+		},
+		"server_ids": map[string]any{
+			"type":        "array",
+			"items":       map[string]any{"type": "string"},
+			"description": "IDs of the backend servers (VMs) traffic is balanced across, as returned by create_server or list_servers.",
+		},
+		"redirect_http_to_tls": map[string]any{
+			"type":        "boolean",
+			"description": "Redirect HTTP traffic to HTTPS (TLS). Defaults to false.",
+		},
+		"vpc_uuid": map[string]any{
+			"type":        "string",
+			"description": "ID of the VPC the load balancer is placed into. Omit for the default networking.",
+		},
+	}
+}
+
+func forwardingRuleProperties() map[string]any {
+	return map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"entry_protocol": map[string]any{
+				"type":        "string",
+				"enum":        []string{"http", "https", "http2", "http3", "tcp", "udp"},
+				"description": "Protocol the load balancer listens on, e.g. \"http\".",
+			},
+			"entry_port": map[string]any{
+				"type":        "integer",
+				"minimum":     1,
+				"maximum":     65535,
+				"description": "Public-facing port the load balancer listens on, e.g. 80.",
+			},
+			"target_protocol": map[string]any{
+				"type":        "string",
+				"enum":        []string{"http", "https", "http2", "http3", "tcp", "udp"},
+				"description": "Protocol the backend servers receive on, e.g. \"http\".",
+			},
+			"target_port": map[string]any{
+				"type":        "integer",
+				"minimum":     1,
+				"maximum":     65535,
+				"description": "Port on the backend servers the traffic is forwarded to, e.g. 8080.",
+			},
+		},
+		"required": []string{"entry_protocol", "entry_port", "target_protocol", "target_port"},
+	}
+}
+
+func healthCheckProperties() map[string]any {
+	return map[string]any{
+		"protocol": map[string]any{
+			"type":        "string",
+			"enum":        []string{"http", "https", "tcp"},
+			"description": "Health check protocol, e.g. \"http\".",
+		},
+		"port": map[string]any{
+			"type":        "integer",
+			"minimum":     1,
+			"maximum":     65535,
+			"description": "Port the health check probes on each backend server, e.g. 80.",
+		},
+		"path": map[string]any{
+			"type":        "string",
+			"description": "Path probed for http/https checks, e.g. \"/health\". Required for http and https protocols.",
+		},
+		"check_interval_seconds": map[string]any{
+			"type":        "integer",
+			"minimum":     3,
+			"maximum":     300,
+			"description": "Seconds between checks, e.g. 10.",
+		},
+		"response_timeout_seconds": map[string]any{
+			"type":        "integer",
+			"minimum":     3,
+			"maximum":     300,
+			"description": "Seconds before a check is considered failed, e.g. 5.",
+		},
+		"unhealthy_threshold": map[string]any{
+			"type":        "integer",
+			"minimum":     2,
+			"maximum":     10,
+			"description": "Failed checks before a backend server is marked unhealthy, e.g. 3.",
+		},
+		"healthy_threshold": map[string]any{
+			"type":        "integer",
+			"minimum":     2,
+			"maximum":     10,
+			"description": "Successful checks before a backend server is marked healthy again, e.g. 5.",
+		},
+	}
+}
+
+func createLoadBalancerTool(uc *app.ProvisionLoadBalancer) Tool {
+	props := credentialProperties()
+	for k, v := range loadBalancerConfigProperties() {
+		props[k] = v
+	}
+
+	return Tool{
+		Name: "create_load_balancer",
+		Description: "Provision a new cloud-server-level load balancer at Parspack and attach backend servers to it. " +
+			"This is a long operation: it returns immediately with an operation_id and status \"pending\". Poll " +
+			"get_operation_status with that id to learn when the balancer is active.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "name", "forwarding_rules"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args createLoadBalancerArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			out, err := uc.Execute(ctx, app.ProvisionLoadBalancerInput{
+				Credentials:  args.domain(),
+				LoadBalancer: args.loadBalancer(),
+			})
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{
+				"operation_id": out.OperationID,
+				"status":       out.Status.String(),
+				"note":         "Load balancer provisioning runs in the background. Call get_operation_status with this operation_id to check progress.",
+			}, nil
+		},
+	}
+}
+
+func getLoadBalancerTool(uc *app.GetLoadBalancer) Tool {
+	props := credentialProperties()
+	props["load_balancer_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the load balancer to look up, as returned by create_load_balancer or list_load_balancers.",
+	}
+
+	return Tool{
+		Name: "get_load_balancer",
+		Description: "Get the current state of one load balancer at Parspack by its provider ID. This is a fast " +
+			"operation: the result is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "load_balancer_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args loadBalancerIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			lb, err := uc.Execute(ctx, app.GetLoadBalancerInput{
+				Credentials:    args.domain(),
+				LoadBalancerID: args.LoadBalancerID,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return loadBalancerToMap(*lb), nil
+		},
+	}
+}
+
+func listLoadBalancersTool(uc *app.ListLoadBalancers) Tool {
+	props := credentialProperties()
+
+	return Tool{
+		Name: "list_load_balancers",
+		Description: "List every cloud-server-level load balancer at Parspack visible to the given credentials. " +
+			"This is a fast operation: the list is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args credentialArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			balancers, err := uc.Execute(ctx, app.ListLoadBalancersInput{Credentials: args.domain()})
+			if err != nil {
+				return nil, err
+			}
+
+			out := make([]map[string]any, len(balancers))
+			for i, lb := range balancers {
+				out[i] = loadBalancerToMap(lb)
+			}
+			return map[string]any{"load_balancers": out}, nil
+		},
+	}
+}
+
+func updateLoadBalancerTool(uc *app.UpdateLoadBalancer) Tool {
+	props := credentialProperties()
+	props["load_balancer_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the load balancer to reconfigure, as returned by create_load_balancer or list_load_balancers.",
+	}
+	for k, v := range loadBalancerConfigProperties() {
+		props[k] = v
+	}
+
+	return Tool{
+		Name: "update_load_balancer",
+		Description: "Replace the configuration of an existing cloud-server-level load balancer at Parspack by its " +
+			"provider ID. This is a fast operation: the updated balancer is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "load_balancer_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args updateLoadBalancerArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			lb, err := uc.Execute(ctx, app.UpdateLoadBalancerInput{
+				Credentials:    args.domain(),
+				LoadBalancerID: args.LoadBalancerID,
+				LoadBalancer:   args.loadBalancer(),
+			})
+			if err != nil {
+				return nil, err
+			}
+			return loadBalancerToMap(*lb), nil
+		},
+	}
+}
+
+func deleteLoadBalancerTool(uc *app.DeleteLoadBalancer) Tool {
+	props := credentialProperties()
+	props["load_balancer_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the load balancer to delete, as returned by create_load_balancer or list_load_balancers.",
+	}
+
+	return Tool{
+		Name: "delete_load_balancer",
+		Description: "Permanently delete a cloud-server-level load balancer at Parspack by its provider ID. This is a " +
+			"fast operation and cannot be undone. Deleting a balancer that no longer exists is treated as already " +
+			"done rather than an error.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "load_balancer_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args loadBalancerIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			if err := uc.Execute(ctx, app.DeleteLoadBalancerInput{
+				Credentials:    args.domain(),
+				LoadBalancerID: args.LoadBalancerID,
+			}); err != nil {
+				return nil, err
+			}
+			return map[string]any{"deleted": true, "load_balancer_id": args.LoadBalancerID}, nil
+		},
+	}
+}
+
+// loadBalancerToMap renders a domain.LoadBalancer the way every
+// load-balancer-returning tool reports it back to the caller.
+func loadBalancerToMap(lb domain.LoadBalancer) map[string]any {
+	var hc map[string]any
+	if lb.HealthCheck != nil {
+		hc = map[string]any{
+			"protocol":                 lb.HealthCheck.Protocol,
+			"port":                     lb.HealthCheck.Port,
+			"path":                     lb.HealthCheck.Path,
+			"check_interval_seconds":   lb.HealthCheck.CheckIntervalSeconds,
+			"response_timeout_seconds": lb.HealthCheck.ResponseTimeoutSeconds,
+			"unhealthy_threshold":      lb.HealthCheck.UnhealthyThreshold,
+			"healthy_threshold":        lb.HealthCheck.HealthyThreshold,
+		}
+	}
+
+	rules := make([]map[string]any, len(lb.ForwardingRules))
+	for i, r := range lb.ForwardingRules {
+		rules[i] = map[string]any{
+			"entry_protocol":  r.EntryProtocol,
+			"entry_port":      r.EntryPort,
+			"target_protocol": r.TargetProtocol,
+			"target_port":     r.TargetPort,
+		}
+	}
+
+	return map[string]any{
+		"id":                   lb.ID,
+		"name":                 lb.Name,
+		"algorithm":            lb.Algorithm,
+		"region":               lb.Region,
+		"ip":                   lb.IP,
+		"status":               lb.Status,
+		"forwarding_rules":     rules,
+		"health_check":         hc,
+		"server_ids":           lb.ServerIDs,
+		"redirect_http_to_tls": lb.RedirectHTTPToTLS,
+		"vpc_uuid":             lb.VPCUUID,
+		"created_at":           lb.CreatedAt,
 	}
 }
 

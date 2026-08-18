@@ -99,6 +99,26 @@ type ParspackProvider interface {
 	ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneID string) ([]domain.DNSRecord, error)
 	CreateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, rec domain.DNSRecord) (*domain.DNSRecord, error)
 	DeleteDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneID, recordID string) error
+
+	// LoadBalancer management (cloud-server/VM-network level, NOT the CDN
+	// API's separate edge-level Load Balance concept — issue #24). Create is a
+	// long operation: the load balancer starts in "new" status and reaches
+	// "active" after provisioning; the others are fast.
+	CreateLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, lb domain.LoadBalancer) (*domain.LoadBalancer, error)
+	GetLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, id string) (*domain.LoadBalancer, error)
+	ListLoadBalancers(ctx context.Context, creds domain.ProviderCredentials) ([]domain.LoadBalancer, error)
+
+	// UpdateLoadBalancer replaces a load balancer's configuration by provider
+	// ID.
+	UpdateLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, id string, lb domain.LoadBalancer) (*domain.LoadBalancer, error)
+
+	// DeleteLoadBalancer removes a load balancer by provider ID. As with
+	// DeleteServer, an already-absent ID reports domain.ErrNotFound.
+	DeleteLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, id string) error
+
+	// FindLoadBalancerByName supports crash recovery for provisioning jobs,
+	// mirroring FindServerByName.
+	FindLoadBalancerByName(ctx context.Context, creds domain.ProviderCredentials, name string) (*domain.LoadBalancer, error)
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic

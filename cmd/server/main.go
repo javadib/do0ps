@@ -95,7 +95,20 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
 	recovery := app.NewRecovery(jobs, clock)
 
+	provisionLoadBalancer, err := app.NewProvisionLoadBalancer(jobs, pool, provider, clock, ids,
+		app.WithLoadBalancerPollInterval(cfg.PollInterval),
+		app.WithLoadBalancerPollTimeout(cfg.PollTimeout),
+	)
+	if err != nil {
+		return err
+	}
+	getLoadBalancer := app.NewGetLoadBalancer(pool, provider)
+	listLoadBalancers := app.NewListLoadBalancers(pool, provider)
+	updateLoadBalancer := app.NewUpdateLoadBalancer(pool, provider)
+	deleteLoadBalancer := app.NewDeleteLoadBalancer(pool, provider)
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
+	pool.Register(domain.JobTypeProvisionLoadBalancer, provisionLoadBalancer.Handle)
 	pool.Start(ctx)
 
 	flagged, err := recovery.Run(ctx)
@@ -109,12 +122,17 @@ func run(cfg config.Config, logger *slog.Logger) error {
 
 	// --- primary adapter -------------------------------------------------
 	mcpServer, err := mcp.NewServer(mcp.Tools(mcp.UseCases{
-		ProvisionServer:    provisionServer,
-		ListServers:        listServers,
-		GetServer:          getServer,
-		DeleteServer:       deleteServer,
-		SetupDNS:           setupDNS,
-		GetOperationStatus: operationStatus,
+		ProvisionServer:       provisionServer,
+		ListServers:           listServers,
+		GetServer:             getServer,
+		DeleteServer:          deleteServer,
+		SetupDNS:              setupDNS,
+		GetOperationStatus:    operationStatus,
+		ProvisionLoadBalancer: provisionLoadBalancer,
+		GetLoadBalancer:       getLoadBalancer,
+		ListLoadBalancers:     listLoadBalancers,
+		UpdateLoadBalancer:    updateLoadBalancer,
+		DeleteLoadBalancer:    deleteLoadBalancer,
 	}), mcp.WithLogger(logger))
 	if err != nil {
 		return err

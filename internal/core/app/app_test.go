@@ -86,6 +86,12 @@ type fakeProvider struct {
 	servers   []domain.Server
 	deletedID string
 	deleteErr error
+
+	loadBalancers []domain.LoadBalancer
+	createdLB     *domain.LoadBalancer
+	updatedLB     *domain.LoadBalancer
+	deletedLBID   string
+	deleteLBErr   error
 }
 
 func (p *fakeProvider) ListServers(context.Context, domain.ProviderCredentials) ([]domain.Server, error) {
