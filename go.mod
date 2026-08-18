@@ -1,6 +1,6 @@
 module github.com/javadib/do0ps
 
-go 1.26.6
+go 1.26.2
 
 require (
 	github.com/gofiber/fiber/v3 v3.5.0

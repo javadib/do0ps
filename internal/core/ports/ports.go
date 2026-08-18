@@ -95,10 +95,103 @@ type ParspackProvider interface {
 	// silently, so callers decide for themselves whether that counts as done.
 	DeleteSSHKey(ctx context.Context, creds domain.ProviderCredentials, id string) error
 
-	ListDNSZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.DNSZone, error)
-	ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneID string) ([]domain.DNSRecord, error)
-	CreateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, rec domain.DNSRecord) (*domain.DNSRecord, error)
-	DeleteDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneID, recordID string) error
+	// Reserved IP management. All fast operations. A Reserved IP exists
+	// independently of any server (the two-resource split of
+	// terraform-provider-abrha's "reserved_ip" and "reserved_ip_assignment"):
+	// AssignIPToServer/UnassignIP only attach or detach it, they never create
+	// or destroy the address itself.
+	ReserveIP(ctx context.Context, creds domain.ProviderCredentials, region string) (*domain.ReservedIP, error)
+	// ReleaseIP removes a reserved IP. As with DeleteServer, an already-absent
+	// address reports domain.ErrNotFound so callers decide whether to treat a
+	// repeat release as already done.
+	ReleaseIP(ctx context.Context, creds domain.ProviderCredentials, ip string) error
+	AssignIPToServer(ctx context.Context, creds domain.ProviderCredentials, ip, serverID string) (*domain.ReservedIP, error)
+	UnassignIP(ctx context.Context, creds domain.ProviderCredentials, ip string) (*domain.ReservedIP, error)
+
+	// Firewall management. All fast operations (AGENTS.md 4.3). These are the
+	// cloud-server/VM-network-level firewalls of the Abrha-based cloud-server
+	// API (base URL .../cserver, path api/public/v1/firewalls), NOT the CDN
+	// API's edge-level firewall concept (tracked separately in issue #24) —
+	// the two live on different API surfaces and must not be conflated.
+	//
+	// Create-style methods are not expected to be idempotent on their own;
+	// callers that must not duplicate a firewall on retry are expected to
+	// check first via ListFirewalls (AGENTS.md 4.4).
+	CreateFirewall(ctx context.Context, creds domain.ProviderCredentials, fw domain.Firewall) (*domain.Firewall, error)
+	GetFirewall(ctx context.Context, creds domain.ProviderCredentials, id string) (*domain.Firewall, error)
+	ListFirewalls(ctx context.Context, creds domain.ProviderCredentials) ([]domain.Firewall, error)
+	UpdateFirewall(ctx context.Context, creds domain.ProviderCredentials, id string, fw domain.Firewall) (*domain.Firewall, error)
+
+	// DeleteFirewall removes a firewall by provider ID. As with DeleteServer,
+	// an already-absent ID reports domain.ErrNotFound rather than succeeding
+	// silently, so callers decide for themselves whether that counts as done.
+	DeleteFirewall(ctx context.Context, creds domain.ProviderCredentials, id string) error
+
+	// SSL certificate ordering workflow (AGENTS.md 4.5's SSL surface). All
+	// fast operations: each is a single HTTP round trip, even though driving
+	// a certificate to issuance takes a caller several separate calls
+	// (create order, process, verify challenge, poll certificate).
+	ListSSLProducts(ctx context.Context, creds domain.ProviderCredentials) ([]domain.SSLProduct, error)
+	CreateSSLOrder(ctx context.Context, creds domain.ProviderCredentials, spec domain.SSLOrderSpec) (*domain.SSLOrder, error)
+	// ProcessSSLOrder submits the CSR and contact details for a paid order
+	// and returns the domain-ownership challenges to complete next.
+	ProcessSSLOrder(ctx context.Context, creds domain.ProviderCredentials, orderID, csr string, contact domain.SSLContact) (*domain.SSLChallengeSet, error)
+	// GetSSLChallenge re-shows the challenges of an already-processed order.
+	GetSSLChallenge(ctx context.Context, creds domain.ProviderCredentials, orderID string) (*domain.SSLChallengeSet, error)
+	// ReloadSSLChallenge switches the verification method, invalidating any
+	// previously shown challenge tokens. emailPrefix is only meaningful when
+	// method is "ADMIN".
+	ReloadSSLChallenge(ctx context.Context, creds domain.ProviderCredentials, orderID, method, emailPrefix string) (*domain.SSLChallengeSet, error)
+	// VerifySSLChallenge checks the completed challenge for method and, on
+	// success, returns the certificate if it is ready immediately.
+	VerifySSLChallenge(ctx context.Context, creds domain.ProviderCredentials, orderID, method string) (*domain.SSLVerifyResult, error)
+	GetSSLCertificate(ctx context.Context, creds domain.ProviderCredentials, orderID string) (*domain.SSLCertificate, error)
+	ReissueSSLCertificate(ctx context.Context, creds domain.ProviderCredentials, orderID, csr string) (*domain.SSLCertificate, error)
+
+	// CDN zone management (issue #19). CreateCDNZone is a fast operation: the
+	// provider's order endpoint returns a final zone_id and status
+	// synchronously — there is no further "provisioning" state to poll, unlike
+	// CreateServer (AGENTS.md 4.3).
+	CreateCDNZone(ctx context.Context, creds domain.ProviderCredentials, spec domain.CDNZoneSpec) (*domain.CDNZone, error)
+	ListCDNZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.CDNZone, error)
+	GetCDNZone(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNZone, error)
+	// DeleteCDNZone removes a zone by UUID. As with DeleteServer, an
+	// already-absent zone reports domain.ErrNotFound rather than succeeding
+	// silently, so callers decide for themselves whether that counts as done.
+	DeleteCDNZone(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) error
+	ListCDNZonePlans(ctx context.Context, creds domain.ProviderCredentials) ([]domain.CDNZonePlanPricing, error)
+	GetNameserverRecords(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.NameserverRecords, error)
+
+	// DNS records, scoped to a CDN zone — Parspack has no standalone DNS
+	// product (AGENTS.md 4.1). All fast operations.
+	ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.DNSRecord, error)
+	CreateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, rec domain.DNSRecord) (*domain.DNSRecord, error)
+	UpdateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, rec domain.DNSRecord) (*domain.DNSRecord, error)
+	// DeleteDNSRecord removes a record from a zone by host+type. When content
+	// is empty every value under that host+type is deleted; otherwise only the
+	// value matching content is removed (a host+type can hold more than one
+	// value, e.g. multiple NS records).
+	DeleteDNSRecord(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, host string, recordType domain.DNSRecordType, content string) error
+
+	// LoadBalancer management (cloud-server/VM-network level, NOT the CDN
+	// API's separate edge-level Load Balance concept — issue #24). Create is a
+	// long operation: the load balancer starts in "new" status and reaches
+	// "active" after provisioning; the others are fast.
+	CreateLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, lb domain.LoadBalancer) (*domain.LoadBalancer, error)
+	GetLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, id string) (*domain.LoadBalancer, error)
+	ListLoadBalancers(ctx context.Context, creds domain.ProviderCredentials) ([]domain.LoadBalancer, error)
+
+	// UpdateLoadBalancer replaces a load balancer's configuration by provider
+	// ID.
+	UpdateLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, id string, lb domain.LoadBalancer) (*domain.LoadBalancer, error)
+
+	// DeleteLoadBalancer removes a load balancer by provider ID. As with
+	// DeleteServer, an already-absent ID reports domain.ErrNotFound.
+	DeleteLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, id string) error
+
+	// FindLoadBalancerByName supports crash recovery for provisioning jobs,
+	// mirroring FindServerByName.
+	FindLoadBalancerByName(ctx context.Context, creds domain.ProviderCredentials, name string) (*domain.LoadBalancer, error)
 
 	// VM snapshot management. CreateVMSnapshot and RestoreVM are long
 	// operations: they start an async VM action and return it in

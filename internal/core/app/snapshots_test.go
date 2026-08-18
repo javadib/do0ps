@@ -371,3 +371,95 @@ func TestRestoreVMHandleRunsToCompletion(t *testing.T) {
 		t.Errorf("RestoreVM called %d times, want 1", provider.restoreCalls)
 	}
 }
+
+// TestGetOperationStatusReconcilesInterruptedSnapshot proves an interrupted
+// snapshot job is resolved by asking the provider whether the snapshot already
+// exists, never by replaying the create call (AGENTS.md 4.4).
+func TestGetOperationStatusReconcilesInterruptedSnapshot(t *testing.T) {
+	now := time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC)
+	jobs := newMemJobs()
+
+	payload, err := json.Marshal(map[string]any{"server_id": "vm-1", "name": "before-upgrade"})
+	if err != nil {
+		t.Fatalf("marshaling payload: %v", err)
+	}
+	job := &domain.Job{
+		ID:        "op-1",
+		Type:      domain.JobTypeCreateSnapshot,
+		Payload:   payload,
+		Status:    domain.JobStatusPending,
+		Error:     domain.InterruptedReason,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	if err := jobs.Create(context.Background(), job); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	// The provider already has the snapshot, so reconcile must adopt it
+	// rather than take a second one.
+	provider := &fakeProvider{snapshots: []domain.VMSnapshot{
+		{ID: "snap-9", Name: "before-upgrade", ServerID: "vm-1"},
+	}}
+	uc := app.NewGetOperationStatus(jobs, provider, fixedClock{t: now.Add(time.Minute)})
+
+	op, err := uc.Execute(context.Background(), app.GetOperationStatusInput{
+		OperationID: "op-1",
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if op.Status != domain.OperationStatusSucceeded {
+		t.Fatalf("status = %s, want succeeded", op.Status)
+	}
+
+	var snap domain.VMSnapshot
+	if err := json.Unmarshal(op.Result, &snap); err != nil {
+		t.Fatalf("decoding result: %v", err)
+	}
+	if snap.ID != "snap-9" {
+		t.Errorf("result ID = %q, want snap-9", snap.ID)
+	}
+	if provider.snapshotCalls != 0 {
+		t.Errorf("CreateVMSnapshot called %d times during reconciliation, want lookup only", provider.snapshotCalls)
+	}
+}
+
+// TestGetOperationStatusReconcilesMissingSnapshotAsFailed proves an interrupted
+// job whose snapshot was never taken is marked failed so the request can be
+// retried safely.
+func TestGetOperationStatusReconcilesMissingSnapshotAsFailed(t *testing.T) {
+	now := time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC)
+	jobs := newMemJobs()
+
+	payload, err := json.Marshal(map[string]any{"server_id": "vm-1", "name": "before-upgrade"})
+	if err != nil {
+		t.Fatalf("marshaling payload: %v", err)
+	}
+	job := &domain.Job{
+		ID:        "op-1",
+		Type:      domain.JobTypeCreateSnapshot,
+		Payload:   payload,
+		Status:    domain.JobStatusPending,
+		Error:     domain.InterruptedReason,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	if err := jobs.Create(context.Background(), job); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	uc := app.NewGetOperationStatus(jobs, &fakeProvider{}, fixedClock{t: now.Add(time.Minute)})
+
+	op, err := uc.Execute(context.Background(), app.GetOperationStatusInput{
+		OperationID: "op-1",
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if op.Status != domain.OperationStatusFailed {
+		t.Fatalf("status = %s, want failed", op.Status)
+	}
+}

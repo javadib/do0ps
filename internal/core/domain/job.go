@@ -58,9 +58,10 @@ type JobType string
 
 // Job types, one per long-running use case.
 const (
-	JobTypeProvisionServer JobType = "provision_server"
-	JobTypeCreateSnapshot  JobType = "create_snapshot"
-	JobTypeRestoreVM       JobType = "restore_vm"
+	JobTypeProvisionServer       JobType = "provision_server"
+	JobTypeProvisionLoadBalancer JobType = "provision_load_balancer"
+	JobTypeCreateSnapshot        JobType = "create_snapshot"
+	JobTypeRestoreVM             JobType = "restore_vm"
 )
 
 // InterruptedReason marks a job whose in-process execution was lost to a
