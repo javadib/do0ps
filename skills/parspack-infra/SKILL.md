@@ -1,6 +1,6 @@
 ---
 name: parspack-infra
-description: "How to use the do0ps MCP server to manage Parspack infrastructure on the user's behalf: create/inspect/delete cloud servers (VPS), register SSH keys, add DNS records, and order SSL certificates. Use whenever the user asks in natural language to create, check on, change, or delete servers, to add SSH access or DNS records, or to obtain an SSL certificate — and whenever the tool set above is available but the user has not said exactly which tool to call."
+description: "How to use the do0ps MCP server to manage Parspack infrastructure on the user's behalf: cloud servers (VPS) and their snapshots, SSH keys, firewalls, load balancers, reserved IPs, private networks (VPCs), CDN zones with their DNS records, and SSL certificates. Use whenever the user asks in natural language to create, check on, change, or delete any of those — and whenever this tool set is available but the user has not said exactly which tool to call."
 license: MIT
 ---
 
@@ -19,10 +19,41 @@ The tools you have available are:
 | `list_servers` | Lists all servers in the account | fast |
 | `get_server` | Shows one server by its id | fast |
 | `delete_server` | Permanently deletes a server | fast |
+| `create_snapshot` | Takes a point-in-time snapshot of a server's disk | **long** |
+| `list_snapshots` | Lists VM snapshots | fast |
+| `delete_snapshot` | Permanently deletes a snapshot | fast |
+| `restore_vm` | Wipes a server's disk and restores a snapshot onto it | **long** |
 | `register_ssh_key` | Registers an SSH public key | fast |
 | `list_ssh_keys` | Lists registered SSH keys | fast |
 | `delete_ssh_key` | Deletes a registered SSH key | fast |
-| `create_dns_record` | Adds a DNS record to a hosted domain | fast |
+| `create_firewall` | Creates a network firewall, optionally attached to servers | fast |
+| `get_firewall` | Shows one firewall by its id | fast |
+| `list_firewalls` | Lists firewalls | fast |
+| `update_firewall` | Replaces a firewall's rules, name and attachments | fast |
+| `delete_firewall` | Permanently deletes a firewall | fast |
+| `create_load_balancer` | Provisions a load balancer over backend servers | **long** |
+| `get_load_balancer` | Shows one load balancer by its id | fast |
+| `list_load_balancers` | Lists load balancers | fast |
+| `update_load_balancer` | Replaces a load balancer's configuration | fast |
+| `delete_load_balancer` | Permanently deletes a load balancer | fast |
+| `reserve_ip` | Reserves a static public IPv4 address | fast |
+| `assign_ip_to_server` | Attaches a reserved IP to a server | fast |
+| `unassign_ip` | Detaches a reserved IP from its server | fast |
+| `release_ip` | Releases a reserved IP back to the pool | fast |
+| `create_vpc` | Creates an isolated private network | fast |
+| `get_vpc` | Shows one VPC by its id | fast |
+| `list_vpcs` | Lists VPCs | fast |
+| `delete_vpc` | Permanently deletes a VPC | fast |
+| `list_cdn_plans` | Lists CDN plans and their pricing | fast |
+| `create_cdn_zone` | Onboards a domain onto the CDN (creates a zone) | fast |
+| `get_cdn_zone` | Shows one CDN zone by its uuid | fast |
+| `list_cdn_zones` | Lists CDN zones | fast |
+| `delete_cdn_zone` | Removes a domain from the CDN | fast |
+| `get_nameserver_records` | Shows the nameservers the registrar must point at | fast |
+| `list_dns_records` | Lists a zone's DNS records | fast |
+| `create_dns_record` | Adds a DNS record to a CDN zone | fast |
+| `update_dns_record` | Changes an existing record's ttl, proxy mode or value | fast |
+| `delete_dns_record` | Deletes a record, or one value of it | fast |
 | `get_operation_status` | Checks progress of a long operation | fast |
 | `list_ssl_products` | Lists orderable SSL products + prices | fast |
 | `create_ssl_order` | Places an SSL certificate order | fast |
@@ -41,14 +72,16 @@ The tools you have available are:
 2. **Look things up, don't guess slugs.** The tools that return ids/slugs exist precisely
    so you do not have to invent them. Before calling a tool that takes an id or slug,
    use the matching list tool (below). Only when no list tool exists may you ask the user.
-3. **Confirm destructive actions.** `delete_server` and `delete_ssh_key` are permanent.
-   Confirm with the user before calling them.
+3. **Confirm destructive actions.** Every `delete_*` tool, plus `release_ip` and
+   `restore_vm`, is permanent. Confirm with the user before calling them. `restore_vm`
+   deserves an explicit warning: it wipes the server's current disk.
 4. **Never block the user.** Long operations return immediately with an
    `operation_id`. Tell the user it's running, and poll in the background (see below).
 
 ## Long operations: the `operation_id` + polling pattern
 
-Only `create_server` is long. Calling it returns:
+Four tools are long: `create_server`, `create_snapshot`, `restore_vm` and
+`create_load_balancer`. Each returns:
 
 ```json
 { "operation_id": "...", "status": "pending", "note": "..." }
@@ -59,11 +92,15 @@ report back. Then poll `get_operation_status` with that `operation_id` (pass the
 `api_key` too) until it reaches a terminal state:
 
 - `pending` or `running` → still working, wait and check again (a few minutes is normal).
-- `succeeded` → the `result` field contains the created server; report the name, IPv4
-  address and status to the user.
+- `succeeded` → the `result` field contains the finished resource; report the useful
+  parts (a server's name, IPv4 address and status; a snapshot's id; a balancer's IP).
 - `failed` → read `error` and explain it in plain language.
 
 The user can also ask "is my server ready?" at any time — that is the same poll.
+
+Pass the `api_key` on every `get_operation_status` call. If the server restarted while
+the operation was in flight, those credentials are what let the call ask the provider
+whether the resource actually got created, instead of leaving the user in the dark.
 
 ## Creating a server (the main workflow)
 
@@ -121,22 +158,99 @@ Workflow to follow:
 - "Remove key X" → confirm, then `delete_ssh_key` with the `key_id` from
   `list_ssh_keys`.
 
-## DNS records
+## CDN zones and DNS records
 
-`create_dns_record` adds a record to a domain Parspack already hosts. Params:
+Parspack has no standalone DNS product: a domain's DNS records live inside its **CDN
+zone**. So the first step for anything DNS-related is always the zone.
 
-- **`zone`** — the bare domain, e.g. `example.com`.
-- **`name`** — the subdomain part, e.g. `api` for `api.example.com`, or `@` for the bare
-  domain. Explain this to the user in those terms.
-- **`type`** — `A` (IPv4 address), `AAAA` (IPv6), `CNAME` (alias to another hostname),
-  `TXT` (free text), `MX`/`NS`/`SRV`. Choose based on what the user is pointing at.
-- **`value`** — the record's target: an IP for `A`, a hostname for `CNAME`, text for
-  `TXT`.
-- **`ttl`** — seconds (e.g. 3600 = 1 hour). Omit unless the user asks.
-- **`priority`** — only for `MX`/`SRV`.
+Onboarding a domain:
 
-There is no list-zone tool; if the user asks about a domain that isn't theirs, say it
-must be hosted at Parspack first.
+1. `list_cdn_plans` — show the user the plans and prices, and let them pick.
+2. `create_cdn_zone` with `domain` (the bare domain, e.g. `example.com`), `plan` and
+   `billing_cycle`. It returns the `zone_uuid` every DNS tool needs. Default MX and NS
+   records are created for them automatically.
+3. `get_nameserver_records` with the `zone_uuid` — tell the user to point their domain
+   registrar at those nameservers. Nothing resolves until they do.
+
+For a domain that is already onboarded, `list_cdn_zones` gives you the `zone_uuid`; never
+ask the user for a uuid you can look up.
+
+Then the record tools, all of which take `zone_uuid`:
+
+- **`host`** — the subdomain part, e.g. `api` for `api.example.com`, or `@` for the bare
+  domain. Explain it to the user in those terms.
+- **`type`** — one of `A`, `CNAME`, `MX`, `TXT`, `NS`, `SRV`, `CAA`. Choose from what the
+  user is pointing at.
+- **`content`** — the value: an IPv4 address for `A`, a hostname for `CNAME`/`MX`/`NS`,
+  arbitrary text for `TXT`.
+- **`ttl`** — seconds, and **only a value from the provider's list** (1, 2, 5, 10, 30, 60,
+  180, 300, 600, 900, 1800, 2700, 3600, 10800, 18000, 36000, 43200, 86400, 259200,
+  604800, 864000, 1296000, 2592000). An arbitrary number is rejected; 3600 is a safe
+  default when the user has no preference.
+- **`proxy`** — whether the CDN sits in front of the record: `direct` (no CDN, resolves
+  straight to the content) or one of the caching modes `cdn-no-caching`,
+  `cdn-static-caching`, `cdn-smart-caching`, `cdn-always-caching`. Use `direct` unless the
+  user asked for CDN caching — and always `direct` for a TXT record used to verify domain
+  ownership.
+- **`priority`** for `MX`/`SRV`, **`port`**/**`weight`** for `SRV`, **`flags`**/**`tag`**
+  for `CAA`.
+
+Records are grouped by host and type, and one group can hold several values (e.g. two NS
+records for the apex):
+
+- "Show me my DNS" → `list_dns_records`.
+- "Point api.example.com at this IP" → `create_dns_record`. Adding a record with a host
+  and type that already exist **appends** another value rather than replacing.
+- "Change the IP / TTL / caching of that record" → `update_dns_record`. It can change ttl,
+  proxy mode and value, but cannot add or remove values under that host and type.
+- "Remove that record" → confirm, then `delete_dns_record` with `host` and `type`. Pass
+  `content` to remove one specific value; omit it to remove every value under that host
+  and type.
+
+If the user asks about a domain that has no zone, say it must be onboarded onto the CDN
+first, and offer to do it.
+
+## Firewalls
+
+`create_firewall` takes a `name` and rule lists, and can attach servers straight away via
+`server_ids` (use `list_servers` to get real ids). `update_firewall` **replaces** the whole
+configuration — read the current one with `get_firewall` first and send it back with your
+change applied, or you will silently drop rules the user still wants.
+
+## Load balancers
+
+`create_load_balancer` needs a `name` and `forwarding_rules`, and usually `server_ids` for
+the backends. It is a long operation — poll `get_operation_status` until the balancer is
+active, then report its address. As with firewalls, `update_load_balancer` replaces the
+whole configuration, so read it first with `get_load_balancer`.
+
+## Reserved IPs
+
+A reserved IP exists on its own and is billed whether or not it is attached:
+
+- "Give me a static IP" → `reserve_ip` with a `region`.
+- "Put it on server X" → `assign_ip_to_server` with the address and the `server_id`.
+- "Take it off" → `unassign_ip`. The address stays reserved and keeps being billed —
+  say so, since users often expect detaching to stop the charge.
+- "I don't need it any more" → confirm, then `release_ip`. That one does stop the billing
+  and cannot be undone.
+
+## Private networks (VPCs)
+
+`create_vpc` takes a `name` and `region`, optionally a `description` and `ip_range`.
+Servers join a VPC through `create_server`'s `vpc_uuid`, so create the network before the
+servers that belong in it.
+
+## Snapshots and restore
+
+- "Back up my server" → `create_snapshot` with the `server_id` and a `name`. Long
+  operation: poll until it succeeds. The resulting id can be used as the `image` of a new
+  server.
+- "What backups do I have?" → `list_snapshots`.
+- "Roll server X back to that snapshot" → this is `restore_vm`, and it **wipes the
+  server's current disk**. Say that plainly and get explicit confirmation before calling
+  it. Long operation: poll until it finishes.
+- "Delete that backup" → confirm, then `delete_snapshot`.
 
 ## SSL certificates
 
@@ -152,8 +266,9 @@ The SSL flow has explicit steps the user must complete in between:
    `phone` is digits only with the country code (e.g. `12025551234`). OV/EV products
    additionally need jurisdiction/business fields; DV only needs the basic contact.
 4. This returns verification challenges. Complete the chosen method:
-   - `DNS_TXT` → add the TXT record with `create_dns_record` and tell the user DNS may
-     take a while to propagate.
+   - `DNS_TXT` → add the TXT record with `create_dns_record` (the domain needs a CDN
+     zone; `proxy` must be `direct`) and tell the user DNS may take a while to
+     propagate.
    - `FILE` → give the user the file path + content to upload.
    - `ADMIN` → a verification email is sent to `email_prefix@domain`; ask the user to
      click the link.
