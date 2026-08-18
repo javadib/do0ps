@@ -95,6 +95,12 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
 	recovery := app.NewRecovery(jobs, clock)
 
+	createFirewall := app.NewCreateFirewall(pool, provider)
+	getFirewall := app.NewGetFirewall(pool, provider)
+	listFirewalls := app.NewListFirewalls(pool, provider)
+	updateFirewall := app.NewUpdateFirewall(pool, provider)
+	deleteFirewall := app.NewDeleteFirewall(pool, provider)
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Start(ctx)
 
@@ -115,6 +121,11 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		DeleteServer:       deleteServer,
 		SetupDNS:           setupDNS,
 		GetOperationStatus: operationStatus,
+		CreateFirewall:     createFirewall,
+		GetFirewall:        getFirewall,
+		ListFirewalls:      listFirewalls,
+		UpdateFirewall:     updateFirewall,
+		DeleteFirewall:     deleteFirewall,
 	}), mcp.WithLogger(logger))
 	if err != nil {
 		return err

@@ -17,6 +17,12 @@ type UseCases struct {
 	DeleteServer       *app.DeleteServer
 	SetupDNS           *app.SetupDNS
 	GetOperationStatus *app.GetOperationStatus
+
+	CreateFirewall *app.CreateFirewall
+	GetFirewall    *app.GetFirewall
+	ListFirewalls  *app.ListFirewalls
+	UpdateFirewall *app.UpdateFirewall
+	DeleteFirewall *app.DeleteFirewall
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -54,6 +60,11 @@ func Tools(uc UseCases) []Tool {
 		deleteServerTool(uc.DeleteServer),
 		createDNSRecordTool(uc.SetupDNS),
 		getOperationStatusTool(uc.GetOperationStatus),
+		createFirewallTool(uc.CreateFirewall),
+		getFirewallTool(uc.GetFirewall),
+		listFirewallsTool(uc.ListFirewalls),
+		updateFirewallTool(uc.UpdateFirewall),
+		deleteFirewallTool(uc.DeleteFirewall),
 	}
 }
 
@@ -374,6 +385,305 @@ func createDNSRecordTool(uc *app.SetupDNS) Tool {
 				"ttl":   rec.TTL,
 			}, nil
 		},
+	}
+}
+
+type firewallRuleArgs struct {
+	Protocol  string   `json:"protocol"`
+	PortRange string   `json:"port_range"`
+	Addresses []string `json:"addresses"`
+}
+
+type firewallArgs struct {
+	credentialArgs
+	Name          string             `json:"name"`
+	ServerIDs     []string           `json:"server_ids"`
+	InboundRules  []firewallRuleArgs `json:"inbound_rules"`
+	OutboundRules []firewallRuleArgs `json:"outbound_rules"`
+}
+
+type firewallIDArgs struct {
+	credentialArgs
+	FirewallID string `json:"firewall_id"`
+}
+
+type updateFirewallArgs struct {
+	firewallArgs
+	FirewallID string `json:"firewall_id"`
+}
+
+func (a firewallArgs) firewall() domain.Firewall {
+	fw := domain.Firewall{
+		Name:      a.Name,
+		ServerIDs: a.ServerIDs,
+	}
+	for _, r := range a.InboundRules {
+		fw.InboundRules = append(fw.InboundRules, firewallRuleArgsToDomain(r))
+	}
+	for _, r := range a.OutboundRules {
+		fw.OutboundRules = append(fw.OutboundRules, firewallRuleArgsToDomain(r))
+	}
+	return fw
+}
+
+func firewallRuleArgsToDomain(r firewallRuleArgs) domain.FirewallRule {
+	return domain.FirewallRule{Protocol: r.Protocol, PortRange: r.PortRange, Addresses: r.Addresses}
+}
+
+// firewallRuleProperties is the JSON Schema for one inbound/outbound rule
+// block, shared by create_firewall and update_firewall.
+func firewallRuleProperties() map[string]any {
+	return map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"protocol": map[string]any{
+				"type":        "string",
+				"enum":        []string{"tcp", "udp", "icmp"},
+				"description": "The type of traffic the rule allows: \"tcp\", \"udp\", or \"icmp\".",
+			},
+			"port_range": map[string]any{
+				"type":        "string",
+				"description": "A single port, a range like \"8000-9000\", or \"1-65535\" for all ports. Required for tcp and udp rules, ignored for icmp.",
+			},
+			"addresses": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Source addresses (CIDRs or single IPs) for an inbound rule, or destination addresses for an outbound rule. Omit to mean all addresses.",
+			},
+		},
+		"required": []string{"protocol"},
+	}
+}
+
+func createFirewallTool(uc *app.CreateFirewall) Tool {
+	props := credentialProperties()
+	props["name"] = map[string]any{
+		"type":        "string",
+		"description": "Human-readable firewall name, e.g. \"only-22-80-and-443\".",
+	}
+	props["server_ids"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "IDs of the servers (VMs) the firewall is applied to, as returned by create_server or list_servers. Omit to create the firewall without attaching any server yet.",
+	}
+	props["inbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Inbound rules: traffic allowed INTO the attached servers. Each rule lists its source addresses under \"addresses\".",
+	}
+	props["outbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Outbound rules: traffic allowed OUT of the attached servers. Each rule lists its destination addresses under \"addresses\".",
+	}
+
+	return Tool{
+		Name: "create_firewall",
+		Description: "Create a new rules-based network firewall at Parspack and optionally attach it to servers. This is a " +
+			"fast operation: the created firewall is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "name"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args firewallArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			fw, err := uc.Execute(ctx, app.CreateFirewallInput{
+				Credentials: args.domain(),
+				Firewall:    args.firewall(),
+			})
+			if err != nil {
+				return nil, err
+			}
+			return firewallToMap(*fw), nil
+		},
+	}
+}
+
+func getFirewallTool(uc *app.GetFirewall) Tool {
+	props := credentialProperties()
+	props["firewall_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the firewall to look up, as returned by create_firewall or list_firewalls.",
+	}
+
+	return Tool{
+		Name: "get_firewall",
+		Description: "Get the current state of one firewall at Parspack by its provider ID. This is a fast " +
+			"operation: the result is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "firewall_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args firewallIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			fw, err := uc.Execute(ctx, app.GetFirewallInput{
+				Credentials: args.domain(),
+				FirewallID:  args.FirewallID,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return firewallToMap(*fw), nil
+		},
+	}
+}
+
+func listFirewallsTool(uc *app.ListFirewalls) Tool {
+	props := credentialProperties()
+
+	return Tool{
+		Name: "list_firewalls",
+		Description: "List every firewall at Parspack visible to the given credentials. This is a fast operation: " +
+			"the list is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args credentialArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			firewalls, err := uc.Execute(ctx, app.ListFirewallsInput{Credentials: args.domain()})
+			if err != nil {
+				return nil, err
+			}
+
+			out := make([]map[string]any, len(firewalls))
+			for i, fw := range firewalls {
+				out[i] = firewallToMap(fw)
+			}
+			return map[string]any{"firewalls": out}, nil
+		},
+	}
+}
+
+func updateFirewallTool(uc *app.UpdateFirewall) Tool {
+	props := credentialProperties()
+	props["firewall_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the firewall to update, as returned by create_firewall or list_firewalls.",
+	}
+	props["name"] = map[string]any{
+		"type":        "string",
+		"description": "New human-readable firewall name, e.g. \"only-22-80-and-443\".",
+	}
+	props["server_ids"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "IDs of the servers (VMs) the firewall should be applied to, replacing the previous set.",
+	}
+	props["inbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Inbound rules: traffic allowed INTO the attached servers. Replaces the previous inbound rules. Each rule lists its source addresses under \"addresses\".",
+	}
+	props["outbound_rules"] = map[string]any{
+		"type":        "array",
+		"items":       firewallRuleProperties(),
+		"description": "Outbound rules: traffic allowed OUT of the attached servers. Replaces the previous outbound rules. Each rule lists its destination addresses under \"addresses\".",
+	}
+
+	return Tool{
+		Name: "update_firewall",
+		Description: "Replace the configuration of an existing firewall at Parspack (rules, server attachments, and " +
+			"name). This is a fast operation: the updated firewall is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "firewall_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args updateFirewallArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			fw, err := uc.Execute(ctx, app.UpdateFirewallInput{
+				Credentials: args.domain(),
+				FirewallID:  args.FirewallID,
+				Firewall:    args.firewall(),
+			})
+			if err != nil {
+				return nil, err
+			}
+			return firewallToMap(*fw), nil
+		},
+	}
+}
+
+func deleteFirewallTool(uc *app.DeleteFirewall) Tool {
+	props := credentialProperties()
+	props["firewall_id"] = map[string]any{
+		"type":        "string",
+		"description": "The provider ID of the firewall to delete, as returned by create_firewall or list_firewalls.",
+	}
+
+	return Tool{
+		Name: "delete_firewall",
+		Description: "Permanently delete a firewall at Parspack by its provider ID. This is a fast operation and " +
+			"cannot be undone. Deleting a firewall that no longer exists is treated as already done rather than an error.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "firewall_id"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args firewallIDArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			if err := uc.Execute(ctx, app.DeleteFirewallInput{
+				Credentials: args.domain(),
+				FirewallID:  args.FirewallID,
+			}); err != nil {
+				return nil, err
+			}
+			return map[string]any{"deleted": true, "firewall_id": args.FirewallID}, nil
+		},
+	}
+}
+
+// firewallToMap renders a domain.Firewall the way every firewall-returning
+// tool reports it back to the caller.
+func firewallToMap(fw domain.Firewall) map[string]any {
+	inbound := make([]map[string]any, len(fw.InboundRules))
+	for i, r := range fw.InboundRules {
+		inbound[i] = firewallRuleToMap(r)
+	}
+	outbound := make([]map[string]any, len(fw.OutboundRules))
+	for i, r := range fw.OutboundRules {
+		outbound[i] = firewallRuleToMap(r)
+	}
+	return map[string]any{
+		"id":             fw.ID,
+		"name":           fw.Name,
+		"status":         fw.Status,
+		"server_ids":     fw.ServerIDs,
+		"inbound_rules":  inbound,
+		"outbound_rules": outbound,
+		"created_at":     fw.CreatedAt,
+	}
+}
+
+func firewallRuleToMap(r domain.FirewallRule) map[string]any {
+	return map[string]any{
+		"protocol":   r.Protocol,
+		"port_range": r.PortRange,
+		"addresses":  r.Addresses,
 	}
 }
 

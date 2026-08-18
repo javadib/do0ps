@@ -95,6 +95,25 @@ type ParspackProvider interface {
 	// silently, so callers decide for themselves whether that counts as done.
 	DeleteSSHKey(ctx context.Context, creds domain.ProviderCredentials, id string) error
 
+	// Firewall management. All fast operations (AGENTS.md 4.3). These are the
+	// cloud-server/VM-network-level firewalls of the Abrha-based cloud-server
+	// API (base URL .../cserver, path api/public/v1/firewalls), NOT the CDN
+	// API's edge-level firewall concept (tracked separately in issue #24) —
+	// the two live on different API surfaces and must not be conflated.
+	//
+	// Create-style methods are not expected to be idempotent on their own;
+	// callers that must not duplicate a firewall on retry are expected to
+	// check first via ListFirewalls (AGENTS.md 4.4).
+	CreateFirewall(ctx context.Context, creds domain.ProviderCredentials, fw domain.Firewall) (*domain.Firewall, error)
+	GetFirewall(ctx context.Context, creds domain.ProviderCredentials, id string) (*domain.Firewall, error)
+	ListFirewalls(ctx context.Context, creds domain.ProviderCredentials) ([]domain.Firewall, error)
+	UpdateFirewall(ctx context.Context, creds domain.ProviderCredentials, id string, fw domain.Firewall) (*domain.Firewall, error)
+
+	// DeleteFirewall removes a firewall by provider ID. As with DeleteServer,
+	// an already-absent ID reports domain.ErrNotFound rather than succeeding
+	// silently, so callers decide for themselves whether that counts as done.
+	DeleteFirewall(ctx context.Context, creds domain.ProviderCredentials, id string) error
+
 	ListDNSZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.DNSZone, error)
 	ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneID string) ([]domain.DNSRecord, error)
 	CreateDNSRecord(ctx context.Context, creds domain.ProviderCredentials, rec domain.DNSRecord) (*domain.DNSRecord, error)
