@@ -84,10 +84,24 @@ type fakeProvider struct {
 	deletedID string
 	deleteErr error
 
+	snapshots       []domain.VMSnapshot
+	actions         map[string]*domain.VMAction
+	snapshotCalls   int
+	snapshotErr     error
+	deletedSnapshot string
+	deleteSnapErr   error
+	restoreCalls    int
+	restoreErr      error
+
 	keys         []domain.SSHKey
 	createdKey   *domain.SSHKey
 	deletedKeyID string
 	keyDeleteErr error
+
+	vpcs         []domain.VPC
+	createdVPC   *domain.VPC
+	deletedVPCID string
+	vpcDeleteErr error
 
 	cdnZones        []domain.CDNZone
 	createdZone     *domain.CDNZone
