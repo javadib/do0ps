@@ -91,6 +91,9 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	listServers := app.NewListServers(pool, provider)
 	getServer := app.NewGetServer(pool, provider)
 	deleteServer := app.NewDeleteServer(pool, provider)
+	registerSSHKey := app.NewRegisterSSHKey(pool, provider)
+	listSSHKeys := app.NewListSSHKeys(pool, provider)
+	deleteSSHKey := app.NewDeleteSSHKey(pool, provider)
 	setupDNS := app.NewSetupDNS(pool, provider)
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
 	recovery := app.NewRecovery(jobs, clock)
@@ -113,6 +116,9 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		ListServers:        listServers,
 		GetServer:          getServer,
 		DeleteServer:       deleteServer,
+		RegisterSSHKey:     registerSSHKey,
+		ListSSHKeys:        listSSHKeys,
+		DeleteSSHKey:       deleteSSHKey,
 		SetupDNS:           setupDNS,
 		GetOperationStatus: operationStatus,
 	}), mcp.WithLogger(logger))
