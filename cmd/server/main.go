@@ -103,6 +103,22 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	listSSHKeys := app.NewListSSHKeys(pool, provider)
 	deleteSSHKey := app.NewDeleteSSHKey(pool, provider)
 	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
+	createSnapshot, err := app.NewCreateSnapshot(jobs, pool, provider, clock, ids,
+		app.WithActionPollInterval(cfg.PollInterval),
+		app.WithActionPollTimeout(cfg.PollTimeout),
+	)
+	if err != nil {
+		return err
+	}
+	listSnapshots := app.NewListSnapshots(pool, provider)
+	deleteSnapshot := app.NewDeleteSnapshot(pool, provider)
+	restoreVM, err := app.NewRestoreVM(jobs, pool, provider, clock, ids,
+		app.WithActionPollInterval(cfg.PollInterval),
+		app.WithActionPollTimeout(cfg.PollTimeout),
+	)
+	if err != nil {
+		return err
+	}
 
 	listSSLProducts := app.NewListSSLProducts(pool, provider)
 	createSSLOrder := app.NewCreateSSLOrder(pool, provider)
@@ -144,6 +160,8 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	deleteLoadBalancer := app.NewDeleteLoadBalancer(pool, provider)
 
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
+	pool.Register(domain.JobTypeCreateSnapshot, createSnapshot.Handle)
+	pool.Register(domain.JobTypeRestoreVM, restoreVM.Handle)
 	pool.Register(domain.JobTypeProvisionLoadBalancer, provisionLoadBalancer.Handle)
 	pool.Start(ctx)
 
@@ -168,6 +186,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		DeleteVPC:       deleteVPC,
 
 		GetOperationStatus: operationStatus,
+		CreateSnapshot:     createSnapshot,
+		ListSnapshots:      listSnapshots,
+		DeleteSnapshot:     deleteSnapshot,
+		RestoreVM:          restoreVM,
 
 		CreateCDNZone:        createCDNZone,
 		ListCDNZones:         listCDNZones,
