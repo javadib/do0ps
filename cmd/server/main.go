@@ -91,6 +91,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	listServers := app.NewListServers(pool, provider)
 	getServer := app.NewGetServer(pool, provider)
 	deleteServer := app.NewDeleteServer(pool, provider)
+	createVPC := app.NewCreateVPC(pool, provider)
+	listVPCs := app.NewListVPCs(pool, provider)
+	getVPC := app.NewGetVPC(pool, provider)
+	deleteVPC := app.NewDeleteVPC(pool, provider)
 	reserveIP := app.NewReserveIP(pool, provider)
 	releaseIP := app.NewReleaseIP(pool, provider)
 	assignIPToServer := app.NewAssignIPToServer(pool, provider)
@@ -154,10 +158,15 @@ func run(cfg config.Config, logger *slog.Logger) error {
 
 	// --- primary adapter -------------------------------------------------
 	mcpServer, err := mcp.NewServer(mcp.Tools(mcp.UseCases{
-		ProvisionServer:    provisionServer,
-		ListServers:        listServers,
-		GetServer:          getServer,
-		DeleteServer:       deleteServer,
+		ProvisionServer: provisionServer,
+		ListServers:     listServers,
+		GetServer:       getServer,
+		DeleteServer:    deleteServer,
+		CreateVPC:       createVPC,
+		ListVPCs:        listVPCs,
+		GetVPC:          getVPC,
+		DeleteVPC:       deleteVPC,
+
 		GetOperationStatus: operationStatus,
 
 		CreateCDNZone:        createCDNZone,

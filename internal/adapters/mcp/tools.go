@@ -20,6 +20,11 @@ type UseCases struct {
 	DeleteSSHKey       *app.DeleteSSHKey
 	GetOperationStatus *app.GetOperationStatus
 
+	CreateVPC *app.CreateVPC
+	ListVPCs  *app.ListVPCs
+	GetVPC    *app.GetVPC
+	DeleteVPC *app.DeleteVPC
+
 	CreateCDNZone        *app.CreateCDNZone
 	ListCDNZones         *app.ListCDNZones
 	GetCDNZone           *app.GetCDNZone
@@ -94,6 +99,10 @@ func Tools(uc UseCases) []Tool {
 		listSSHKeysTool(uc.ListSSHKeys),
 		deleteSSHKeyTool(uc.DeleteSSHKey),
 		getOperationStatusTool(uc.GetOperationStatus),
+		createVPCTool(uc.CreateVPC),
+		listVPCsTool(uc.ListVPCs),
+		getVPCTool(uc.GetVPC),
+		deleteVPCTool(uc.DeleteVPC),
 		createCDNZoneTool(uc.CreateCDNZone),
 		listCDNZonesTool(uc.ListCDNZones),
 		getCDNZoneTool(uc.GetCDNZone),

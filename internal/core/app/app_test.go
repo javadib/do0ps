@@ -84,6 +84,11 @@ type fakeProvider struct {
 	deletedID string
 	deleteErr error
 
+	vpcs         []domain.VPC
+	createdVPC   *domain.VPC
+	deletedVPCID string
+	vpcDeleteErr error
+
 	keys         []domain.SSHKey
 	createdKey   *domain.SSHKey
 	deletedKeyID string
