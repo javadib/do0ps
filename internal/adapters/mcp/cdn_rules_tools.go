@@ -312,7 +312,7 @@ func updateCDNOriginRuleTool(uc *app.UpdateCDNOriginRule) Tool {
 
 			rule, err := uc.Execute(ctx, app.UpdateCDNOriginRuleInput{
 				Credentials: args.domain(), ZoneUUID: args.ZoneUUID, RuleID: args.RuleID,
-				Rule: args.originRuleWriteArgs.toDomain(),
+				Rule: args.toDomain(),
 			})
 			if err != nil {
 				return nil, err
@@ -756,7 +756,7 @@ func updateCDNPageRuleTool(uc *app.UpdateCDNPageRule) Tool {
 			if err := decodeArgs(raw, &args); err != nil {
 				return nil, err
 			}
-			rule, err := args.pageRuleWriteArgs.toDomain()
+			rule, err := args.toDomain()
 			if err != nil {
 				return nil, err
 			}
@@ -1055,7 +1055,7 @@ func updateCDNTransformRuleTool(uc *app.UpdateCDNTransformRule) Tool {
 
 			rule, err := uc.Execute(ctx, app.UpdateCDNTransformRuleInput{
 				Credentials: args.domain(), ZoneUUID: args.ZoneUUID, RuleID: args.RuleID,
-				Rule: args.transformRuleWriteArgs.toDomain(),
+				Rule: args.toDomain(),
 			})
 			if err != nil {
 				return nil, err

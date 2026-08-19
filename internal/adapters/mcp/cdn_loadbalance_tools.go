@@ -477,7 +477,7 @@ func createCDNLoadBalanceServerTool(uc *app.CreateCDNLoadBalanceServer) Tool {
 			}
 
 			srv, err := uc.Execute(ctx, app.CreateCDNLoadBalanceServerInput{
-				Credentials: args.domain(), ZoneUUID: args.ZoneUUID, Server: args.cdnLoadBalanceServerConfigArgs.server(),
+				Credentials: args.domain(), ZoneUUID: args.ZoneUUID, Server: args.server(),
 			})
 			if err != nil {
 				return nil, err
@@ -563,7 +563,7 @@ func updateCDNLoadBalanceServerTool(uc *app.UpdateCDNLoadBalanceServer) Tool {
 
 			srv, err := uc.Execute(ctx, app.UpdateCDNLoadBalanceServerInput{
 				Credentials: args.domain(), ZoneUUID: args.ZoneUUID, ServerID: args.ServerID,
-				Server: args.cdnLoadBalanceServerConfigArgs.server(),
+				Server: args.server(),
 			})
 			if err != nil {
 				return nil, err
