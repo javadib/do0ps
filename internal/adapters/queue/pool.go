@@ -29,6 +29,14 @@ var ErrClosed = errors.New("queue is closed")
 // defaultMaxAttempts bounds retries when a job type has no explicit policy.
 const defaultMaxAttempts = 5
 
+// The recovery sweep exists for one narrow case: a job the pool persisted as
+// pending and then dropped, because re-enqueueing it hit a full queue. Its
+// retry timer is gone, so without the sweep it would sit in the store forever.
+const (
+	defaultSweepInterval = 30 * time.Second
+	defaultSweepLimit    = 50
+)
+
 type unit func(ctx context.Context)
 
 // Pool executes fast tasks and persisted jobs on a fixed set of workers.
@@ -45,6 +53,7 @@ type Pool struct {
 
 	mu       sync.RWMutex
 	handlers map[domain.JobType]ports.JobHandler
+	settled  map[domain.JobType]ports.JobSettled
 	started  bool
 	closed   bool
 
@@ -61,6 +70,17 @@ type Pool struct {
 	// are cleared once the job reaches a terminal state or its timer fires.
 	retryMu sync.Mutex
 	retry   map[string]*retryState
+
+	// claimed holds the jobs this pool is currently responsible for: accepted
+	// by Submit, waiting out a retry backoff, or executing. The recovery sweep
+	// leaves those alone, so no job is ever run twice concurrently.
+	claimedMu sync.Mutex
+	claimed   map[string]struct{}
+
+	// sweepInterval is how often the pool re-reads the job store for pending
+	// work it is no longer tracking. Zero disables the sweep.
+	sweepInterval time.Duration
+	sweepLimit    int
 }
 
 type retryState struct {
@@ -92,6 +112,19 @@ func WithCapacity(n int) Option {
 			return fmt.Errorf("queue capacity must be positive, got %d", n)
 		}
 		p.capacity = n
+		return nil
+	}
+}
+
+// WithSweepInterval sets how often the pool re-reads the job store for pending
+// jobs it has dropped. Zero disables the sweep; tests set it short so a
+// recovery is observable without a slow test run.
+func WithSweepInterval(d time.Duration) Option {
+	return func(p *Pool) error {
+		if d < 0 {
+			return fmt.Errorf("sweep interval must not be negative, got %s", d)
+		}
+		p.sweepInterval = d
 		return nil
 	}
 }
@@ -149,15 +182,19 @@ func defaultBackOff() backoff.BackOff {
 // New builds a pool. Call Start before submitting work.
 func New(jobs ports.JobRepository, clock ports.Clock, opts ...Option) (*Pool, error) {
 	p := &Pool{
-		jobs:        jobs,
-		clock:       clock,
-		logger:      slog.Default(),
-		workers:     8,
-		capacity:    256,
-		handlers:    make(map[domain.JobType]ports.JobHandler),
-		maxAttempts: defaultMaxAttempts,
-		newBackOff:  defaultBackOff,
-		retry:       make(map[string]*retryState),
+		jobs:          jobs,
+		clock:         clock,
+		logger:        slog.Default(),
+		workers:       8,
+		capacity:      256,
+		handlers:      make(map[domain.JobType]ports.JobHandler),
+		settled:       make(map[domain.JobType]ports.JobSettled),
+		maxAttempts:   defaultMaxAttempts,
+		newBackOff:    defaultBackOff,
+		retry:         make(map[string]*retryState),
+		claimed:       make(map[string]struct{}),
+		sweepInterval: defaultSweepInterval,
+		sweepLimit:    defaultSweepLimit,
 	}
 	for _, opt := range opts {
 		if err := opt(p); err != nil {
@@ -176,6 +213,16 @@ func (p *Pool) Register(t domain.JobType, h ports.JobHandler) {
 	p.handlers[t] = h
 }
 
+// RegisterSettled binds a job type to the callback that releases whatever the
+// owning use case holds in memory for the operation — its caller credentials,
+// above all. The pool calls it once the job reaches a terminal state, never
+// between attempts, so a retry still has what it needs. Call before Start.
+func (p *Pool) RegisterSettled(t domain.JobType, fn ports.JobSettled) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.settled[t] = fn
+}
+
 // Start launches the workers. The given context bounds all background job
 // execution.
 func (p *Pool) Start(ctx context.Context) {
@@ -190,6 +237,10 @@ func (p *Pool) Start(ctx context.Context) {
 	for i := 0; i < p.workers; i++ {
 		p.wg.Add(1)
 		go p.worker()
+	}
+
+	if p.sweepInterval > 0 {
+		go p.sweep(p.runCtx)
 	}
 }
 
@@ -280,9 +331,16 @@ func (p *Pool) Submit(ctx context.Context, job *domain.Job) error {
 		return fmt.Errorf("no handler registered for job type %q", job.Type)
 	}
 
-	return p.enqueue(ctx, func(runCtx context.Context) {
+	p.claim(job.ID)
+	if err := p.enqueue(ctx, func(runCtx context.Context) {
 		p.runJob(runCtx, job, handler)
-	})
+	}); err != nil {
+		// Never accepted, so nothing owns it: release the claim, leaving the
+		// persisted job for the sweep to find.
+		p.release(job.ID)
+		return err
+	}
+	return nil
 }
 
 // runJob executes a persisted job and records its outcome. Background work
@@ -304,7 +362,7 @@ func (p *Pool) runJob(ctx context.Context, job *domain.Job, handler ports.JobHan
 	now = p.clock.Now()
 
 	if runErr == nil {
-		p.clearRetry(job.ID)
+		p.finish(job)
 		if err := job.MarkDone(result, now); err != nil {
 			p.logger.Error("marking job done", "job_id", job.ID, "error", err)
 			return
@@ -320,7 +378,7 @@ func (p *Pool) runJob(ctx context.Context, job *domain.Job, handler ports.JobHan
 		return
 	}
 
-	p.clearRetry(job.ID)
+	p.finish(job)
 	if err := job.MarkFailed(runErr.Error(), now); err != nil {
 		p.logger.Error("marking job failed", "job_id", job.ID, "error", err)
 		return
@@ -371,6 +429,10 @@ func (p *Pool) scheduleRetry(job *domain.Job, handler ports.JobHandler, delay ti
 		if err := p.enqueue(context.Background(), func(runCtx context.Context) {
 			p.runJob(runCtx, job, handler)
 		}); err != nil {
+			// The pool is no longer carrying this job. Release the claim so
+			// the sweep can pick it back up; it stays pending in the store
+			// with its retry time already in the past.
+			p.release(job.ID)
 			p.logger.Error("re-enqueueing retry", "job_id", job.ID, "error", err)
 		}
 	})
@@ -396,6 +458,48 @@ func (p *Pool) clearRetry(jobID string) {
 		}
 		delete(p.retry, jobID)
 	}
+}
+
+// finish releases everything the pool holds for a job that has reached a
+// terminal state: its backoff sequence and timer, its claim, and whatever the
+// owning use case kept in memory for the operation.
+func (p *Pool) finish(job *domain.Job) {
+	p.clearRetry(job.ID)
+	p.release(job.ID)
+
+	p.mu.RLock()
+	settled := p.settled[job.Type]
+	p.mu.RUnlock()
+	if settled != nil {
+		settled(job.ID)
+	}
+}
+
+// claim marks a job as this pool's responsibility.
+func (p *Pool) claim(jobID string) {
+	p.claimedMu.Lock()
+	defer p.claimedMu.Unlock()
+	p.claimed[jobID] = struct{}{}
+}
+
+// tryClaim takes responsibility for a job only if nothing else holds it,
+// reporting whether it succeeded. Checking and claiming under one lock is what
+// stops a sweep and a concurrent Submit from both running the same job.
+func (p *Pool) tryClaim(jobID string) bool {
+	p.claimedMu.Lock()
+	defer p.claimedMu.Unlock()
+	if _, taken := p.claimed[jobID]; taken {
+		return false
+	}
+	p.claimed[jobID] = struct{}{}
+	return true
+}
+
+// release gives up responsibility for a job, making it visible to the sweep.
+func (p *Pool) release(jobID string) {
+	p.claimedMu.Lock()
+	defer p.claimedMu.Unlock()
+	delete(p.claimed, jobID)
 }
 
 // stopPendingRetries cancels every retry timer still waiting to fire. Called

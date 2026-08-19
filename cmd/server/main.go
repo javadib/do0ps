@@ -285,6 +285,14 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	pool.Register(domain.JobTypeCreateSnapshot, createSnapshot.Handle)
 	pool.Register(domain.JobTypeRestoreVM, restoreVM.Handle)
 	pool.Register(domain.JobTypeProvisionLoadBalancer, provisionLoadBalancer.Handle)
+
+	// Each long operation holds the caller's credentials in memory until the
+	// job can no longer be re-attempted; the pool calls these once it is done
+	// with the job, whichever way it ended.
+	pool.RegisterSettled(domain.JobTypeProvisionServer, provisionServer.Settled)
+	pool.RegisterSettled(domain.JobTypeCreateSnapshot, createSnapshot.Settled)
+	pool.RegisterSettled(domain.JobTypeRestoreVM, restoreVM.Settled)
+	pool.RegisterSettled(domain.JobTypeProvisionLoadBalancer, provisionLoadBalancer.Settled)
 	pool.Start(ctx)
 
 	flagged, err := recovery.Run(ctx)

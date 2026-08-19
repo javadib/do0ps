@@ -24,9 +24,10 @@ community, including non-technical end users who only ever interact with it thro
 
 ## 2. Tech Stack
 
-- **Language:** Go
-- **HTTP framework:** Fiber **v3** (built on fasthttp, not `net/http`). Requires **Go 1.25+** — make sure
-  Docker base images and CI use this version.
+- **Language:** Go **1.26.2** — the version `go.mod` pins and the single source of truth. CI reads it via
+  `go-version-file: go.mod`; the Dockerfile builder stage must name the same version. If you bump it, bump it
+  in `go.mod` and the Dockerfile together, and update this line.
+- **HTTP framework:** Fiber **v3** (built on fasthttp, not `net/http`).
 - **Persistence:** SQLite, using a **pure-Go driver** (`modernc.org/sqlite`) — do NOT use `mattn/go-sqlite3` or
   any other cgo-based driver. This keeps builds fully static and cross-compilation/Docker builds simple.
 - **Queue / background work:** Go channels + an in-process worker pool (goroutines). No Redis, no external

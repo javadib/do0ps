@@ -21,6 +21,12 @@ type Task func(ctx context.Context) (json.RawMessage, error)
 // wiring time, keyed by domain.JobType.
 type JobHandler func(ctx context.Context, job *domain.Job) (json.RawMessage, error)
 
+// JobSettled is called once a job reaches a terminal state, so the use case
+// that owns it can release whatever it holds for the operation in memory —
+// above all the caller's credentials, which a retry still needs and which are
+// never persisted. Registered alongside the handler at wiring time.
+type JobSettled func(jobID string)
+
 // Queue schedules provider work. Implemented by internal/adapters/queue with
 // Go channels and a bounded worker pool.
 type Queue interface {

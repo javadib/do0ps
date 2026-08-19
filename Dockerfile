@@ -4,7 +4,7 @@
 # Compiles a static do0ps binary. CGO is disabled: the SQLite job store uses
 # the pure-Go modernc.org/sqlite driver (AGENTS.md §2), so no C toolchain or
 # libc is required at build or run time.
-FROM golang:1.26-alpine AS builder
+FROM golang:1.26.2-alpine AS builder
 
 # Baked into the binary via -ldflags below. .github/workflows/docker-publish.yml
 # passes this on tagged releases; defaults to "dev" for local/manual builds.

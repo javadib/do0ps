@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/joho/godotenv"
 )
 
@@ -37,10 +36,12 @@ type Config struct {
 // or invalid required value returns an error so the server can fail fast on
 // startup instead of coming up half-configured.
 func Load() (Config, error) {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	// A .env file is a local-development convenience, not a requirement:
+	// containers and CI supply the environment directly, and the image
+	// deliberately ships without one (.env is in .dockerignore). Treat a
+	// missing file as normal and let the checks below decide whether the
+	// resulting configuration is usable.
+	_ = godotenv.Load()
 
 	cfg := Config{
 		AuthTokens:   os.Getenv("MCP_AUTH_TOKENS"),
