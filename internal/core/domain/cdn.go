@@ -3,7 +3,7 @@ package domain
 // The types below model Parspack's CDN API surface (AGENTS.md 4.5): a CDN
 // "zone" is a CDN-onboarded domain, and DNS records live inside a zone, not
 // as a standalone resource (AGENTS.md 4.1). Field sets are confirmed against
-// docs/api-specs/cdn-api.openapi's Service/Order/Dns tags — issue #19's scope
+// docs/api-specs/parspack-cdn.openapi.yaml's Service/Order/Dns tags — issue #19's scope
 // is deliberately limited to zone/order management and DNS records; the
 // other 18 CDN tags (Firewall, Load Balance, Cache, WAF, ...) are tracked in
 // issue #24.

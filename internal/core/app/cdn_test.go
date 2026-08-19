@@ -235,9 +235,8 @@ func TestCreateDNSRecordSuccess(t *testing.T) {
 	}
 }
 
-// TestCreateDNSRecordRejectsInvalidTTL proves a bad TTL (and, by the same
-// validateDNSRecord path, an unsupported type) is rejected before the
-// provider is ever called, per issue #19's acceptance criteria.
+// TestCreateDNSRecordRejectsInvalidTTL proves a bad TTL is rejected before
+// the provider is ever called, per issue #19's acceptance criteria.
 func TestCreateDNSRecordRejectsInvalidTTL(t *testing.T) {
 	provider := &fakeProvider{}
 	uc := app.NewCreateDNSRecord(&inlineQueue{}, provider)
@@ -255,6 +254,33 @@ func TestCreateDNSRecordRejectsInvalidTTL(t *testing.T) {
 	}
 	if provider.createdRecord != nil {
 		t.Error("provider was called with an invalid TTL")
+	}
+}
+
+// TestCreateDNSRecordRejectsInvalidType proves an unsupported/unrecognized
+// record type is rejected by the same validateDNSRecord path before the
+// provider is ever called, per issue #19's acceptance criteria. A record
+// type string that domain.ParseDNSRecordType does not recognize (e.g. an
+// MCP caller sending "BOGUS") resolves to domain.DNSRecordTypeUnknown at the
+// MCP boundary, which is exactly what this test exercises here at the use
+// case layer.
+func TestCreateDNSRecordRejectsInvalidType(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewCreateDNSRecord(&inlineQueue{}, provider)
+
+	_, err := uc.Execute(context.Background(), app.CreateDNSRecordInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ZoneUUID:    "z1",
+		Record: domain.DNSRecord{
+			Host: "api", Type: domain.DNSRecordTypeUnknown, TTL: 3600, Proxy: domain.DNSRecordProxyDirect,
+			Values: []domain.DNSRecordValue{{Content: "203.0.113.10"}},
+		},
+	})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+	if provider.createdRecord != nil {
+		t.Error("provider was called with an unsupported record type")
 	}
 }
 

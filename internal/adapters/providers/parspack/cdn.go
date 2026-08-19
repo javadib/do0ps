@@ -8,7 +8,7 @@ import (
 )
 
 // CDN zone management and DNS records, wired to the real CDN API (issue #19).
-// Base path is confirmed against docs/api-specs/cdn-api.openapi's
+// Base path is confirmed against docs/api-specs/parspack-cdn.openapi.yaml's
 // Service/Order/Dns tags, relative to Client.cdnBaseURL, i.e.
 // https://my.parspack.com/cdnapi/external/api/v1/zones and friends.
 //

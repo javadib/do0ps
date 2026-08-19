@@ -5,7 +5,7 @@ package domain
 // lifecycle, this is a genuine multi-step order: create an order, submit a
 // CSR plus contact details, complete a domain-ownership challenge, then
 // download the issued certificate. Field shapes are confirmed against
-// docs/api-specs/ssl-api.openapi (committed, authoritative per AGENTS.md
+// docs/api-specs/parspack-ssl.openapi.yaml (committed, authoritative per AGENTS.md
 // 4.5), not derived from the JS-rendered docs site.
 
 // SSLPrice is one billing-cycle price of an SSLProduct.

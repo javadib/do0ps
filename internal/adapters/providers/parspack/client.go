@@ -150,7 +150,7 @@ func (c *Client) doJSONSSL(ctx context.Context, creds domain.ProviderCredentials
 }
 
 // cdnEnvelope is the {"success","message","data"} response shape every CDN
-// API endpoint uses (docs/api-specs/cdn-api.openapi), wrapping the payload
+// API endpoint uses (docs/api-specs/parspack-cdn.openapi.yaml), wrapping the payload
 // doJSON's cloud-server callers get directly.
 type cdnEnvelope struct {
 	Success bool            `json:"success"`
@@ -225,14 +225,14 @@ func (c *Client) doJSONBase(ctx context.Context, creds domain.ProviderCredential
 
 // statusFailedDependency is the CDN API's "Operation Fail" status (424),
 // used when a request was valid but the underlying operation could not
-// complete (docs/api-specs/cdn-api.openapi). Treated the same as a 5xx: it is
+// complete (docs/api-specs/parspack-cdn.openapi.yaml). Treated the same as a 5xx: it is
 // the provider's failure, not a bad request.
 const statusFailedDependency = 424
 
 // mapErrorResponse turns a non-2xx HTTP response into one of the sentinel
 // domain errors, per the status codes AGENTS.md 4.5 confirms for the
 // cloud-server API (200/400/401/404/500), plus the 422 and 424 the CDN API
-// additionally confirms (docs/api-specs/cdn-api.openapi).
+// additionally confirms (docs/api-specs/parspack-cdn.openapi.yaml).
 //
 // Statuses outside that set (403, 409, ...) carry surface-specific meaning
 // that differs between surfaces — e.g. the SSL API's 403 means "order not in
