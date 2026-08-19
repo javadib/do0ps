@@ -55,10 +55,9 @@ The project is intended to be open source and usable both by DevOps teams and by
 only ever touch it through a chatbot.
 
 **Current status:** phase 1 is substantially built — the Parspack adapters, use cases and tools are
-implemented and unit-tested across every package. One blocker stands in the way of actually running it: a
-`.env`-loading change makes the server refuse to start without a `.env` file on disk, which breaks the Docker
-image and turns CI red. See [Project status and known gaps](#14-project-status-and-known-gaps) before
-deploying.
+implemented and unit-tested across every package, `go test ./...` is green, and the server runs from a plain
+binary or from Docker. See [Project status and known gaps](#14-project-status-and-known-gaps) for what is
+still missing.
 
 ---
 
@@ -257,14 +256,13 @@ CLAUDE.md                      a pointer to AGENTS.md, so the two never drift
 
 ## 6. Installation and setup
 
-> **Read this first.** `config.Load()` calls `godotenv.Load()` and aborts the process when no `.env` file is
-> present in the working directory — exported environment variables alone are not enough. Every path below
-> therefore starts by creating a `.env`. This also breaks the Docker image, which cannot contain one; see
-> [Project status and known gaps](#14-project-status-and-known-gaps).
+Configuration comes from the environment. A `.env` file in the working directory is loaded when present and
+is the convenient way to run locally; it is optional, so containers and CI can supply the variables directly.
 
 ### Prerequisites
 
-- **Go 1.26 or newer** (`go.mod` pins `go 1.26.2`; CI reads the version from that file)
+- **Go 1.26.2** — the version `go.mod` pins, CI reads via `go-version-file: go.mod`, and the Dockerfile
+  builder stage names. Bump the three together
 - No cgo toolchain, no external database, no message broker
 - Optional: Docker + Compose, `golangci-lint` v2.12 for linting
 
@@ -296,7 +294,8 @@ make run          # go run ./cmd/server
 go build -o do0ps ./cmd/server
 ```
 
-Run it on the target host from a directory containing a `.env` file. `make test`, `make vet` and `make lint`
+Run it on the target host with the same environment variables, from a `.env` file or exported directly.
+`make test`, `make vet` and `make lint`
 run the test suite, `go vet`, and golangci-lint; `make install-tools` installs the exact golangci-lint version
 CI uses.
 
@@ -322,9 +321,8 @@ The image is `gcr.io/distroless/static-debian12:nonroot` — no shell, no packag
 That is why `docker-compose.yml` defines no container healthcheck: there is no `curl` or `wget` inside to run
 one. Probe `GET /healthz` from outside instead.
 
-**Compose does not work as written today.** `.env` is listed in `.dockerignore`, so the image contains no
-`.env` file, and the godotenv call above kills the container on startup even though Compose injects the
-variables through `env_file`. Until that is fixed, run the binary directly.
+`.env` is listed in `.dockerignore`, so the image never carries your secrets; Compose passes the variables in
+through `env_file` instead.
 
 ### Verify
 
@@ -665,50 +663,25 @@ adapter tests for each Parspack capability area. **One package currently fails**
 | Parspack adapter across all three API surfaces | Implemented, tested against fake servers |
 | Dockerfile (distroless, nonroot, static) + docker-compose | Committed |
 | Makefile, `.golangci.yml`, `.env.example` | Committed |
-| End-user Skill (`skills/parspack-infra`) | Written for the phase-1 tool set |
-| **`.env` is mandatory** | **Blocker** — see below |
+| End-user Skill (`skills/parspack-infra`) | Covers all 147 tools |
 | MCP `initialize` handshake | Not implemented |
 | `JobRepository.ListDue` | Implemented and tested but never called; nothing polls for due retries across a restart |
 | LICENSE | Not committed yet, despite the open-source intent |
 
-### The `.env` blocker
+### Recently resolved
 
-`internal/config/config.go` does this:
+The following were fixed on this branch and are recorded here so the change is easy to trace:
 
-```go
-err := godotenv.Load()
-if err != nil {
-    log.Fatal("Error loading .env file")
-}
-```
-
-`godotenv.Load()` returns an error when no `.env` file exists in the working directory, and `log.Fatal` exits
-the process. Three consequences:
-
-1. **`go test ./...` fails.** `internal/config` aborts the test binary; CI on `step/ph1` has been red since
-   this landed (the previous commit was green).
-2. **The Docker image cannot start.** `.env` is in `.dockerignore` (correctly — it holds secrets), so the
-   image never contains one. Compose injecting the variables via `env_file` does not help: the file itself is
-   missing, so the container exits immediately. The documented `docker compose up -d --build` quick start
-   cannot work.
-3. **Exported environment variables alone are not enough**, on any host.
-
-The fix is to treat a missing `.env` as normal — real environments supply variables directly:
-
-```go
-_ = godotenv.Load() // optional: a real environment supplies variables directly
-```
-
-That keeps `.env` working for local development while letting containers and CI run without one.
-
-### Smaller inconsistencies
-
-- The `Makefile`'s `run` comment still says `DO0PS_TOKENS`; the variable is `MCP_AUTH_TOKENS`.
-- `github.com/joho/godotenv` is listed in the `// indirect` block of `go.mod` although `internal/config`
-  imports it directly — `go mod tidy` would move it.
-- `AGENTS.md` says Go 1.25+; `go.mod` pins `go 1.26.2`, and CI reads the version from `go.mod`. Treat
-  `go.mod` as the source of truth.
-- The end-user Skill covers the phase-1 tools but not the ~90 CDN tools added under issue #24.
+- **`.env` was mandatory.** `config.Load()` called `godotenv.Load()` and `log.Fatal`'d on a missing file,
+  which failed `go test ./...`, kept CI red, and prevented the Docker image from starting at all (`.env` is
+  dockerignored, so the image can never contain one). Loading is now best-effort: `_ = godotenv.Load()`, with
+  the required-value checks that follow deciding whether the configuration is usable.
+- **Go version drift.** `AGENTS.md` said 1.25+ and the Dockerfile built on the floating `golang:1.26-alpine`.
+  Both now name **1.26.2**, matching `go.mod`.
+- **`godotenv` was marked indirect** in `go.mod` despite being imported directly — `go mod tidy` moved it.
+- **The `Makefile`'s `run` comment** named `DO0PS_TOKENS`; the variable is `MCP_AUTH_TOKENS`.
+- **The end-user Skill covered only the phase-1 tools.** It now documents all 147, with the CDN edge families
+  and a workflow section for them.
 
 ---
 

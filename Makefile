@@ -2,7 +2,7 @@
 #
 # Targets:
 #   build  - compile all packages
-#   run    - run the MCP server locally (needs DO0PS_TOKENS, see .env.example)
+#   run    - run the MCP server locally (needs MCP_AUTH_TOKENS, see .env.example)
 #   test   - run the test suite
 #   vet    - go vet
 #   lint   - golangci-lint (v2.12.0 matches CI)

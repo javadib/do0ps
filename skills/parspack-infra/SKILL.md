@@ -1,6 +1,6 @@
 ---
 name: parspack-infra
-description: "How to use the do0ps MCP server to manage Parspack infrastructure on the user's behalf: cloud servers (VPS) and their snapshots, SSH keys, firewalls, load balancers, reserved IPs, private networks (VPCs), CDN zones with their DNS records, and SSL certificates. Use whenever the user asks in natural language to create, check on, change, or delete any of those — and whenever this tool set is available but the user has not said exactly which tool to call."
+description: "How to use the do0ps MCP server to manage Parspack infrastructure on the user's behalf: cloud servers (VPS) and their snapshots, SSH keys, firewalls, load balancers, reserved IPs, private networks (VPCs), CDN zones with their DNS records and the CDN edge configuration behind them (caching, edge firewall and WAF, rate limiting, rule engines, logs), and SSL certificates. Use whenever the user asks in natural language to create, check on, change, or delete any of those — and whenever this tool set is available but the user has not said exactly which tool to call."
 license: MIT
 ---
 
@@ -63,6 +63,36 @@ The tools you have available are:
 | `verify_ssl_challenge` | Marks a completed challenge as verified | fast |
 | `get_ssl_certificate` | Downloads the issued certificate | fast |
 | `reissue_ssl_certificate` | Reissues a certificate with a new CSR | fast |
+
+Beyond zone and DNS management, a further set of tools configures how the CDN edge itself
+behaves. Every one of them is **fast** and takes the zone's `zone_uuid`, so they are
+grouped here by family rather than listed one by one — see "CDN edge configuration" below
+for when to reach for each.
+
+| Family | Tools | What it covers |
+| --- | --- | --- |
+| Rule engines | `list`/`create`/`get`/`update`/`delete`/`toggle_cdn_origin_rule`, the same for `_page_rule` and `_transform_rule` | Per-URL overrides: where a request is fetched from, how a page is treated, how a request/response is rewritten |
+| ModSec WAF | `get`/`update_cdn_modsec_status`, plus `list`/`create`/`get`/`update`/`delete` for `_cdn_modsec_rule` and `_cdn_modsec_data` | Web application firewall: on/off, rule sets, and the data lists rules match against |
+| Edge load balancing | `list`/`create`/`get`/`update`/`delete_cdn_load_balance` and the same for `_cdn_load_balance_server` | Balancing across origins **at the CDN edge** — not the same thing as `create_load_balancer` |
+| Zone settings | `get`/`update_cdn_antivirus_status`, `get`/`update_cdn_dnssec_status`, `get_cdn_optimization_status`, `update_cdn_optimization`, `update_cdn_developer_mode`, `update_cdn_maintenance_mode`, `update_cdn_query_string_setting`, `update_cdn_origin_offline` | Per-zone toggles |
+| Edge firewall | `list`/`create`/`get`/`update`/`delete_cdn_access_rule`, `get`/`update_cdn_ip_reputation`, `get`/`update_cdn_ddos_actions` | Who may reach the site — again distinct from the VM-network `*_firewall` tools |
+| Logs & analytics | `get_cdn_access_log`, `get_cdn_security_log`, `get_cdn_error_log`, `get_cdn_waf_log`, `get_cdn_top_visitors`, `get_cdn_monthly_traffic_usage`, `get`/`update_cdn_upstream_errors` | What the edge has been serving and blocking |
+| Network settings | `get`/`update_cdn_https_convertor`, `get`/`update_cdn_edge_to_upstream_connection`, `get`/`update_cdn_web_socket`, `get`/`update_cdn_www_redirection` | How the edge talks to visitors and to the origin |
+| Cache | `update_cdn_cache_ttl`, `update_cdn_cache_rule`, `update_cdn_cache_user_agent`, `get_cdn_cache_settings`, `list_cdn_cache_entries`, `get_cdn_cache_entry`, `purge_cdn_cache` | Caching behavior, and clearing what is cached |
+| Rate limiting | `list`/`create`/`get`/`update`/`delete_cdn_rate_limit_rule`, `update_cdn_rate_limit_rule_priority` | Throttling abusive traffic |
+| Bulklists | `list`/`create`/`get`/`update`/`delete_cdn_bulklist`, `list_cdn_firewall_countries` | Reusable IP/country lists that firewall rules refer to |
+| Zone SSL | `get`/`update_cdn_min_tls_version`, `list_cdn_certificates`, `get`/`update_cdn_hsts` | HTTPS settings for the zone (separate from ordering a certificate) |
+
+In that table a slash group such as `list`/`create`/`get`/`update`/`delete_cdn_access_rule`
+means one tool per verb over the same resource. The **`list` form is plural** —
+`list_cdn_access_rules`, `list_cdn_bulklists`, `list_cdn_load_balances`,
+`list_cdn_load_balance_servers`, `list_cdn_modsec_rules`, `list_cdn_origin_rules`,
+`list_cdn_page_rules`, `list_cdn_rate_limit_rules`, `list_cdn_transform_rules` — while
+every other verb is singular. `list_cdn_modsec_data` is the one exception, singular
+because "data" already is.
+
+There is also a `ping` tool, which does nothing but confirm the connection works. Never
+offer it to the user as a feature; use it only if you need to check the server is alive.
 
 ## Rules that apply to every tool call
 
@@ -209,6 +239,53 @@ records for the apex):
 
 If the user asks about a domain that has no zone, say it must be onboarded onto the CDN
 first, and offer to do it.
+
+## CDN edge configuration
+
+Everything in this section applies to a zone that already exists, and every tool takes its
+`zone_uuid` — get it from `list_cdn_zones`, never ask the user for a uuid.
+
+Two naming collisions matter, and getting them wrong changes the wrong system:
+
+- `create_firewall` and friends protect a **server's network**. `create_cdn_access_rule`
+  and friends protect a **website at the CDN edge**. "Block this IP from my site" is the
+  CDN one; "close port 22 on my server" is the VM one.
+- `create_load_balancer` provisions a **load balancer in front of servers**.
+  `create_cdn_load_balance` balances **origins at the CDN edge**. When the user says
+  "load balancer" without qualifying, ask which they mean before creating anything.
+
+Map what the user says to the right family:
+
+- *"My site is slow / cache it"* → cache settings: `get_cdn_cache_settings` first to see
+  where things stand, then `update_cdn_cache_ttl` or `update_cdn_cache_rule`.
+- *"I deployed but visitors see the old version"* → `purge_cdn_cache`. It clears the whole
+  zone's cache, so say so before calling it.
+- *"I'm working on the site, stop caching for now"* → `update_cdn_developer_mode`. Remind
+  the user to turn it off afterwards, since it bypasses the cache entirely.
+- *"Put up a maintenance page"* → `update_cdn_maintenance_mode`.
+- *"Block this IP / this country"* → `create_cdn_access_rule`. For a list reused across
+  rules, create a bulklist first (`create_cdn_bulklist`; `list_cdn_firewall_countries` has
+  the country codes).
+- *"I'm getting attacked"* → `update_cdn_ddos_actions` and `update_cdn_ip_reputation`, and
+  `create_cdn_rate_limit_rule` to throttle a specific path.
+- *"Turn on the WAF"* → `update_cdn_modsec_status`; individual rules via the
+  `_cdn_modsec_rule` tools.
+- *"Force HTTPS"* → `update_cdn_https_convertor`; `update_cdn_min_tls_version` and
+  `update_cdn_hsts` tighten it further. Warn before enabling HSTS: browsers remember it,
+  so a site that later loses HTTPS becomes unreachable for those visitors.
+- *"Redirect www"* → `update_cdn_www_redirection`.
+- *"Who is visiting / what is being blocked?"* → `get_cdn_top_visitors`,
+  `get_cdn_access_log`, `get_cdn_security_log`, `get_cdn_waf_log`. Summarize; never paste
+  a raw log at the user.
+- *"How much traffic did I use?"* → `get_cdn_monthly_traffic_usage`.
+- *"Serve this path from somewhere else / rewrite these URLs"* → the rule engines:
+  `create_cdn_origin_rule` for where content is fetched from, `create_cdn_page_rule` for
+  per-URL behavior, `create_cdn_transform_rule` for rewriting. List the existing rules
+  first — order and priority matter, and a new rule can silently shadow one already there.
+
+The same standing rules apply here: look ids up rather than guessing them, and confirm
+before any `delete_*`, before `purge_cdn_cache`, and before a toggle that changes what
+visitors see (maintenance mode, developer mode, HSTS).
 
 ## Firewalls
 
