@@ -84,7 +84,9 @@ func (uc *CreateSnapshot) Handle(ctx context.Context, job *domain.Job) (json.Raw
 	if !ok {
 		return nil, fmt.Errorf("credentials for operation %s are no longer held in memory: %w", job.ID, domain.ErrInvalidCredentials)
 	}
-	defer uc.op.forgetCredentials(job.ID)
+	// Credentials are deliberately NOT released here: a failed attempt is
+	// retried by the queue, and that retry needs them just as much. They are
+	// released from Settled, once the job can no longer be re-attempted.
 
 	var payload createSnapshotPayload
 	if err := json.Unmarshal(job.Payload, &payload); err != nil {
@@ -120,3 +122,8 @@ func (uc *CreateSnapshot) Handle(ctx context.Context, job *domain.Job) (json.Raw
 	}
 	return json.Marshal(snap)
 }
+
+// Settled releases the operation's in-memory credentials. It satisfies
+// ports.JobSettled and is registered with the queue adapter at wiring time,
+// which calls it once the job reaches a terminal state.
+func (uc *CreateSnapshot) Settled(jobID string) { uc.op.forgetCredentials(jobID) }

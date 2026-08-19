@@ -128,6 +128,15 @@ issuing a second create.
 - **Around a whole background job** — the worker pool retries a failed job handler up to `maxAttempts`
   (default **5**), persisting `Reschedule(...)` with the next attempt time and re-enqueueing it on a timer.
   Because `NextRetryAt` is persisted before the wait, a crash mid-backoff does not lose the retry.
+- **A recovery sweep** every 30s (`WithSweepInterval`) re-reads the store via `JobRepository.ListDue` and
+  re-enqueues pending work the pool has dropped — which happens when re-enqueueing a retry hits a full queue,
+  leaving a job with no timer behind it. The sweep deliberately skips *interrupted* jobs: those lost their
+  credentials to a restart, so running them would fail on authentication, burn the retry budget, and end in a
+  terminal failure — destroying the reconciliation path above. They are the caller's to resolve through
+  `get_operation_status`.
+
+A job's credentials are held in memory for as long as it can still be re-attempted, and released through a
+`ports.JobSettled` callback the pool invokes once the job reaches a terminal state — never between attempts.
 
 ### Ports and adapters (hexagonal architecture)
 
@@ -656,7 +665,7 @@ adapter tests for each Parspack capability area. **One package currently fails**
 | Hexagonal structure, domain, ports | Implemented |
 | ~70 use cases across VM, network, CDN, SSL | Implemented, unit tested |
 | SQLite job store + migration + startup recovery | Implemented, tested |
-| Worker pool: bounded, graceful drain, backoff job retry (max 5 attempts) | Implemented, tested |
+| Worker pool: bounded, graceful drain, backoff job retry (max 5 attempts), recovery sweep over `ListDue` | Implemented, tested |
 | Bearer auth middleware (hashed allow-list, constant-time compare) | Implemented, tested |
 | MCP tool registry: 147 tools, `tools/list` + `tools/call` | Implemented, tested |
 | Streamable HTTP: POST + SSE `GET /mcp` | Implemented, tested |
@@ -665,7 +674,6 @@ adapter tests for each Parspack capability area. **One package currently fails**
 | Makefile, `.golangci.yml`, `.env.example` | Committed |
 | End-user Skill (`skills/parspack-infra`) | Covers all 147 tools |
 | MCP `initialize` handshake | Not implemented |
-| `JobRepository.ListDue` | Implemented and tested but never called; nothing polls for due retries across a restart |
 | LICENSE | Not committed yet, despite the open-source intent |
 
 ### Recently resolved
@@ -682,6 +690,12 @@ The following were fixed on this branch and are recorded here so the change is e
 - **The `Makefile`'s `run` comment** named `DO0PS_TOKENS`; the variable is `MCP_AUTH_TOKENS`.
 - **The end-user Skill covered only the phase-1 tools.** It now documents all 147, with the CDN edge families
   and a workflow section for them.
+- **Retries could never authenticate.** Every long-operation handler released the caller's credentials with a
+  `defer` on its first attempt, so attempt 2 failed with `ErrInvalidCredentials`, attempts 3-5 did the same,
+  and the job ended terminally `failed` — with the provider having been called exactly once, and the
+  reconciliation path closed off. Credentials now survive until the job settles, via `ports.JobSettled`.
+- **`JobRepository.ListDue` had no caller.** A recovery sweep now uses it (see
+  [Retry and backoff](#2-concepts)), with an explicit guard against touching interrupted jobs.
 
 ---
 
