@@ -11,7 +11,7 @@ import (
 // sslEnvelope is the JSON envelope every Parspack SSL API response uses:
 // {"message": ..., "code": ..., "data": ..., "status": true/false}, with an
 // "errors" object added on 422 validation failures. Confirmed against
-// docs/api-specs/ssl-api.openapi (AGENTS.md 4.5) — distinct from the
+// docs/api-specs/parspack-ssl.openapi.yaml (AGENTS.md 4.5) — distinct from the
 // cloud-server surface's bare "vm"/"vms" wrapper.
 type sslEnvelope struct {
 	Message string          `json:"message"`
@@ -262,7 +262,7 @@ func (c *Client) ReissueSSLCertificate(ctx context.Context, creds domain.Provide
 	return &domain.SSLCertificate{Ready: wire.CertificateReady, Certificate: wire.Certificate, CABundle: wire.CABundle}, nil
 }
 
-// The wire types below mirror docs/api-specs/ssl-api.openapi exactly (field
+// The wire types below mirror docs/api-specs/parspack-ssl.openapi.yaml exactly (field
 // names and JSON tags), translated into internal/core/domain types at the
 // adapter boundary.
 

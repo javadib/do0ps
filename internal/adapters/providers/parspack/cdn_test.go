@@ -319,7 +319,7 @@ func TestDeleteDNSRecordNotFound(t *testing.T) {
 
 // TestOperationFailMapsToProviderUnavailable proves the CDN API's 424
 // ("Operation Fail") status is treated as a provider-side failure, not a bad
-// request (docs/api-specs/cdn-api.openapi).
+// request (docs/api-specs/parspack-cdn.openapi.yaml).
 func TestOperationFailMapsToProviderUnavailable(t *testing.T) {
 	c := newTestCDNClient(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(424)
