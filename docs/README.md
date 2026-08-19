@@ -4,7 +4,7 @@
 
 > An MCP server that lets a chatbot run your infrastructure.
 
-**[فارسی / Persian →](./readme_fa.md)**
+**[فارسی / Persian →](README_FA.md)**
 
 ---
 
@@ -48,8 +48,8 @@ Two layers sit on top of the server, and both now exist:
 
 | Layer | What it is | Where it lives |
 | --- | --- | --- |
-| **MCP tools** | 147 tools across VM, network, CDN and SSL operations, each with a fully described JSON Schema | `internal/adapters/mcp` |
-| **Skill / system prompt** | Cross-tool orchestration and business rules ("look up the DNS zone before creating a subdomain") | [`skills/parspack-infra/SKILL.md`](skills/parspack-infra/SKILL.md) |
+| **MCP tools** | 147 tools across VM, network, CDN and SSL operations, each with a fully described JSON Schema | `../internal/adapters/mcp` |
+| **Skill / system prompt** | Cross-tool orchestration and business rules ("look up the DNS zone before creating a subdomain") | [`../skills/parspack-infra/SKILL.md`](../skills/parspack-infra/SKILL.md) |
 
 The project is intended to be open source and usable both by DevOps teams and by non-technical end users who
 only ever touch it through a chatbot.
@@ -140,7 +140,7 @@ A job's credentials are held in memory for as long as it can still be re-attempt
 
 ### Ports and adapters (hexagonal architecture)
 
-Core owns interfaces; adapters implement them. The dependency arrow points **inward only** — `internal/core`
+Core owns interfaces; adapters implement them. The dependency arrow points **inward only** — `../internal/core`
 imports no Fiber, no `database/sql`, no MCP SDK, no provider client. See [Architecture](#4-architecture).
 
 ---
@@ -149,7 +149,7 @@ imports no Fiber, no `database/sql`, no MCP SDK, no provider client. See [Archit
 
 | Concern | Choice | Why |
 | --- | --- | --- |
-| Language | **Go** (`go.mod` pins `go 1.26.2`) | Static binaries, easy self-hosting |
+| Language | **Go** (`../go.mod` pins `go 1.26.2`) | Static binaries, easy self-hosting |
 | HTTP | **Fiber v3** (`github.com/gofiber/fiber/v3` v3.5.0) | fasthttp-based; v3's `middleware/sse` serves the streaming half of the transport |
 | Persistence | **SQLite** via **`modernc.org/sqlite`** | Pure-Go driver. cgo drivers (`mattn/go-sqlite3`) are explicitly banned so builds stay static and cross-compilation/Docker stay trivial |
 | Queue | Go channels + bounded in-process worker pool | No Redis, no broker, no extra operational surface |
@@ -158,8 +158,8 @@ imports no Fiber, no `database/sql`, no MCP SDK, no provider client. See [Archit
 | Logging | `log/slog`, level-configurable | Structured logs, standard library |
 | IDs | `crypto/rand`, 128-bit hex | Operation IDs are handed to callers, so they must not be guessable |
 | Tests | `go test ./...` — every package has tests | Race detector on in CI |
-| Lint | `go vet` + **golangci-lint v2.12** with a committed `.golangci.yml` | Runs as a separate CI job |
-| Container | Multi-stage `Dockerfile`, `CGO_ENABLED=0`, **distroless nonroot** final image | No shell, no libc, no root in the runtime image |
+| Lint | `go vet` + **golangci-lint v2.12** with a committed `../.golangci.yml` | Runs as a separate CI job |
+| Container | Multi-stage `../Dockerfile`, `CGO_ENABLED=0`, **distroless nonroot** final image | No shell, no libc, no root in the runtime image |
 | CI/CD | GitHub Actions | Build/test, lint, semantic release, GHCR image publish |
 | Release | **go-semantic-release** | Go-native; avoids pulling a Python/Node toolchain in just to cut releases |
 
@@ -204,8 +204,8 @@ do0ps follows **hexagonal architecture (ports & adapters)**.
                                  secondary (driven) adapters
 ```
 
-**The layering rule.** `internal/core` has zero imports of Fiber, `database/sql`, any MCP SDK, or any provider
-HTTP client. It depends only on interfaces it defines for itself in `internal/core/ports`. Adapters depend on
+**The layering rule.** `../internal/core` has zero imports of Fiber, `database/sql`, any MCP SDK, or any provider
+HTTP client. It depends only on interfaces it defines for itself in `../internal/core/ports`. Adapters depend on
 core; core never imports an adapter. If you find yourself adding such an import inside core, the logic belongs
 in an adapter — or core needs a new port.
 
@@ -215,11 +215,11 @@ every provider; a common interface gets designed once two or three providers mak
 Meanwhile the domain data shapes (`Server`, `DNSRecord`, `CDNZone`, `SSLOrder`, …) are kept consistent, so
 that eventual unification is a mechanical change rather than a data-model rewrite.
 
-**Shared long-operation scaffolding.** `internal/core/app/longop.go` holds the machinery common to long
+**Shared long-operation scaffolding.** `../internal/core/app/longop.go` holds the machinery common to long
 operations — the memory-only credentials map and the polling knobs — used by `CreateSnapshot` and `RestoreVM`.
 `ProvisionServer` predates that helper and still carries its own copy.
 
-**The composition root.** `cmd/server/main.go` is the only file allowed to know about every package at once.
+**The composition root.** `../cmd/server/main.go` is the only file allowed to know about every package at once.
 It builds the adapters, injects them into ~70 use cases through ports, registers the four job handlers, runs
 startup recovery, and starts Fiber. Shutdown is bounded by one signal-derived context: Fiber stops accepting
 requests, then the worker pool drains, then the database closes.
@@ -270,7 +270,7 @@ is the convenient way to run locally; it is optional, so containers and CI can s
 
 ### Prerequisites
 
-- **Go 1.26.2** — the version `go.mod` pins, CI reads via `go-version-file: go.mod`, and the Dockerfile
+- **Go 1.26.2** — the version `../go.mod` pins, CI reads via `go-version-file: go.mod`, and the Dockerfile
   builder stage names. Bump the three together
 - No cgo toolchain, no external database, no message broker
 - Optional: Docker + Compose, `golangci-lint` v2.12 for linting
@@ -322,15 +322,15 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-This builds the `runner` target from the committed `Dockerfile` and starts do0ps on `HTTP_PORT` (8080 by
+This builds the `runner` target from the committed `../Dockerfile` and starts do0ps on `HTTP_PORT` (8080 by
 default), with the SQLite job store on the `do0ps-data` named volume. Losing that volume loses job history, so
 back it up like any other stateful container.
 
 The image is `gcr.io/distroless/static-debian12:nonroot` — no shell, no package manager, runs as uid 65532.
-That is why `docker-compose.yml` defines no container healthcheck: there is no `curl` or `wget` inside to run
+That is why `../docker-compose.yml` defines no container healthcheck: there is no `curl` or `wget` inside to run
 one. Probe `GET /healthz` from outside instead.
 
-`.env` is listed in `.dockerignore`, so the image never carries your secrets; Compose passes the variables in
+`.env` is listed in `../.dockerignore`, so the image never carries your secrets; Compose passes the variables in
 through `env_file` instead.
 
 ### Verify
@@ -363,12 +363,12 @@ a token was rejected.
 ## 7. Configuration reference
 
 All configuration is read from environment variables, with `.env` loaded at startup.
-[`.env.example`](.env.example) is the source of truth for defaults; this table summarizes it.
+[`.env.example`](../.env.example) is the source of truth for defaults; this table summarizes it.
 
 | Variable | Required | Default | Meaning |
 | --- | --- | --- | --- |
 | `MCP_AUTH_TOKENS` | **yes** | — | Bearer allow-list: `token:client_id[:name]`, comma-separated. Tokens must be ≥16 chars |
-| `DB_PATH` | no | `./data/do0ps.db` | SQLite job-store file. Its parent directory is created automatically |
+| `DB_PATH` | no | `../data/do0ps.db` | SQLite job-store file. Its parent directory is created automatically |
 | `HTTP_PORT` | no | `8080` | Port the server listens on |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, or `error` |
 | `DO0PS_QUEUE_WORKERS` | no | `8` | Worker goroutines in the pool |
@@ -520,8 +520,8 @@ that any agent working on this codebase writes consistent Go:
 | `golang-code-style` | Line length and breaking, variable declarations, control-flow clarity, when a comment helps versus hurts |
 | `golang-design-patterns` | Functional options, constructor APIs, error flow, resource lifecycle, graceful shutdown, resilience, dependency injection, hexagonal/clean architecture references |
 
-They are checked in twice, at `.claude/skills/` and `.agents/skills/`, so both Claude Code and other agent
-tooling pick them up from their own conventional location. `skills-lock.json` at the repo root pins each one
+They are checked in twice, at `../.claude/skills` and `../.agents/skills`, so both Claude Code and other agent
+tooling pick them up from their own conventional location. `../skills-lock.json` at the repo root pins each one
 by source repo, path, and content hash — that is what makes an update visible in a diff instead of silent.
 
 Their fingerprints show up all over the codebase: functional options with eager validation (`WithWorkers`,
@@ -530,7 +530,7 @@ Their fingerprints show up all over the codebase: functional options with eager 
 
 ### 10.2 The end-user Skill — for the chatbot using do0ps
 
-[`skills/parspack-infra/SKILL.md`](skills/parspack-infra/SKILL.md) is the artifact that tells the *consuming*
+[`../skills/parspack-infra/SKILL.md`](../skills/parspack-infra/SKILL.md) is the artifact that tells the *consuming*
 assistant how to behave. It is written for a model talking to a non-technical user, and covers:
 
 - A tool table marking each tool **fast** or **long**
@@ -571,7 +571,7 @@ If you want the same setup, add them to your own client configuration; nothing i
 
 ### 11.3 Jiffy
 
-`.github/workflows/jiffy.yml` forwards any issue or comment mentioning `@jiffy` to a self-hosted Jiffy
+`../.github/workflows/jiffy.yml` forwards any issue or comment mentioning `@jiffy` to a self-hosted Jiffy
 gateway, which turns the issue thread into a pull request. It is gated by a `JIFFY_USER_WHITELIST` repository
 variable — with no whitelist configured, the workflow posts setup instructions on the issue and stops instead
 of dispatching.
@@ -586,8 +586,8 @@ prefixes. The client holds all three base URLs separately, each overridable for 
 | Surface | Base URL | Client option | Spec in this repo |
 | --- | --- | --- | --- |
 | Cloud Server (VM/network, Abrha-based) | `https://my.parspack.com/cserver` | `WithBaseURL` | Not committed — cross-check against `github.com/abrhacom/go-api-abrha` |
-| CDN (zones — **DNS records live here**) | `https://my.parspack.com/cdnapi` | `WithCDNBaseURL` | `docs/api-specs/parspack-cdn.openapi.yaml` |
-| SSL (certificate ordering workflow) | `https://my.parspack.com/sslv2` | `WithSSLBaseURL` | `docs/api-specs/parspack-ssl.openapi.yaml` |
+| CDN (zones — **DNS records live here**) | `https://my.parspack.com/cdnapi` | `WithCDNBaseURL` | `api-specs/parspack-cdn.openapi.yaml` |
+| SSL (certificate ordering workflow) | `https://my.parspack.com/sslv2` | `WithSSLBaseURL` | `api-specs/parspack-ssl.openapi.yaml` |
 
 The two committed OpenAPI specs came directly from the project owner and are **authoritative** — prefer them
 over re-deriving endpoint shapes from `docs.parspack.com`, which is a JS-rendered SPA that tooling generally
@@ -607,14 +607,14 @@ Providers planned after Parspack: **ArvanCloud** (ابرآروان) and **Liara*
 
 The repository's default branch is `master`, but **phase-1 work is developed and merged on `step/ph1`**.
 That has one consequence worth knowing: GitHub's native "Closes #N" auto-close only fires for the default
-branch, so `.github/workflows/close-linked-issues.yml` re-implements the closing-keyword scan for merges into
+branch, so `../.github/workflows/close-linked-issues.yml` re-implements the closing-keyword scan for merges into
 non-default branches. Without it, an issue merged on `step/ph1` would stay open and `status:in-progress`,
 silently deadlocking every issue that lists it as a dependency.
 
 ### Conventions
 
 - Dependency direction is one-way: `adapters → core`, never the reverse
-- Format with `gofmt`/`goimports` (`.golangci.yml` sets the local import prefix); keep `go vet` and
+- Format with `gofmt`/`goimports` (`../.golangci.yml` sets the local import prefix); keep `go vet` and
   golangci-lint clean
 - Wrap errors with context: `fmt.Errorf("doing X: %w", err)`. Avoid panics in library code — return errors
 - **All comments, log output, and identifiers are in English**, regardless of the language used in issues and
@@ -653,7 +653,7 @@ make test          # go test ./...
 go test ./... -race -cover
 ```
 
-Every package now has tests, including an end-to-end server test in `cmd/server/main_test.go` and per-file
+Every package now has tests, including an end-to-end server test in `../cmd/server/main_test.go` and per-file
 adapter tests for each Parspack capability area. **One package currently fails** — see below.
 
 ---
@@ -671,8 +671,8 @@ adapter tests for each Parspack capability area. **One package currently fails**
 | Streamable HTTP: POST + SSE `GET /mcp` | Implemented, tested |
 | Parspack adapter across all three API surfaces | Implemented, tested against fake servers |
 | Dockerfile (distroless, nonroot, static) + docker-compose | Committed |
-| Makefile, `.golangci.yml`, `.env.example` | Committed |
-| End-user Skill (`skills/parspack-infra`) | Covers all 147 tools |
+| Makefile, `../.golangci.yml`, `.env.example` | Committed |
+| End-user Skill (`../skills/parspack-infra`) | Covers all 147 tools |
 | MCP `initialize` handshake | Not implemented |
 | LICENSE | Not committed yet, despite the open-source intent |
 
@@ -684,10 +684,10 @@ The following were fixed on this branch and are recorded here so the change is e
   which failed `go test ./...`, kept CI red, and prevented the Docker image from starting at all (`.env` is
   dockerignored, so the image can never contain one). Loading is now best-effort: `_ = godotenv.Load()`, with
   the required-value checks that follow deciding whether the configuration is usable.
-- **Go version drift.** `AGENTS.md` said 1.25+ and the Dockerfile built on the floating `golang:1.26-alpine`.
-  Both now name **1.26.2**, matching `go.mod`.
-- **`godotenv` was marked indirect** in `go.mod` despite being imported directly — `go mod tidy` moved it.
-- **The `Makefile`'s `run` comment** named `DO0PS_TOKENS`; the variable is `MCP_AUTH_TOKENS`.
+- **Go version drift.** `../AGENTS.md` said 1.25+ and the Dockerfile built on the floating `golang:1.26-alpine`.
+  Both now name **1.26.2**, matching `../go.mod`.
+- **`godotenv` was marked indirect** in `../go.mod` despite being imported directly — `go mod tidy` moved it.
+- **The `../Makefile`'s `run` comment** named `DO0PS_TOKENS`; the variable is `MCP_AUTH_TOKENS`.
 - **The end-user Skill covered only the phase-1 tools.** It now documents all 147, with the CDN edge families
   and a workflow section for them.
 - **Retries could never authenticate.** Every long-operation handler released the caller's credentials with a
@@ -733,8 +733,8 @@ Do not assume an answer to these; they are open by choice:
 
 ## 16. Contributing
 
-1. Read [`AGENTS.md`](./AGENTS.md) first — it is the authoritative guide for both humans and coding agents, and
-   this README summarizes it rather than replacing it. (`CLAUDE.md` is just a pointer to it, so the two cannot
+1. Read [`../AGENTS.md`](../AGENTS.md) first — it is the authoritative guide for both humans and coding agents, and
+   this README summarizes it rather than replacing it. (`../CLAUDE.md` is just a pointer to it, so the two cannot
    drift.)
 2. Branch from **`step/ph1`**, not `master`.
 3. Pick an issue labelled `phase-1` + `status:ready`, and flip it to `status:in-progress` before writing code.
