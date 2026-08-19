@@ -172,6 +172,115 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	updateLoadBalancer := app.NewUpdateLoadBalancer(pool, provider)
 	deleteLoadBalancer := app.NewDeleteLoadBalancer(pool, provider)
 
+	// --- CDN capabilities beyond zone/DNS (issue #24) --------------------
+	getCDNAntivirusStatus := app.NewGetCDNAntivirusStatus(pool, provider)
+	updateCDNAntivirusStatus := app.NewUpdateCDNAntivirusStatus(pool, provider)
+	getCDNDNSSecStatus := app.NewGetCDNDNSSecStatus(pool, provider)
+	updateCDNDNSSecStatus := app.NewUpdateCDNDNSSecStatus(pool, provider)
+	getCDNOptimizationStatus := app.NewGetCDNOptimizationStatus(pool, provider)
+	updateCDNOptimization := app.NewUpdateCDNOptimization(pool, provider)
+	updateCDNDeveloperMode := app.NewUpdateCDNDeveloperMode(pool, provider)
+	updateCDNMaintenanceMode := app.NewUpdateCDNMaintenanceMode(pool, provider)
+	updateCDNQueryStringSetting := app.NewUpdateCDNQueryStringSetting(pool, provider)
+	updateCDNOriginOffline := app.NewUpdateCDNOriginOffline(pool, provider)
+
+	listCDNBulklists := app.NewListCDNBulklists(pool, provider)
+	createCDNBulklist := app.NewCreateCDNBulklist(pool, provider)
+	getCDNBulklist := app.NewGetCDNBulklist(pool, provider)
+	updateCDNBulklist := app.NewUpdateCDNBulklist(pool, provider)
+	deleteCDNBulklist := app.NewDeleteCDNBulklist(pool, provider)
+	listCDNFirewallCountries := app.NewListCDNFirewallCountries(pool, provider)
+
+	updateCDNCacheTTL := app.NewUpdateCDNCacheTTL(pool, provider)
+	updateCDNCacheRule := app.NewUpdateCDNCacheRule(pool, provider)
+	updateCDNCacheUserAgentSetting := app.NewUpdateCDNCacheUserAgentSetting(pool, provider)
+	getCDNCacheSettings := app.NewGetCDNCacheSettings(pool, provider)
+	listCDNCacheEntries := app.NewListCDNCacheEntries(pool, provider)
+	purgeCDNCache := app.NewPurgeCDNCache(pool, provider)
+	getCDNCacheEntry := app.NewGetCDNCacheEntry(pool, provider)
+
+	listCDNAccessRules := app.NewListCDNAccessRules(pool, provider)
+	createCDNAccessRule := app.NewCreateCDNAccessRule(pool, provider)
+	getCDNAccessRule := app.NewGetCDNAccessRule(pool, provider)
+	updateCDNAccessRule := app.NewUpdateCDNAccessRule(pool, provider)
+	deleteCDNAccessRule := app.NewDeleteCDNAccessRule(pool, provider)
+	getCDNIPReputation := app.NewGetCDNIPReputation(pool, provider)
+	updateCDNIPReputation := app.NewUpdateCDNIPReputation(pool, provider)
+	getCDNDDoSActions := app.NewGetCDNDDoSActions(pool, provider)
+	updateCDNDDoSActions := app.NewUpdateCDNDDoSActions(pool, provider)
+
+	listCDNLoadBalances := app.NewListCDNLoadBalances(pool, provider)
+	createCDNLoadBalance := app.NewCreateCDNLoadBalance(pool, provider)
+	getCDNLoadBalance := app.NewGetCDNLoadBalance(pool, provider)
+	updateCDNLoadBalance := app.NewUpdateCDNLoadBalance(pool, provider)
+	deleteCDNLoadBalance := app.NewDeleteCDNLoadBalance(pool, provider)
+	listCDNLoadBalanceServers := app.NewListCDNLoadBalanceServers(pool, provider)
+	createCDNLoadBalanceServer := app.NewCreateCDNLoadBalanceServer(pool, provider)
+	getCDNLoadBalanceServer := app.NewGetCDNLoadBalanceServer(pool, provider)
+	updateCDNLoadBalanceServer := app.NewUpdateCDNLoadBalanceServer(pool, provider)
+	deleteCDNLoadBalanceServer := app.NewDeleteCDNLoadBalanceServer(pool, provider)
+
+	getCDNModSecStatus := app.NewGetCDNModSecStatus(pool, provider)
+	updateCDNModSecStatus := app.NewUpdateCDNModSecStatus(pool, provider)
+	listCDNModSecData := app.NewListCDNModSecData(pool, provider)
+	createCDNModSecData := app.NewCreateCDNModSecData(pool, provider)
+	getCDNModSecData := app.NewGetCDNModSecData(pool, provider)
+	updateCDNModSecData := app.NewUpdateCDNModSecData(pool, provider)
+	deleteCDNModSecData := app.NewDeleteCDNModSecData(pool, provider)
+	listCDNModSecRules := app.NewListCDNModSecRules(pool, provider)
+	createCDNModSecRule := app.NewCreateCDNModSecRule(pool, provider)
+	getCDNModSecRule := app.NewGetCDNModSecRule(pool, provider)
+	updateCDNModSecRule := app.NewUpdateCDNModSecRule(pool, provider)
+	deleteCDNModSecRule := app.NewDeleteCDNModSecRule(pool, provider)
+
+	getCDNHTTPSConvertor := app.NewGetCDNHTTPSConvertor(pool, provider)
+	updateCDNHTTPSConvertor := app.NewUpdateCDNHTTPSConvertor(pool, provider)
+	getCDNEdgeToUpstreamConnection := app.NewGetCDNEdgeToUpstreamConnection(pool, provider)
+	updateCDNEdgeToUpstreamConnection := app.NewUpdateCDNEdgeToUpstreamConnection(pool, provider)
+	getCDNWWWRedirection := app.NewGetCDNWWWRedirection(pool, provider)
+	updateCDNWWWRedirection := app.NewUpdateCDNWWWRedirection(pool, provider)
+	getCDNWebSocket := app.NewGetCDNWebSocket(pool, provider)
+	updateCDNWebSocket := app.NewUpdateCDNWebSocket(pool, provider)
+
+	listCDNOriginRules := app.NewListCDNOriginRules(pool, provider)
+	createCDNOriginRule := app.NewCreateCDNOriginRule(pool, provider)
+	getCDNOriginRule := app.NewGetCDNOriginRule(pool, provider)
+	updateCDNOriginRule := app.NewUpdateCDNOriginRule(pool, provider)
+	deleteCDNOriginRule := app.NewDeleteCDNOriginRule(pool, provider)
+	toggleCDNOriginRule := app.NewToggleCDNOriginRule(pool, provider)
+	listCDNPageRules := app.NewListCDNPageRules(pool, provider)
+	createCDNPageRule := app.NewCreateCDNPageRule(pool, provider)
+	getCDNPageRule := app.NewGetCDNPageRule(pool, provider)
+	updateCDNPageRule := app.NewUpdateCDNPageRule(pool, provider)
+	deleteCDNPageRule := app.NewDeleteCDNPageRule(pool, provider)
+	listCDNTransformRules := app.NewListCDNTransformRules(pool, provider)
+	createCDNTransformRule := app.NewCreateCDNTransformRule(pool, provider)
+	getCDNTransformRule := app.NewGetCDNTransformRule(pool, provider)
+	updateCDNTransformRule := app.NewUpdateCDNTransformRule(pool, provider)
+	deleteCDNTransformRule := app.NewDeleteCDNTransformRule(pool, provider)
+	toggleCDNTransformRule := app.NewToggleCDNTransformRule(pool, provider)
+
+	listCDNRateLimitRules := app.NewListCDNRateLimitRules(pool, provider)
+	createCDNRateLimitRule := app.NewCreateCDNRateLimitRule(pool, provider)
+	getCDNRateLimitRule := app.NewGetCDNRateLimitRule(pool, provider)
+	updateCDNRateLimitRule := app.NewUpdateCDNRateLimitRule(pool, provider)
+	deleteCDNRateLimitRule := app.NewDeleteCDNRateLimitRule(pool, provider)
+	updateCDNRateLimitRulePriority := app.NewUpdateCDNRateLimitRulePriority(pool, provider)
+	getCDNUpstreamErrors := app.NewGetCDNUpstreamErrors(pool, provider)
+	updateCDNUpstreamErrors := app.NewUpdateCDNUpstreamErrors(pool, provider)
+
+	getCDNAccessLog := app.NewGetCDNAccessLog(pool, provider)
+	getCDNSecurityLog := app.NewGetCDNSecurityLog(pool, provider)
+	getCDNErrorLog := app.NewGetCDNErrorLog(pool, provider)
+	getCDNWAFLog := app.NewGetCDNWAFLog(pool, provider)
+	getCDNTopVisitors := app.NewGetCDNTopVisitors(pool, provider)
+	getCDNMonthlyTrafficUsage := app.NewGetCDNMonthlyTrafficUsage(pool, provider)
+	getCDNMinTLSVersion := app.NewGetCDNMinTLSVersion(pool, provider)
+	updateCDNMinTLSVersion := app.NewUpdateCDNMinTLSVersion(pool, provider)
+	listCDNCertificates := app.NewListCDNCertificates(pool, provider)
+	getCDNHSTS := app.NewGetCDNHSTS(pool, provider)
+	updateCDNHSTS := app.NewUpdateCDNHSTS(pool, provider)
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Register(domain.JobTypeCreateSnapshot, createSnapshot.Handle)
 	pool.Register(domain.JobTypeRestoreVM, restoreVM.Handle)
@@ -243,6 +352,116 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		ListLoadBalancers:     listLoadBalancers,
 		UpdateLoadBalancer:    updateLoadBalancer,
 		DeleteLoadBalancer:    deleteLoadBalancer,
+
+		GetCDNAntivirusStatus:       getCDNAntivirusStatus,
+		UpdateCDNAntivirusStatus:    updateCDNAntivirusStatus,
+		GetCDNDNSSecStatus:          getCDNDNSSecStatus,
+		UpdateCDNDNSSecStatus:       updateCDNDNSSecStatus,
+		GetCDNOptimizationStatus:    getCDNOptimizationStatus,
+		UpdateCDNOptimization:       updateCDNOptimization,
+		UpdateCDNDeveloperMode:      updateCDNDeveloperMode,
+		UpdateCDNMaintenanceMode:    updateCDNMaintenanceMode,
+		UpdateCDNQueryStringSetting: updateCDNQueryStringSetting,
+		UpdateCDNOriginOffline:      updateCDNOriginOffline,
+
+		ListCDNBulklists:         listCDNBulklists,
+		CreateCDNBulklist:        createCDNBulklist,
+		GetCDNBulklist:           getCDNBulklist,
+		UpdateCDNBulklist:        updateCDNBulklist,
+		DeleteCDNBulklist:        deleteCDNBulklist,
+		ListCDNFirewallCountries: listCDNFirewallCountries,
+
+		UpdateCDNCacheTTL:              updateCDNCacheTTL,
+		UpdateCDNCacheRule:             updateCDNCacheRule,
+		UpdateCDNCacheUserAgentSetting: updateCDNCacheUserAgentSetting,
+		GetCDNCacheSettings:            getCDNCacheSettings,
+		ListCDNCacheEntries:            listCDNCacheEntries,
+		PurgeCDNCache:                  purgeCDNCache,
+		GetCDNCacheEntry:               getCDNCacheEntry,
+
+		ListCDNAccessRules:    listCDNAccessRules,
+		CreateCDNAccessRule:   createCDNAccessRule,
+		GetCDNAccessRule:      getCDNAccessRule,
+		UpdateCDNAccessRule:   updateCDNAccessRule,
+		DeleteCDNAccessRule:   deleteCDNAccessRule,
+		GetCDNIPReputation:    getCDNIPReputation,
+		UpdateCDNIPReputation: updateCDNIPReputation,
+		GetCDNDDoSActions:     getCDNDDoSActions,
+		UpdateCDNDDoSActions:  updateCDNDDoSActions,
+
+		ListCDNLoadBalances:        listCDNLoadBalances,
+		CreateCDNLoadBalance:       createCDNLoadBalance,
+		GetCDNLoadBalance:          getCDNLoadBalance,
+		UpdateCDNLoadBalance:       updateCDNLoadBalance,
+		DeleteCDNLoadBalance:       deleteCDNLoadBalance,
+		ListCDNLoadBalanceServers:  listCDNLoadBalanceServers,
+		CreateCDNLoadBalanceServer: createCDNLoadBalanceServer,
+		GetCDNLoadBalanceServer:    getCDNLoadBalanceServer,
+		UpdateCDNLoadBalanceServer: updateCDNLoadBalanceServer,
+		DeleteCDNLoadBalanceServer: deleteCDNLoadBalanceServer,
+
+		GetCDNModSecStatus:    getCDNModSecStatus,
+		UpdateCDNModSecStatus: updateCDNModSecStatus,
+		ListCDNModSecData:     listCDNModSecData,
+		CreateCDNModSecData:   createCDNModSecData,
+		GetCDNModSecData:      getCDNModSecData,
+		UpdateCDNModSecData:   updateCDNModSecData,
+		DeleteCDNModSecData:   deleteCDNModSecData,
+		ListCDNModSecRules:    listCDNModSecRules,
+		CreateCDNModSecRule:   createCDNModSecRule,
+		GetCDNModSecRule:      getCDNModSecRule,
+		UpdateCDNModSecRule:   updateCDNModSecRule,
+		DeleteCDNModSecRule:   deleteCDNModSecRule,
+
+		GetCDNHTTPSConvertor:              getCDNHTTPSConvertor,
+		UpdateCDNHTTPSConvertor:           updateCDNHTTPSConvertor,
+		GetCDNEdgeToUpstreamConnection:    getCDNEdgeToUpstreamConnection,
+		UpdateCDNEdgeToUpstreamConnection: updateCDNEdgeToUpstreamConnection,
+		GetCDNWWWRedirection:              getCDNWWWRedirection,
+		UpdateCDNWWWRedirection:           updateCDNWWWRedirection,
+		GetCDNWebSocket:                   getCDNWebSocket,
+		UpdateCDNWebSocket:                updateCDNWebSocket,
+
+		ListCDNOriginRules:  listCDNOriginRules,
+		CreateCDNOriginRule: createCDNOriginRule,
+		GetCDNOriginRule:    getCDNOriginRule,
+		UpdateCDNOriginRule: updateCDNOriginRule,
+		DeleteCDNOriginRule: deleteCDNOriginRule,
+		ToggleCDNOriginRule: toggleCDNOriginRule,
+
+		ListCDNPageRules:  listCDNPageRules,
+		CreateCDNPageRule: createCDNPageRule,
+		GetCDNPageRule:    getCDNPageRule,
+		UpdateCDNPageRule: updateCDNPageRule,
+		DeleteCDNPageRule: deleteCDNPageRule,
+
+		ListCDNTransformRules:  listCDNTransformRules,
+		CreateCDNTransformRule: createCDNTransformRule,
+		GetCDNTransformRule:    getCDNTransformRule,
+		UpdateCDNTransformRule: updateCDNTransformRule,
+		DeleteCDNTransformRule: deleteCDNTransformRule,
+		ToggleCDNTransformRule: toggleCDNTransformRule,
+
+		ListCDNRateLimitRules:          listCDNRateLimitRules,
+		CreateCDNRateLimitRule:         createCDNRateLimitRule,
+		GetCDNRateLimitRule:            getCDNRateLimitRule,
+		UpdateCDNRateLimitRule:         updateCDNRateLimitRule,
+		DeleteCDNRateLimitRule:         deleteCDNRateLimitRule,
+		UpdateCDNRateLimitRulePriority: updateCDNRateLimitRulePriority,
+		GetCDNUpstreamErrors:           getCDNUpstreamErrors,
+		UpdateCDNUpstreamErrors:        updateCDNUpstreamErrors,
+
+		GetCDNAccessLog:           getCDNAccessLog,
+		GetCDNSecurityLog:         getCDNSecurityLog,
+		GetCDNErrorLog:            getCDNErrorLog,
+		GetCDNWAFLog:              getCDNWAFLog,
+		GetCDNTopVisitors:         getCDNTopVisitors,
+		GetCDNMonthlyTrafficUsage: getCDNMonthlyTrafficUsage,
+		GetCDNMinTLSVersion:       getCDNMinTLSVersion,
+		UpdateCDNMinTLSVersion:    updateCDNMinTLSVersion,
+		ListCDNCertificates:       listCDNCertificates,
+		GetCDNHSTS:                getCDNHSTS,
+		UpdateCDNHSTS:             updateCDNHSTS,
 	}), mcp.WithLogger(logger))
 	if err != nil {
 		return err
