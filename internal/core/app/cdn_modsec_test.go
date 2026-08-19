@@ -8,6 +8,7 @@ import (
 
 	"github.com/javadib/do0ps/internal/core/app"
 	"github.com/javadib/do0ps/internal/core/domain"
+	"github.com/javadib/do0ps/internal/core/ports"
 )
 
 // fakeModSecProvider is a package-local fake, separate from the shared
@@ -16,8 +17,9 @@ import (
 // ports.ParspackProvider directly, so this fake only needs to implement the
 // methods those local interfaces declare — no embedding trick required).
 type fakeModSecProvider struct {
-	status    *domain.CDNModSecStatus
-	statusErr error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	status                 *domain.CDNModSecStatus
+	statusErr              error
 
 	modSecData    []domain.CDNModSecData
 	getData       *domain.CDNModSecData

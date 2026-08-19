@@ -30,20 +30,12 @@ import (
 // one. See internal/adapters/providers/parspack/cdn_zone_settings.go's
 // top-level comment for the full explanation.
 
-func validateZoneUUID(zoneUUID string) error {
-	if zoneUUID == "" {
-		return fmt.Errorf("zone_uuid is required: %w", domain.ErrInvalidInput)
-	}
-	return nil
-}
+// validateZoneUUID (shared by every CDN use case that scopes to one zone) is
+// defined once in cdn_cache.go.
 
 // --- Antivirus ---------------------------------------------------------
 
-// antivirusStatusProvider is the slice of ports.ParspackProvider that
 // GetCDNAntivirusStatus needs.
-type antivirusStatusProvider interface {
-	GetCDNAntivirusStatus(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (bool, error)
-}
 
 // GetCDNAntivirusStatusInput identifies the zone whose antivirus status to
 // read.
@@ -56,11 +48,11 @@ type GetCDNAntivirusStatusInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNAntivirusStatus struct {
 	queue    ports.Queue
-	provider antivirusStatusProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNAntivirusStatus builds the use case from its ports.
-func NewGetCDNAntivirusStatus(queue ports.Queue, provider antivirusStatusProvider) *GetCDNAntivirusStatus {
+func NewGetCDNAntivirusStatus(queue ports.Queue, provider ports.ParspackProvider) *GetCDNAntivirusStatus {
 	return &GetCDNAntivirusStatus{queue: queue, provider: provider}
 }
 
@@ -91,11 +83,7 @@ func (uc *GetCDNAntivirusStatus) Execute(ctx context.Context, in GetCDNAntivirus
 	return enabled, nil
 }
 
-// updateAntivirusStatusProvider is the slice of ports.ParspackProvider that
 // UpdateCDNAntivirusStatus needs.
-type updateAntivirusStatusProvider interface {
-	UpdateCDNAntivirusStatus(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, enabled bool) (bool, error)
-}
 
 // UpdateCDNAntivirusStatusInput is the normalized form of an
 // update_cdn_antivirus_status tool call.
@@ -109,11 +97,11 @@ type UpdateCDNAntivirusStatusInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNAntivirusStatus struct {
 	queue    ports.Queue
-	provider updateAntivirusStatusProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNAntivirusStatus builds the use case from its ports.
-func NewUpdateCDNAntivirusStatus(queue ports.Queue, provider updateAntivirusStatusProvider) *UpdateCDNAntivirusStatus {
+func NewUpdateCDNAntivirusStatus(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNAntivirusStatus {
 	return &UpdateCDNAntivirusStatus{queue: queue, provider: provider}
 }
 
@@ -147,11 +135,7 @@ func (uc *UpdateCDNAntivirusStatus) Execute(ctx context.Context, in UpdateCDNAnt
 
 // --- DNS Sec -------------------------------------------------------------
 
-// dnsSecStatusProvider is the slice of ports.ParspackProvider that
 // GetCDNDNSSecStatus needs.
-type dnsSecStatusProvider interface {
-	GetCDNDNSSecStatus(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNDNSSecStatus, error)
-}
 
 // GetCDNDNSSecStatusInput identifies the zone whose DNSSEC status to read.
 type GetCDNDNSSecStatusInput struct {
@@ -163,11 +147,11 @@ type GetCDNDNSSecStatusInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNDNSSecStatus struct {
 	queue    ports.Queue
-	provider dnsSecStatusProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNDNSSecStatus builds the use case from its ports.
-func NewGetCDNDNSSecStatus(queue ports.Queue, provider dnsSecStatusProvider) *GetCDNDNSSecStatus {
+func NewGetCDNDNSSecStatus(queue ports.Queue, provider ports.ParspackProvider) *GetCDNDNSSecStatus {
 	return &GetCDNDNSSecStatus{queue: queue, provider: provider}
 }
 
@@ -199,11 +183,7 @@ func (uc *GetCDNDNSSecStatus) Execute(ctx context.Context, in GetCDNDNSSecStatus
 	return &status, nil
 }
 
-// updateDNSSecStatusProvider is the slice of ports.ParspackProvider that
 // UpdateCDNDNSSecStatus needs.
-type updateDNSSecStatusProvider interface {
-	UpdateCDNDNSSecStatus(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, enabled bool) (*domain.CDNDNSSecStatus, error)
-}
 
 // UpdateCDNDNSSecStatusInput is the normalized form of an
 // update_cdn_dnssec_status tool call.
@@ -217,11 +197,11 @@ type UpdateCDNDNSSecStatusInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNDNSSecStatus struct {
 	queue    ports.Queue
-	provider updateDNSSecStatusProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNDNSSecStatus builds the use case from its ports.
-func NewUpdateCDNDNSSecStatus(queue ports.Queue, provider updateDNSSecStatusProvider) *UpdateCDNDNSSecStatus {
+func NewUpdateCDNDNSSecStatus(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNDNSSecStatus {
 	return &UpdateCDNDNSSecStatus{queue: queue, provider: provider}
 }
 
@@ -255,11 +235,7 @@ func (uc *UpdateCDNDNSSecStatus) Execute(ctx context.Context, in UpdateCDNDNSSec
 
 // --- Optimization --------------------------------------------------------
 
-// optimizationStatusProvider is the slice of ports.ParspackProvider that
 // GetCDNOptimizationStatus needs.
-type optimizationStatusProvider interface {
-	GetCDNOptimizationStatus(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNOptimizationStatus, error)
-}
 
 // GetCDNOptimizationStatusInput identifies the zone whose optimization
 // configuration to read.
@@ -272,11 +248,11 @@ type GetCDNOptimizationStatusInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNOptimizationStatus struct {
 	queue    ports.Queue
-	provider optimizationStatusProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNOptimizationStatus builds the use case from its ports.
-func NewGetCDNOptimizationStatus(queue ports.Queue, provider optimizationStatusProvider) *GetCDNOptimizationStatus {
+func NewGetCDNOptimizationStatus(queue ports.Queue, provider ports.ParspackProvider) *GetCDNOptimizationStatus {
 	return &GetCDNOptimizationStatus{queue: queue, provider: provider}
 }
 
@@ -307,11 +283,7 @@ func (uc *GetCDNOptimizationStatus) Execute(ctx context.Context, in GetCDNOptimi
 	return &status, nil
 }
 
-// updateOptimizationProvider is the slice of ports.ParspackProvider that
 // UpdateCDNOptimization needs.
-type updateOptimizationProvider interface {
-	UpdateCDNOptimization(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, status domain.CDNOptimizationStatus) (*domain.CDNOptimizationStatus, error)
-}
 
 // UpdateCDNOptimizationInput is the normalized form of an
 // update_cdn_optimization tool call.
@@ -325,11 +297,11 @@ type UpdateCDNOptimizationInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNOptimization struct {
 	queue    ports.Queue
-	provider updateOptimizationProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNOptimization builds the use case from its ports.
-func NewUpdateCDNOptimization(queue ports.Queue, provider updateOptimizationProvider) *UpdateCDNOptimization {
+func NewUpdateCDNOptimization(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNOptimization {
 	return &UpdateCDNOptimization{queue: queue, provider: provider}
 }
 
@@ -363,11 +335,7 @@ func (uc *UpdateCDNOptimization) Execute(ctx context.Context, in UpdateCDNOptimi
 
 // --- Developer mode --------------------------------------------------------
 
-// updateDeveloperModeProvider is the slice of ports.ParspackProvider that
 // UpdateCDNDeveloperMode needs.
-type updateDeveloperModeProvider interface {
-	UpdateCDNDeveloperMode(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, enabled bool) (bool, error)
-}
 
 // UpdateCDNDeveloperModeInput is the normalized form of an
 // update_cdn_developer_mode tool call.
@@ -381,11 +349,11 @@ type UpdateCDNDeveloperModeInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNDeveloperMode struct {
 	queue    ports.Queue
-	provider updateDeveloperModeProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNDeveloperMode builds the use case from its ports.
-func NewUpdateCDNDeveloperMode(queue ports.Queue, provider updateDeveloperModeProvider) *UpdateCDNDeveloperMode {
+func NewUpdateCDNDeveloperMode(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNDeveloperMode {
 	return &UpdateCDNDeveloperMode{queue: queue, provider: provider}
 }
 
@@ -419,11 +387,7 @@ func (uc *UpdateCDNDeveloperMode) Execute(ctx context.Context, in UpdateCDNDevel
 
 // --- Maintenance mode ------------------------------------------------------
 
-// updateMaintenanceModeProvider is the slice of ports.ParspackProvider that
 // UpdateCDNMaintenanceMode needs.
-type updateMaintenanceModeProvider interface {
-	UpdateCDNMaintenanceMode(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, enabled bool) (bool, error)
-}
 
 // UpdateCDNMaintenanceModeInput is the normalized form of an
 // update_cdn_maintenance_mode tool call.
@@ -437,11 +401,11 @@ type UpdateCDNMaintenanceModeInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNMaintenanceMode struct {
 	queue    ports.Queue
-	provider updateMaintenanceModeProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNMaintenanceMode builds the use case from its ports.
-func NewUpdateCDNMaintenanceMode(queue ports.Queue, provider updateMaintenanceModeProvider) *UpdateCDNMaintenanceMode {
+func NewUpdateCDNMaintenanceMode(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNMaintenanceMode {
 	return &UpdateCDNMaintenanceMode{queue: queue, provider: provider}
 }
 
@@ -475,12 +439,6 @@ func (uc *UpdateCDNMaintenanceMode) Execute(ctx context.Context, in UpdateCDNMai
 
 // --- Query string ----------------------------------------------------------
 
-// updateQueryStringSettingProvider is the slice of ports.ParspackProvider
-// that UpdateCDNQueryStringSetting needs.
-type updateQueryStringSettingProvider interface {
-	UpdateCDNQueryStringSetting(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, enabled bool) (bool, error)
-}
-
 // UpdateCDNQueryStringSettingInput is the normalized form of an
 // update_cdn_query_string_setting tool call.
 type UpdateCDNQueryStringSettingInput struct {
@@ -493,11 +451,11 @@ type UpdateCDNQueryStringSettingInput struct {
 // the caller waits for the result inside the same tool call.
 type UpdateCDNQueryStringSetting struct {
 	queue    ports.Queue
-	provider updateQueryStringSettingProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNQueryStringSetting builds the use case from its ports.
-func NewUpdateCDNQueryStringSetting(queue ports.Queue, provider updateQueryStringSettingProvider) *UpdateCDNQueryStringSetting {
+func NewUpdateCDNQueryStringSetting(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNQueryStringSetting {
 	return &UpdateCDNQueryStringSetting{queue: queue, provider: provider}
 }
 
@@ -531,11 +489,7 @@ func (uc *UpdateCDNQueryStringSetting) Execute(ctx context.Context, in UpdateCDN
 
 // --- Origin offline ----------------------------------------------------------
 
-// updateOriginOfflineProvider is the slice of ports.ParspackProvider that
 // UpdateCDNOriginOffline needs.
-type updateOriginOfflineProvider interface {
-	UpdateCDNOriginOffline(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, enabled bool) (bool, error)
-}
 
 // UpdateCDNOriginOfflineInput is the normalized form of an
 // update_cdn_origin_offline tool call.
@@ -549,11 +503,11 @@ type UpdateCDNOriginOfflineInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNOriginOffline struct {
 	queue    ports.Queue
-	provider updateOriginOfflineProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNOriginOffline builds the use case from its ports.
-func NewUpdateCDNOriginOffline(queue ports.Queue, provider updateOriginOfflineProvider) *UpdateCDNOriginOffline {
+func NewUpdateCDNOriginOffline(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNOriginOffline {
 	return &UpdateCDNOriginOffline{queue: queue, provider: provider}
 }
 

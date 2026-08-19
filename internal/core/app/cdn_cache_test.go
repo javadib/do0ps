@@ -8,6 +8,7 @@ import (
 
 	"github.com/javadib/do0ps/internal/core/app"
 	"github.com/javadib/do0ps/internal/core/domain"
+	"github.com/javadib/do0ps/internal/core/ports"
 )
 
 // fakeCDNCacheProvider implements only the local cdnCacheProvider interface
@@ -18,19 +19,20 @@ import (
 // app_test.go's shared fakeProvider, which only implements
 // ports.ParspackProvider and therefore has none of these methods.
 type fakeCDNCacheProvider struct {
-	ttlSetting  *domain.CDNCacheTTLSetting
-	ttlErr      error
-	ruleSetting *domain.CDNCacheRuleSetting
-	ruleErr     error
-	uaSetting   *domain.CDNCacheUserAgentSetting
-	uaErr       error
-	settings    *domain.CDNCacheSettings
-	settingsErr error
-	entries     []domain.CDNCacheEntry
-	entriesErr  error
-	purgeErr    error
-	entry       *domain.CDNCacheEntry
-	entryErr    error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	ttlSetting             *domain.CDNCacheTTLSetting
+	ttlErr                 error
+	ruleSetting            *domain.CDNCacheRuleSetting
+	ruleErr                error
+	uaSetting              *domain.CDNCacheUserAgentSetting
+	uaErr                  error
+	settings               *domain.CDNCacheSettings
+	settingsErr            error
+	entries                []domain.CDNCacheEntry
+	entriesErr             error
+	purgeErr               error
+	entry                  *domain.CDNCacheEntry
+	entryErr               error
 
 	gotZoneUUID string
 	gotTTL      int

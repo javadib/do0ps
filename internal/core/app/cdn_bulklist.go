@@ -9,29 +9,6 @@ import (
 	"github.com/javadib/do0ps/internal/core/ports"
 )
 
-// cdnBulklistProvider is the slice of provider operations the bulklist use
-// cases need. It is declared locally rather than added to
-// ports.ParspackProvider directly because ports.go is being integrated
-// centrally across several concurrent slices of issue #24; its method
-// signatures are shaped exactly like the ports.ParspackProvider additions
-// they are meant to become once integrated, so *parspack.Client already
-// satisfies this interface today via Go's structural typing.
-type cdnBulklistProvider interface {
-	ListCDNBulklists(ctx context.Context, creds domain.ProviderCredentials) ([]domain.CDNBulklist, error)
-	CreateCDNBulklist(ctx context.Context, creds domain.ProviderCredentials, spec domain.CDNBulklistSpec) (*domain.CDNBulklist, error)
-	GetCDNBulklist(ctx context.Context, creds domain.ProviderCredentials, bulklistID string) (*domain.CDNBulklist, error)
-	UpdateCDNBulklist(ctx context.Context, creds domain.ProviderCredentials, bulklistID string, spec domain.CDNBulklistSpec) (*domain.CDNBulklist, error)
-	DeleteCDNBulklist(ctx context.Context, creds domain.ProviderCredentials, bulklistID string) error
-}
-
-// cdnFirewallCountryProvider is the slice of provider operations
-// ListCDNFirewallCountries needs. See cdnBulklistProvider's doc comment for
-// why this is a locally-declared interface rather than a
-// ports.ParspackProvider method today.
-type cdnFirewallCountryProvider interface {
-	ListCDNFirewallCountries(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.CDNCountry, error)
-}
-
 func validateCDNBulklistSpec(spec domain.CDNBulklistSpec) error {
 	if spec.Name == "" {
 		return fmt.Errorf("name is required: %w", domain.ErrInvalidInput)
@@ -55,11 +32,11 @@ type ListCDNBulklistsInput struct {
 // waits for the result inside the same tool call.
 type ListCDNBulklists struct {
 	queue    ports.Queue
-	provider cdnBulklistProvider
+	provider ports.ParspackProvider
 }
 
 // NewListCDNBulklists builds the use case from its ports.
-func NewListCDNBulklists(queue ports.Queue, provider cdnBulklistProvider) *ListCDNBulklists {
+func NewListCDNBulklists(queue ports.Queue, provider ports.ParspackProvider) *ListCDNBulklists {
 	return &ListCDNBulklists{queue: queue, provider: provider}
 }
 
@@ -98,11 +75,11 @@ type CreateCDNBulklistInput struct {
 // within this call.
 type CreateCDNBulklist struct {
 	queue    ports.Queue
-	provider cdnBulklistProvider
+	provider ports.ParspackProvider
 }
 
 // NewCreateCDNBulklist builds the use case from its ports.
-func NewCreateCDNBulklist(queue ports.Queue, provider cdnBulklistProvider) *CreateCDNBulklist {
+func NewCreateCDNBulklist(queue ports.Queue, provider ports.ParspackProvider) *CreateCDNBulklist {
 	return &CreateCDNBulklist{queue: queue, provider: provider}
 }
 
@@ -144,11 +121,11 @@ type GetCDNBulklistInput struct {
 // waits for the result inside the same tool call.
 type GetCDNBulklist struct {
 	queue    ports.Queue
-	provider cdnBulklistProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNBulklist builds the use case from its ports.
-func NewGetCDNBulklist(queue ports.Queue, provider cdnBulklistProvider) *GetCDNBulklist {
+func NewGetCDNBulklist(queue ports.Queue, provider ports.ParspackProvider) *GetCDNBulklist {
 	return &GetCDNBulklist{queue: queue, provider: provider}
 }
 
@@ -191,11 +168,11 @@ type UpdateCDNBulklistInput struct {
 // within this call.
 type UpdateCDNBulklist struct {
 	queue    ports.Queue
-	provider cdnBulklistProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNBulklist builds the use case from its ports.
-func NewUpdateCDNBulklist(queue ports.Queue, provider cdnBulklistProvider) *UpdateCDNBulklist {
+func NewUpdateCDNBulklist(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNBulklist {
 	return &UpdateCDNBulklist{queue: queue, provider: provider}
 }
 
@@ -241,11 +218,11 @@ type DeleteCDNBulklistInput struct {
 // call it more than once safely.
 type DeleteCDNBulklist struct {
 	queue    ports.Queue
-	provider cdnBulklistProvider
+	provider ports.ParspackProvider
 }
 
 // NewDeleteCDNBulklist builds the use case from its ports.
-func NewDeleteCDNBulklist(queue ports.Queue, provider cdnBulklistProvider) *DeleteCDNBulklist {
+func NewDeleteCDNBulklist(queue ports.Queue, provider ports.ParspackProvider) *DeleteCDNBulklist {
 	return &DeleteCDNBulklist{queue: queue, provider: provider}
 }
 
@@ -281,11 +258,11 @@ type ListCDNFirewallCountriesInput struct {
 // caller waits for the result inside the same tool call.
 type ListCDNFirewallCountries struct {
 	queue    ports.Queue
-	provider cdnFirewallCountryProvider
+	provider ports.ParspackProvider
 }
 
 // NewListCDNFirewallCountries builds the use case from its ports.
-func NewListCDNFirewallCountries(queue ports.Queue, provider cdnFirewallCountryProvider) *ListCDNFirewallCountries {
+func NewListCDNFirewallCountries(queue ports.Queue, provider ports.ParspackProvider) *ListCDNFirewallCountries {
 	return &ListCDNFirewallCountries{queue: queue, provider: provider}
 }
 

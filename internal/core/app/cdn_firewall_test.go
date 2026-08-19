@@ -8,6 +8,7 @@ import (
 
 	"github.com/javadib/do0ps/internal/core/app"
 	"github.com/javadib/do0ps/internal/core/domain"
+	"github.com/javadib/do0ps/internal/core/ports"
 )
 
 // fakeCDNFirewallProvider implements only the small local interface
@@ -17,8 +18,9 @@ import (
 // fakeProvider in app_test.go, per house style: app_test.go is a file other
 // groups touch in parallel and must not be edited here.
 type fakeCDNFirewallProvider struct {
-	listRulesOut []domain.CDNAccessRule
-	listRulesErr error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	listRulesOut           []domain.CDNAccessRule
+	listRulesErr           error
 
 	getRuleOut *domain.CDNAccessRule
 	getRuleErr error

@@ -8,6 +8,7 @@ import (
 
 	"github.com/javadib/do0ps/internal/core/app"
 	"github.com/javadib/do0ps/internal/core/domain"
+	"github.com/javadib/do0ps/internal/core/ports"
 )
 
 // cdnRateLimitFakeProvider is a package-local fake implementing exactly the
@@ -20,8 +21,9 @@ import (
 // it to the app.NewX constructors below is enough for the compiler to check
 // it implements what each use case needs.
 type cdnRateLimitFakeProvider struct {
-	rules    []domain.CDNRateLimitRule
-	rulesErr error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	rules                  []domain.CDNRateLimitRule
+	rulesErr               error
 
 	createdRule domain.CDNRateLimitRule
 	createErr   error

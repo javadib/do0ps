@@ -9,36 +9,6 @@ import (
 	"github.com/javadib/do0ps/internal/core/ports"
 )
 
-// cdnLoadBalanceProvider is the slice of provider behavior these use cases
-// need: the CDN-edge load-balance pool and load-balance-server operations of
-// issue #24 (docs/api-specs/parspack-cdn.openapi.yaml's "Load Balance" tag).
-//
-// It is declared locally, not as an addition to ports.ParspackProvider,
-// because ports.go is being integrated centrally once every issue-24 slice
-// lands; adding these methods there directly would conflict with concurrent
-// work on the same file. The signatures below are shaped exactly like the
-// extension ports.ParspackProvider is meant to gain — see this package's
-// wiring notes for the exact doc comment to add there. *parspack.Client
-// already implements every method here structurally, so no adapter change
-// is needed to satisfy this interface.
-//
-// These are a completely different resource from ports.ParspackProvider's
-// existing LoadBalancer methods (cloud-server/VM-network level, issue #12):
-// every method here is prefixed CDN to keep the two apart.
-type cdnLoadBalanceProvider interface {
-	ListCDNLoadBalances(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.CDNLoadBalance, error)
-	CreateCDNLoadBalance(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, lb domain.CDNLoadBalance) (*domain.CDNLoadBalance, error)
-	GetCDNLoadBalance(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, id string) (*domain.CDNLoadBalance, error)
-	UpdateCDNLoadBalance(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, id string, lb domain.CDNLoadBalance) (*domain.CDNLoadBalance, error)
-	DeleteCDNLoadBalance(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, id string) error
-
-	ListCDNLoadBalanceServers(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, loadBalanceID string) ([]domain.CDNLoadBalanceServer, error)
-	CreateCDNLoadBalanceServer(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, srv domain.CDNLoadBalanceServer) (*domain.CDNLoadBalanceServer, error)
-	GetCDNLoadBalanceServer(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, id string) (*domain.CDNLoadBalanceServer, error)
-	UpdateCDNLoadBalanceServer(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, id string, srv domain.CDNLoadBalanceServer) (*domain.CDNLoadBalanceServer, error)
-	DeleteCDNLoadBalanceServer(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, id string) error
-}
-
 // validateCDNLoadBalance checks a pool's shape against the enums the CDN API
 // confirms (docs/api-specs/parspack-cdn.openapi.yaml, issue #24), so a bad
 // method fails fast here instead of reaching the provider and coming back as
@@ -84,11 +54,11 @@ type ListCDNLoadBalancesInput struct {
 // worker but the caller waits for the result inside the same tool call.
 type ListCDNLoadBalances struct {
 	queue    ports.Queue
-	provider cdnLoadBalanceProvider
+	provider ports.ParspackProvider
 }
 
 // NewListCDNLoadBalances builds the use case from its ports.
-func NewListCDNLoadBalances(queue ports.Queue, provider cdnLoadBalanceProvider) *ListCDNLoadBalances {
+func NewListCDNLoadBalances(queue ports.Queue, provider ports.ParspackProvider) *ListCDNLoadBalances {
 	return &ListCDNLoadBalances{queue: queue, provider: provider}
 }
 
@@ -137,11 +107,11 @@ type CreateCDNLoadBalanceInput struct {
 // list_cdn_load_balances or get it by name to learn the ID afterward.
 type CreateCDNLoadBalance struct {
 	queue    ports.Queue
-	provider cdnLoadBalanceProvider
+	provider ports.ParspackProvider
 }
 
 // NewCreateCDNLoadBalance builds the use case from its ports.
-func NewCreateCDNLoadBalance(queue ports.Queue, provider cdnLoadBalanceProvider) *CreateCDNLoadBalance {
+func NewCreateCDNLoadBalance(queue ports.Queue, provider ports.ParspackProvider) *CreateCDNLoadBalance {
 	return &CreateCDNLoadBalance{queue: queue, provider: provider}
 }
 
@@ -187,11 +157,11 @@ type GetCDNLoadBalanceInput struct {
 // waits for the result inside the same tool call.
 type GetCDNLoadBalance struct {
 	queue    ports.Queue
-	provider cdnLoadBalanceProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNLoadBalance builds the use case from its ports.
-func NewGetCDNLoadBalance(queue ports.Queue, provider cdnLoadBalanceProvider) *GetCDNLoadBalance {
+func NewGetCDNLoadBalance(queue ports.Queue, provider ports.ParspackProvider) *GetCDNLoadBalance {
 	return &GetCDNLoadBalance{queue: queue, provider: provider}
 }
 
@@ -241,11 +211,11 @@ type UpdateCDNLoadBalanceInput struct {
 // request.
 type UpdateCDNLoadBalance struct {
 	queue    ports.Queue
-	provider cdnLoadBalanceProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNLoadBalance builds the use case from its ports.
-func NewUpdateCDNLoadBalance(queue ports.Queue, provider cdnLoadBalanceProvider) *UpdateCDNLoadBalance {
+func NewUpdateCDNLoadBalance(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNLoadBalance {
 	return &UpdateCDNLoadBalance{queue: queue, provider: provider}
 }
 
@@ -295,11 +265,11 @@ type DeleteCDNLoadBalanceInput struct {
 // call it more than once safely (AGENTS.md 4.4).
 type DeleteCDNLoadBalance struct {
 	queue    ports.Queue
-	provider cdnLoadBalanceProvider
+	provider ports.ParspackProvider
 }
 
 // NewDeleteCDNLoadBalance builds the use case from its ports.
-func NewDeleteCDNLoadBalance(queue ports.Queue, provider cdnLoadBalanceProvider) *DeleteCDNLoadBalance {
+func NewDeleteCDNLoadBalance(queue ports.Queue, provider ports.ParspackProvider) *DeleteCDNLoadBalance {
 	return &DeleteCDNLoadBalance{queue: queue, provider: provider}
 }
 
@@ -340,11 +310,11 @@ type ListCDNLoadBalanceServersInput struct {
 // caller waits for the result inside the same tool call.
 type ListCDNLoadBalanceServers struct {
 	queue    ports.Queue
-	provider cdnLoadBalanceProvider
+	provider ports.ParspackProvider
 }
 
 // NewListCDNLoadBalanceServers builds the use case from its ports.
-func NewListCDNLoadBalanceServers(queue ports.Queue, provider cdnLoadBalanceProvider) *ListCDNLoadBalanceServers {
+func NewListCDNLoadBalanceServers(queue ports.Queue, provider ports.ParspackProvider) *ListCDNLoadBalanceServers {
 	return &ListCDNLoadBalanceServers{queue: queue, provider: provider}
 }
 
@@ -393,11 +363,11 @@ type CreateCDNLoadBalanceServerInput struct {
 // list_cdn_load_balance_servers to learn the ID afterward.
 type CreateCDNLoadBalanceServer struct {
 	queue    ports.Queue
-	provider cdnLoadBalanceProvider
+	provider ports.ParspackProvider
 }
 
 // NewCreateCDNLoadBalanceServer builds the use case from its ports.
-func NewCreateCDNLoadBalanceServer(queue ports.Queue, provider cdnLoadBalanceProvider) *CreateCDNLoadBalanceServer {
+func NewCreateCDNLoadBalanceServer(queue ports.Queue, provider ports.ParspackProvider) *CreateCDNLoadBalanceServer {
 	return &CreateCDNLoadBalanceServer{queue: queue, provider: provider}
 }
 
@@ -443,11 +413,11 @@ type GetCDNLoadBalanceServerInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNLoadBalanceServer struct {
 	queue    ports.Queue
-	provider cdnLoadBalanceProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNLoadBalanceServer builds the use case from its ports.
-func NewGetCDNLoadBalanceServer(queue ports.Queue, provider cdnLoadBalanceProvider) *GetCDNLoadBalanceServer {
+func NewGetCDNLoadBalanceServer(queue ports.Queue, provider ports.ParspackProvider) *GetCDNLoadBalanceServer {
 	return &GetCDNLoadBalanceServer{queue: queue, provider: provider}
 }
 
@@ -496,11 +466,11 @@ type UpdateCDNLoadBalanceServerInput struct {
 // ID from the request.
 type UpdateCDNLoadBalanceServer struct {
 	queue    ports.Queue
-	provider cdnLoadBalanceProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNLoadBalanceServer builds the use case from its ports.
-func NewUpdateCDNLoadBalanceServer(queue ports.Queue, provider cdnLoadBalanceProvider) *UpdateCDNLoadBalanceServer {
+func NewUpdateCDNLoadBalanceServer(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNLoadBalanceServer {
 	return &UpdateCDNLoadBalanceServer{queue: queue, provider: provider}
 }
 
@@ -553,11 +523,11 @@ type DeleteCDNLoadBalanceServerInput struct {
 // callers can call it more than once safely (AGENTS.md 4.4).
 type DeleteCDNLoadBalanceServer struct {
 	queue    ports.Queue
-	provider cdnLoadBalanceProvider
+	provider ports.ParspackProvider
 }
 
 // NewDeleteCDNLoadBalanceServer builds the use case from its ports.
-func NewDeleteCDNLoadBalanceServer(queue ports.Queue, provider cdnLoadBalanceProvider) *DeleteCDNLoadBalanceServer {
+func NewDeleteCDNLoadBalanceServer(queue ports.Queue, provider ports.ParspackProvider) *DeleteCDNLoadBalanceServer {
 	return &DeleteCDNLoadBalanceServer{queue: queue, provider: provider}
 }
 

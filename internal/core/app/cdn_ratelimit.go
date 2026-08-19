@@ -9,26 +9,6 @@ import (
 	"github.com/javadib/do0ps/internal/core/ports"
 )
 
-// cdnRateLimitProvider is the subset of provider operations this file's use
-// cases need: CDN edge-firewall Rate Limit Rules and the zone-wide Upstream
-// Errors toggle (issue #24). ports.ParspackProvider is being extended
-// centrally with these exact methods elsewhere in this effort; *parspack.Client
-// already implements them structurally, so it satisfies ports.ParspackProvider
-// once that integration lands. Declared locally here — not added to
-// ports.ParspackProvider directly — because internal/core/ports/ports.go is
-// being merged from several concurrent slices of issue #24 and must not be
-// edited from this file.
-type cdnRateLimitProvider interface {
-	ListCDNRateLimitRules(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.CDNRateLimitRule, error)
-	CreateCDNRateLimitRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, rule domain.CDNRateLimitRule) (*domain.CDNRateLimitRule, error)
-	GetCDNRateLimitRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) (*domain.CDNRateLimitRule, error)
-	UpdateCDNRateLimitRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string, rule domain.CDNRateLimitRule) (*domain.CDNRateLimitRule, error)
-	DeleteCDNRateLimitRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) error
-	UpdateCDNRateLimitRulePriority(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string, priority int) error
-	GetCDNUpstreamErrors(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNUpstreamErrorSettings, error)
-	UpdateCDNUpstreamErrors(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, enabled bool) (*domain.CDNUpstreamErrorSettings, error)
-}
-
 // validateCDNRateLimitRule checks a rule's shape against the enums the CDN
 // API confirms (AGENTS.md 4.5, issue #24), so a bad interval type or
 // challenge fails fast here instead of reaching the provider and coming
@@ -75,11 +55,11 @@ type ListCDNRateLimitRulesInput struct {
 // caller waits for the result inside the same tool call.
 type ListCDNRateLimitRules struct {
 	queue    ports.Queue
-	provider cdnRateLimitProvider
+	provider ports.ParspackProvider
 }
 
 // NewListCDNRateLimitRules builds the use case from its ports.
-func NewListCDNRateLimitRules(queue ports.Queue, provider cdnRateLimitProvider) *ListCDNRateLimitRules {
+func NewListCDNRateLimitRules(queue ports.Queue, provider ports.ParspackProvider) *ListCDNRateLimitRules {
 	return &ListCDNRateLimitRules{queue: queue, provider: provider}
 }
 
@@ -122,11 +102,11 @@ type CreateCDNRateLimitRuleInput struct {
 // caller waits for the result inside the same tool call.
 type CreateCDNRateLimitRule struct {
 	queue    ports.Queue
-	provider cdnRateLimitProvider
+	provider ports.ParspackProvider
 }
 
 // NewCreateCDNRateLimitRule builds the use case from its ports.
-func NewCreateCDNRateLimitRule(queue ports.Queue, provider cdnRateLimitProvider) *CreateCDNRateLimitRule {
+func NewCreateCDNRateLimitRule(queue ports.Queue, provider ports.ParspackProvider) *CreateCDNRateLimitRule {
 	return &CreateCDNRateLimitRule{queue: queue, provider: provider}
 }
 
@@ -173,11 +153,11 @@ type GetCDNRateLimitRuleInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNRateLimitRule struct {
 	queue    ports.Queue
-	provider cdnRateLimitProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNRateLimitRule builds the use case from its ports.
-func NewGetCDNRateLimitRule(queue ports.Queue, provider cdnRateLimitProvider) *GetCDNRateLimitRule {
+func NewGetCDNRateLimitRule(queue ports.Queue, provider ports.ParspackProvider) *GetCDNRateLimitRule {
 	return &GetCDNRateLimitRule{queue: queue, provider: provider}
 }
 
@@ -224,11 +204,11 @@ type UpdateCDNRateLimitRuleInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNRateLimitRule struct {
 	queue    ports.Queue
-	provider cdnRateLimitProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNRateLimitRule builds the use case from its ports.
-func NewUpdateCDNRateLimitRule(queue ports.Queue, provider cdnRateLimitProvider) *UpdateCDNRateLimitRule {
+func NewUpdateCDNRateLimitRule(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNRateLimitRule {
 	return &UpdateCDNRateLimitRule{queue: queue, provider: provider}
 }
 
@@ -278,11 +258,11 @@ type DeleteCDNRateLimitRuleInput struct {
 // can call it more than once safely.
 type DeleteCDNRateLimitRule struct {
 	queue    ports.Queue
-	provider cdnRateLimitProvider
+	provider ports.ParspackProvider
 }
 
 // NewDeleteCDNRateLimitRule builds the use case from its ports.
-func NewDeleteCDNRateLimitRule(queue ports.Queue, provider cdnRateLimitProvider) *DeleteCDNRateLimitRule {
+func NewDeleteCDNRateLimitRule(queue ports.Queue, provider ports.ParspackProvider) *DeleteCDNRateLimitRule {
 	return &DeleteCDNRateLimitRule{queue: queue, provider: provider}
 }
 
@@ -323,11 +303,11 @@ type UpdateCDNRateLimitRulePriorityInput struct {
 // but the caller waits for the result inside the same tool call.
 type UpdateCDNRateLimitRulePriority struct {
 	queue    ports.Queue
-	provider cdnRateLimitProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNRateLimitRulePriority builds the use case from its ports.
-func NewUpdateCDNRateLimitRulePriority(queue ports.Queue, provider cdnRateLimitProvider) *UpdateCDNRateLimitRulePriority {
+func NewUpdateCDNRateLimitRulePriority(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNRateLimitRulePriority {
 	return &UpdateCDNRateLimitRulePriority{queue: queue, provider: provider}
 }
 
@@ -367,11 +347,11 @@ type GetCDNUpstreamErrorsInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNUpstreamErrors struct {
 	queue    ports.Queue
-	provider cdnRateLimitProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNUpstreamErrors builds the use case from its ports.
-func NewGetCDNUpstreamErrors(queue ports.Queue, provider cdnRateLimitProvider) *GetCDNUpstreamErrors {
+func NewGetCDNUpstreamErrors(queue ports.Queue, provider ports.ParspackProvider) *GetCDNUpstreamErrors {
 	return &GetCDNUpstreamErrors{queue: queue, provider: provider}
 }
 
@@ -414,11 +394,11 @@ type UpdateCDNUpstreamErrorsInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNUpstreamErrors struct {
 	queue    ports.Queue
-	provider cdnRateLimitProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNUpstreamErrors builds the use case from its ports.
-func NewUpdateCDNUpstreamErrors(queue ports.Queue, provider cdnRateLimitProvider) *UpdateCDNUpstreamErrors {
+func NewUpdateCDNUpstreamErrors(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNUpstreamErrors {
 	return &UpdateCDNUpstreamErrors{queue: queue, provider: provider}
 }
 

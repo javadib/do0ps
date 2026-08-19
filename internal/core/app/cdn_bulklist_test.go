@@ -8,6 +8,7 @@ import (
 
 	"github.com/javadib/do0ps/internal/core/app"
 	"github.com/javadib/do0ps/internal/core/domain"
+	"github.com/javadib/do0ps/internal/core/ports"
 )
 
 // fakeBulklistProvider is a package-local fake implementing exactly the
@@ -17,7 +18,8 @@ import (
 // rather than added to the shared fakeProvider in app_test.go, per house
 // style, since that file is touched by other concurrent work.
 type fakeBulklistProvider struct {
-	lists []domain.CDNBulklist
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	lists                  []domain.CDNBulklist
 
 	createdSpec domain.CDNBulklistSpec
 	createErr   error
@@ -79,7 +81,8 @@ func (p *fakeBulklistProvider) DeleteCDNBulklist(_ context.Context, _ domain.Pro
 // fakeCountryProvider is the equivalent minimal fake for
 // app.cdnFirewallCountryProvider.
 type fakeCountryProvider struct {
-	countries []domain.CDNCountry
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	countries              []domain.CDNCountry
 }
 
 func (p *fakeCountryProvider) ListCDNFirewallCountries(context.Context, domain.ProviderCredentials, string) ([]domain.CDNCountry, error) {

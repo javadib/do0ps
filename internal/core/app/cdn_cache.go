@@ -20,27 +20,6 @@ import (
 // returns synchronously, exactly like the CDN zone/DNS use cases in
 // cdn_zone.go.
 //
-// cdnCacheProvider is a LOCAL interface, not ports.ParspackProvider: the
-// central ports.go integration for these methods happens in a follow-up
-// (see AGENTS.md's note on ports.go being integrated centrally). Its method
-// set and signatures are shaped exactly like the ports.ParspackProvider
-// extension this feature will eventually land as; *parspack.Client already
-// satisfies it structurally. Every use case below shares this one interface
-// rather than each declaring a narrower one, since all seven operations
-// belong to the same "Cache Management" port group described in
-// ports.ParspackProvider's existing grouped-comment style.
-type cdnCacheProvider interface {
-	UpdateCDNCacheTTL(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, ttlSeconds int) (*domain.CDNCacheTTLSetting, error)
-	UpdateCDNCacheRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, cacheRule string) (*domain.CDNCacheRuleSetting, error)
-	UpdateCDNCacheUserAgentSetting(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, enabled bool) (*domain.CDNCacheUserAgentSetting, error)
-	GetCDNCacheSettings(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNCacheSettings, error)
-	ListCDNCacheEntries(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.CDNCacheEntry, error)
-	// PurgeCDNCache returns no id to poll (see the adapter's doc comment);
-	// callers that want progress use ListCDNCacheEntries/GetCDNCacheEntry
-	// afterward.
-	PurgeCDNCache(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) error
-	GetCDNCacheEntry(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, id string) (*domain.CDNCacheEntry, error)
-}
 
 func validateZoneUUID(zoneUUID string) error {
 	if zoneUUID == "" {
@@ -61,11 +40,11 @@ type UpdateCDNCacheTTLInput struct {
 // this call.
 type UpdateCDNCacheTTL struct {
 	queue    ports.Queue
-	provider cdnCacheProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNCacheTTL builds the use case from its ports.
-func NewUpdateCDNCacheTTL(queue ports.Queue, provider cdnCacheProvider) *UpdateCDNCacheTTL {
+func NewUpdateCDNCacheTTL(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNCacheTTL {
 	return &UpdateCDNCacheTTL{queue: queue, provider: provider}
 }
 
@@ -111,11 +90,11 @@ type UpdateCDNCacheRuleInput struct {
 // this call.
 type UpdateCDNCacheRule struct {
 	queue    ports.Queue
-	provider cdnCacheProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNCacheRule builds the use case from its ports.
-func NewUpdateCDNCacheRule(queue ports.Queue, provider cdnCacheProvider) *UpdateCDNCacheRule {
+func NewUpdateCDNCacheRule(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNCacheRule {
 	return &UpdateCDNCacheRule{queue: queue, provider: provider}
 }
 
@@ -162,11 +141,11 @@ type UpdateCDNCacheUserAgentSettingInput struct {
 // returns within this call.
 type UpdateCDNCacheUserAgentSetting struct {
 	queue    ports.Queue
-	provider cdnCacheProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNCacheUserAgentSetting builds the use case from its ports.
-func NewUpdateCDNCacheUserAgentSetting(queue ports.Queue, provider cdnCacheProvider) *UpdateCDNCacheUserAgentSetting {
+func NewUpdateCDNCacheUserAgentSetting(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNCacheUserAgentSetting {
 	return &UpdateCDNCacheUserAgentSetting{queue: queue, provider: provider}
 }
 
@@ -209,11 +188,11 @@ type GetCDNCacheSettingsInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNCacheSettings struct {
 	queue    ports.Queue
-	provider cdnCacheProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNCacheSettings builds the use case from its ports.
-func NewGetCDNCacheSettings(queue ports.Queue, provider cdnCacheProvider) *GetCDNCacheSettings {
+func NewGetCDNCacheSettings(queue ports.Queue, provider ports.ParspackProvider) *GetCDNCacheSettings {
 	return &GetCDNCacheSettings{queue: queue, provider: provider}
 }
 
@@ -255,11 +234,11 @@ type ListCDNCacheEntriesInput struct {
 // caller waits for the result inside the same tool call.
 type ListCDNCacheEntries struct {
 	queue    ports.Queue
-	provider cdnCacheProvider
+	provider ports.ParspackProvider
 }
 
 // NewListCDNCacheEntries builds the use case from its ports.
-func NewListCDNCacheEntries(queue ports.Queue, provider cdnCacheProvider) *ListCDNCacheEntries {
+func NewListCDNCacheEntries(queue ports.Queue, provider ports.ParspackProvider) *ListCDNCacheEntries {
 	return &ListCDNCacheEntries{queue: queue, provider: provider}
 }
 
@@ -304,11 +283,11 @@ type PurgeCDNCacheInput struct {
 // PurgeCDNCache doc comment).
 type PurgeCDNCache struct {
 	queue    ports.Queue
-	provider cdnCacheProvider
+	provider ports.ParspackProvider
 }
 
 // NewPurgeCDNCache builds the use case from its ports.
-func NewPurgeCDNCache(queue ports.Queue, provider cdnCacheProvider) *PurgeCDNCache {
+func NewPurgeCDNCache(queue ports.Queue, provider ports.ParspackProvider) *PurgeCDNCache {
 	return &PurgeCDNCache{queue: queue, provider: provider}
 }
 
@@ -342,11 +321,11 @@ type GetCDNCacheEntryInput struct {
 // waits for the result inside the same tool call.
 type GetCDNCacheEntry struct {
 	queue    ports.Queue
-	provider cdnCacheProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNCacheEntry builds the use case from its ports.
-func NewGetCDNCacheEntry(queue ports.Queue, provider cdnCacheProvider) *GetCDNCacheEntry {
+func NewGetCDNCacheEntry(queue ports.Queue, provider ports.ParspackProvider) *GetCDNCacheEntry {
 	return &GetCDNCacheEntry{queue: queue, provider: provider}
 }
 

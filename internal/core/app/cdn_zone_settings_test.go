@@ -7,6 +7,7 @@ import (
 
 	"github.com/javadib/do0ps/internal/core/app"
 	"github.com/javadib/do0ps/internal/core/domain"
+	"github.com/javadib/do0ps/internal/core/ports"
 )
 
 // The fakes below implement only the single-method local provider interface
@@ -15,8 +16,9 @@ import (
 // covers exactly one use case under test.
 
 type fakeAntivirusGetter struct {
-	enabled bool
-	err     error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	enabled                bool
+	err                    error
 }
 
 func (f fakeAntivirusGetter) GetCDNAntivirusStatus(context.Context, domain.ProviderCredentials, string) (bool, error) {
@@ -24,8 +26,9 @@ func (f fakeAntivirusGetter) GetCDNAntivirusStatus(context.Context, domain.Provi
 }
 
 type fakeAntivirusUpdater struct {
-	enabled bool
-	err     error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	enabled                bool
+	err                    error
 }
 
 func (f fakeAntivirusUpdater) UpdateCDNAntivirusStatus(context.Context, domain.ProviderCredentials, string, bool) (bool, error) {
@@ -97,8 +100,9 @@ func TestUpdateCDNAntivirusStatusExecuteMissingCredentials(t *testing.T) {
 }
 
 type fakeDNSSecGetter struct {
-	status *domain.CDNDNSSecStatus
-	err    error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	status                 *domain.CDNDNSSecStatus
+	err                    error
 }
 
 func (f fakeDNSSecGetter) GetCDNDNSSecStatus(context.Context, domain.ProviderCredentials, string) (*domain.CDNDNSSecStatus, error) {
@@ -106,8 +110,9 @@ func (f fakeDNSSecGetter) GetCDNDNSSecStatus(context.Context, domain.ProviderCre
 }
 
 type fakeDNSSecUpdater struct {
-	status *domain.CDNDNSSecStatus
-	err    error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	status                 *domain.CDNDNSSecStatus
+	err                    error
 }
 
 func (f fakeDNSSecUpdater) UpdateCDNDNSSecStatus(context.Context, domain.ProviderCredentials, string, bool) (*domain.CDNDNSSecStatus, error) {
@@ -169,8 +174,9 @@ func TestUpdateCDNDNSSecStatusExecuteProviderError(t *testing.T) {
 }
 
 type fakeOptimizationGetter struct {
-	status *domain.CDNOptimizationStatus
-	err    error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	status                 *domain.CDNOptimizationStatus
+	err                    error
 }
 
 func (f fakeOptimizationGetter) GetCDNOptimizationStatus(context.Context, domain.ProviderCredentials, string) (*domain.CDNOptimizationStatus, error) {
@@ -178,8 +184,9 @@ func (f fakeOptimizationGetter) GetCDNOptimizationStatus(context.Context, domain
 }
 
 type fakeOptimizationUpdater struct {
-	status *domain.CDNOptimizationStatus
-	err    error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	status                 *domain.CDNOptimizationStatus
+	err                    error
 }
 
 func (f fakeOptimizationUpdater) UpdateCDNOptimization(context.Context, domain.ProviderCredentials, string, domain.CDNOptimizationStatus) (*domain.CDNOptimizationStatus, error) {
@@ -244,8 +251,9 @@ func TestUpdateCDNOptimizationExecuteProviderError(t *testing.T) {
 }
 
 type fakeDeveloperModeUpdater struct {
-	enabled bool
-	err     error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	enabled                bool
+	err                    error
 }
 
 func (f fakeDeveloperModeUpdater) UpdateCDNDeveloperMode(context.Context, domain.ProviderCredentials, string, bool) (bool, error) {
@@ -280,8 +288,9 @@ func TestUpdateCDNDeveloperModeExecuteMissingZoneUUID(t *testing.T) {
 }
 
 type fakeMaintenanceModeUpdater struct {
-	enabled bool
-	err     error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	enabled                bool
+	err                    error
 }
 
 func (f fakeMaintenanceModeUpdater) UpdateCDNMaintenanceMode(context.Context, domain.ProviderCredentials, string, bool) (bool, error) {
@@ -316,8 +325,9 @@ func TestUpdateCDNMaintenanceModeExecuteProviderError(t *testing.T) {
 }
 
 type fakeQueryStringUpdater struct {
-	enabled bool
-	err     error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	enabled                bool
+	err                    error
 }
 
 func (f fakeQueryStringUpdater) UpdateCDNQueryStringSetting(context.Context, domain.ProviderCredentials, string, bool) (bool, error) {
@@ -350,8 +360,9 @@ func TestUpdateCDNQueryStringSettingExecuteMissingCredentials(t *testing.T) {
 }
 
 type fakeOriginOfflineUpdater struct {
-	enabled bool
-	err     error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	enabled                bool
+	err                    error
 }
 
 func (f fakeOriginOfflineUpdater) UpdateCDNOriginOffline(context.Context, domain.ProviderCredentials, string, bool) (bool, error) {

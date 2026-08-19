@@ -7,6 +7,7 @@ import (
 
 	"github.com/javadib/do0ps/internal/core/app"
 	"github.com/javadib/do0ps/internal/core/domain"
+	"github.com/javadib/do0ps/internal/core/ports"
 )
 
 // cdnReportSSLFakeProvider is a package-local fake implementing only the
@@ -16,20 +17,21 @@ import (
 // package comment), so this fake only needs to satisfy those narrow
 // interfaces, not the whole port.
 type cdnReportSSLFakeProvider struct {
-	accessLogPage   *domain.CDNAccessLogPage
-	accessLogErr    error
-	securityLogPage *domain.CDNSecurityLogPage
-	errorLogPage    *domain.CDNErrorLogPage
-	wafLogPage      *domain.CDNWAFLogPage
-	topVisitors     []domain.CDNTopVisitor
-	trafficUsage    *domain.CDNTrafficUsage
-	minTLSVersion   domain.CDNMinTLSVersion
-	updatedMinTLS   domain.CDNMinTLSVersion
-	updateMinTLSErr error
-	certificates    []domain.CDNCertificate
-	hstsSettings    *domain.CDNHSTSSettings
-	updatedHSTS     domain.CDNHSTSSettings
-	updateHSTSErr   error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	accessLogPage          *domain.CDNAccessLogPage
+	accessLogErr           error
+	securityLogPage        *domain.CDNSecurityLogPage
+	errorLogPage           *domain.CDNErrorLogPage
+	wafLogPage             *domain.CDNWAFLogPage
+	topVisitors            []domain.CDNTopVisitor
+	trafficUsage           *domain.CDNTrafficUsage
+	minTLSVersion          domain.CDNMinTLSVersion
+	updatedMinTLS          domain.CDNMinTLSVersion
+	updateMinTLSErr        error
+	certificates           []domain.CDNCertificate
+	hstsSettings           *domain.CDNHSTSSettings
+	updatedHSTS            domain.CDNHSTSSettings
+	updateHSTSErr          error
 }
 
 func (p *cdnReportSSLFakeProvider) GetCDNAccessLog(_ context.Context, _ domain.ProviderCredentials, _ string, _ domain.CDNLogQuery) (*domain.CDNAccessLogPage, error) {

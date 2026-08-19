@@ -24,14 +24,8 @@ import (
 // methods, so it satisfies each local interface automatically via Go's
 // structural typing — no explicit "implements" declaration is required.
 
-// validateZoneUUID is shared by every use case here: all of them are scoped
-// to one CDN zone.
-func validateZoneUUID(zoneUUID string) error {
-	if zoneUUID == "" {
-		return fmt.Errorf("zone_uuid is required: %w", domain.ErrInvalidInput)
-	}
-	return nil
-}
+// validateZoneUUID (shared by every CDN use case that scopes to one zone) is
+// defined once in cdn_cache.go.
 
 // validateCDNLogQuery checks the shared log filter against the enums the CDN
 // API confirms, so a bad step value fails fast here instead of reaching the
@@ -41,11 +35,6 @@ func validateCDNLogQuery(q domain.CDNLogQuery) error {
 		return fmt.Errorf("step %d is not one of the values Parspack accepts (10, 25, 50, 100): %w", q.Step, domain.ErrInvalidInput)
 	}
 	return nil
-}
-
-// cdnAccessLogProvider is the provider capability GetCDNAccessLog needs.
-type cdnAccessLogProvider interface {
-	GetCDNAccessLog(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, query domain.CDNLogQuery) (*domain.CDNAccessLogPage, error)
 }
 
 // GetCDNAccessLogInput identifies the zone and page/filter of access log to
@@ -60,11 +49,11 @@ type GetCDNAccessLogInput struct {
 // waits for the result inside the same tool call.
 type GetCDNAccessLog struct {
 	queue    ports.Queue
-	provider cdnAccessLogProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNAccessLog builds the use case from its ports.
-func NewGetCDNAccessLog(queue ports.Queue, provider cdnAccessLogProvider) *GetCDNAccessLog {
+func NewGetCDNAccessLog(queue ports.Queue, provider ports.ParspackProvider) *GetCDNAccessLog {
 	return &GetCDNAccessLog{queue: queue, provider: provider}
 }
 
@@ -98,11 +87,6 @@ func (uc *GetCDNAccessLog) Execute(ctx context.Context, in GetCDNAccessLogInput)
 	return &page, nil
 }
 
-// cdnSecurityLogProvider is the provider capability GetCDNSecurityLog needs.
-type cdnSecurityLogProvider interface {
-	GetCDNSecurityLog(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, query domain.CDNLogQuery) (*domain.CDNSecurityLogPage, error)
-}
-
 // GetCDNSecurityLogInput identifies the zone and page/filter of security log
 // to fetch.
 type GetCDNSecurityLogInput struct {
@@ -115,11 +99,11 @@ type GetCDNSecurityLogInput struct {
 // waits for the result inside the same tool call.
 type GetCDNSecurityLog struct {
 	queue    ports.Queue
-	provider cdnSecurityLogProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNSecurityLog builds the use case from its ports.
-func NewGetCDNSecurityLog(queue ports.Queue, provider cdnSecurityLogProvider) *GetCDNSecurityLog {
+func NewGetCDNSecurityLog(queue ports.Queue, provider ports.ParspackProvider) *GetCDNSecurityLog {
 	return &GetCDNSecurityLog{queue: queue, provider: provider}
 }
 
@@ -153,11 +137,6 @@ func (uc *GetCDNSecurityLog) Execute(ctx context.Context, in GetCDNSecurityLogIn
 	return &page, nil
 }
 
-// cdnErrorLogProvider is the provider capability GetCDNErrorLog needs.
-type cdnErrorLogProvider interface {
-	GetCDNErrorLog(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, query domain.CDNLogQuery) (*domain.CDNErrorLogPage, error)
-}
-
 // GetCDNErrorLogInput identifies the zone and page/filter of error log to
 // fetch.
 type GetCDNErrorLogInput struct {
@@ -170,11 +149,11 @@ type GetCDNErrorLogInput struct {
 // waits for the result inside the same tool call.
 type GetCDNErrorLog struct {
 	queue    ports.Queue
-	provider cdnErrorLogProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNErrorLog builds the use case from its ports.
-func NewGetCDNErrorLog(queue ports.Queue, provider cdnErrorLogProvider) *GetCDNErrorLog {
+func NewGetCDNErrorLog(queue ports.Queue, provider ports.ParspackProvider) *GetCDNErrorLog {
 	return &GetCDNErrorLog{queue: queue, provider: provider}
 }
 
@@ -208,11 +187,6 @@ func (uc *GetCDNErrorLog) Execute(ctx context.Context, in GetCDNErrorLogInput) (
 	return &page, nil
 }
 
-// cdnWAFLogProvider is the provider capability GetCDNWAFLog needs.
-type cdnWAFLogProvider interface {
-	GetCDNWAFLog(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, query domain.CDNLogQuery) (*domain.CDNWAFLogPage, error)
-}
-
 // GetCDNWAFLogInput identifies the zone and page/filter of WAF log to fetch.
 type GetCDNWAFLogInput struct {
 	Credentials domain.ProviderCredentials
@@ -224,11 +198,11 @@ type GetCDNWAFLogInput struct {
 // for the result inside the same tool call.
 type GetCDNWAFLog struct {
 	queue    ports.Queue
-	provider cdnWAFLogProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNWAFLog builds the use case from its ports.
-func NewGetCDNWAFLog(queue ports.Queue, provider cdnWAFLogProvider) *GetCDNWAFLog {
+func NewGetCDNWAFLog(queue ports.Queue, provider ports.ParspackProvider) *GetCDNWAFLog {
 	return &GetCDNWAFLog{queue: queue, provider: provider}
 }
 
@@ -262,11 +236,6 @@ func (uc *GetCDNWAFLog) Execute(ctx context.Context, in GetCDNWAFLogInput) (*dom
 	return &page, nil
 }
 
-// cdnTopVisitorsProvider is the provider capability GetCDNTopVisitors needs.
-type cdnTopVisitorsProvider interface {
-	GetCDNTopVisitors(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, start, end string) ([]domain.CDNTopVisitor, error)
-}
-
 // GetCDNTopVisitorsInput identifies the zone and required date range.
 type GetCDNTopVisitorsInput struct {
 	Credentials domain.ProviderCredentials
@@ -279,11 +248,11 @@ type GetCDNTopVisitorsInput struct {
 // waits for the result inside the same tool call.
 type GetCDNTopVisitors struct {
 	queue    ports.Queue
-	provider cdnTopVisitorsProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNTopVisitors builds the use case from its ports.
-func NewGetCDNTopVisitors(queue ports.Queue, provider cdnTopVisitorsProvider) *GetCDNTopVisitors {
+func NewGetCDNTopVisitors(queue ports.Queue, provider ports.ParspackProvider) *GetCDNTopVisitors {
 	return &GetCDNTopVisitors{queue: queue, provider: provider}
 }
 
@@ -321,11 +290,7 @@ func (uc *GetCDNTopVisitors) Execute(ctx context.Context, in GetCDNTopVisitorsIn
 	return visitors, nil
 }
 
-// cdnMonthlyTrafficUsageProvider is the provider capability
 // GetCDNMonthlyTrafficUsage needs.
-type cdnMonthlyTrafficUsageProvider interface {
-	GetCDNMonthlyTrafficUsage(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNTrafficUsage, error)
-}
 
 // GetCDNMonthlyTrafficUsageInput identifies the zone to look up.
 type GetCDNMonthlyTrafficUsageInput struct {
@@ -337,11 +302,11 @@ type GetCDNMonthlyTrafficUsageInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNMonthlyTrafficUsage struct {
 	queue    ports.Queue
-	provider cdnMonthlyTrafficUsageProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNMonthlyTrafficUsage builds the use case from its ports.
-func NewGetCDNMonthlyTrafficUsage(queue ports.Queue, provider cdnMonthlyTrafficUsageProvider) *GetCDNMonthlyTrafficUsage {
+func NewGetCDNMonthlyTrafficUsage(queue ports.Queue, provider ports.ParspackProvider) *GetCDNMonthlyTrafficUsage {
 	return &GetCDNMonthlyTrafficUsage{queue: queue, provider: provider}
 }
 
@@ -372,12 +337,6 @@ func (uc *GetCDNMonthlyTrafficUsage) Execute(ctx context.Context, in GetCDNMonth
 	return &usage, nil
 }
 
-// cdnGetMinTLSVersionProvider is the provider capability GetCDNMinTLSVersion
-// needs.
-type cdnGetMinTLSVersionProvider interface {
-	GetCDNMinTLSVersion(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (domain.CDNMinTLSVersion, error)
-}
-
 // GetCDNMinTLSVersionInput identifies the zone to look up.
 type GetCDNMinTLSVersionInput struct {
 	Credentials domain.ProviderCredentials
@@ -388,11 +347,11 @@ type GetCDNMinTLSVersionInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNMinTLSVersion struct {
 	queue    ports.Queue
-	provider cdnGetMinTLSVersionProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNMinTLSVersion builds the use case from its ports.
-func NewGetCDNMinTLSVersion(queue ports.Queue, provider cdnGetMinTLSVersionProvider) *GetCDNMinTLSVersion {
+func NewGetCDNMinTLSVersion(queue ports.Queue, provider ports.ParspackProvider) *GetCDNMinTLSVersion {
 	return &GetCDNMinTLSVersion{queue: queue, provider: provider}
 }
 
@@ -423,11 +382,7 @@ func (uc *GetCDNMinTLSVersion) Execute(ctx context.Context, in GetCDNMinTLSVersi
 	return version, nil
 }
 
-// cdnUpdateMinTLSVersionProvider is the provider capability
 // UpdateCDNMinTLSVersion needs.
-type cdnUpdateMinTLSVersionProvider interface {
-	UpdateCDNMinTLSVersion(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, version domain.CDNMinTLSVersion) error
-}
 
 // UpdateCDNMinTLSVersionInput is the normalized form of an
 // update_cdn_min_tls_version tool call.
@@ -441,11 +396,11 @@ type UpdateCDNMinTLSVersionInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNMinTLSVersion struct {
 	queue    ports.Queue
-	provider cdnUpdateMinTLSVersionProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNMinTLSVersion builds the use case from its ports.
-func NewUpdateCDNMinTLSVersion(queue ports.Queue, provider cdnUpdateMinTLSVersionProvider) *UpdateCDNMinTLSVersion {
+func NewUpdateCDNMinTLSVersion(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNMinTLSVersion {
 	return &UpdateCDNMinTLSVersion{queue: queue, provider: provider}
 }
 
@@ -474,12 +429,6 @@ func (uc *UpdateCDNMinTLSVersion) Execute(ctx context.Context, in UpdateCDNMinTL
 	return in.MinTLSVersion, nil
 }
 
-// cdnListCertificatesProvider is the provider capability ListCDNCertificates
-// needs.
-type cdnListCertificatesProvider interface {
-	ListCDNCertificates(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, perPage, page int, domainFilter string) ([]domain.CDNCertificate, error)
-}
-
 // ListCDNCertificatesInput identifies the zone whose attached certificates
 // to list, plus optional pagination and a domain substring filter.
 type ListCDNCertificatesInput struct {
@@ -495,11 +444,11 @@ type ListCDNCertificatesInput struct {
 // workflow (app.CreateSSLOrder and friends, issue #18) not exposed here.
 type ListCDNCertificates struct {
 	queue    ports.Queue
-	provider cdnListCertificatesProvider
+	provider ports.ParspackProvider
 }
 
 // NewListCDNCertificates builds the use case from its ports.
-func NewListCDNCertificates(queue ports.Queue, provider cdnListCertificatesProvider) *ListCDNCertificates {
+func NewListCDNCertificates(queue ports.Queue, provider ports.ParspackProvider) *ListCDNCertificates {
 	return &ListCDNCertificates{queue: queue, provider: provider}
 }
 
@@ -530,11 +479,6 @@ func (uc *ListCDNCertificates) Execute(ctx context.Context, in ListCDNCertificat
 	return certs, nil
 }
 
-// cdnGetHSTSProvider is the provider capability GetCDNHSTS needs.
-type cdnGetHSTSProvider interface {
-	GetCDNHSTS(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNHSTSSettings, error)
-}
-
 // GetCDNHSTSInput identifies the zone to look up.
 type GetCDNHSTSInput struct {
 	Credentials domain.ProviderCredentials
@@ -545,11 +489,11 @@ type GetCDNHSTSInput struct {
 // for the result inside the same tool call.
 type GetCDNHSTS struct {
 	queue    ports.Queue
-	provider cdnGetHSTSProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNHSTS builds the use case from its ports.
-func NewGetCDNHSTS(queue ports.Queue, provider cdnGetHSTSProvider) *GetCDNHSTS {
+func NewGetCDNHSTS(queue ports.Queue, provider ports.ParspackProvider) *GetCDNHSTS {
 	return &GetCDNHSTS{queue: queue, provider: provider}
 }
 
@@ -580,11 +524,6 @@ func (uc *GetCDNHSTS) Execute(ctx context.Context, in GetCDNHSTSInput) (*domain.
 	return &settings, nil
 }
 
-// cdnUpdateHSTSProvider is the provider capability UpdateCDNHSTS needs.
-type cdnUpdateHSTSProvider interface {
-	UpdateCDNHSTS(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, settings domain.CDNHSTSSettings) error
-}
-
 // UpdateCDNHSTSInput is the normalized form of an update_cdn_hsts tool call.
 type UpdateCDNHSTSInput struct {
 	Credentials domain.ProviderCredentials
@@ -596,11 +535,11 @@ type UpdateCDNHSTSInput struct {
 // waits for the result inside the same tool call.
 type UpdateCDNHSTS struct {
 	queue    ports.Queue
-	provider cdnUpdateHSTSProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNHSTS builds the use case from its ports.
-func NewUpdateCDNHSTS(queue ports.Queue, provider cdnUpdateHSTSProvider) *UpdateCDNHSTS {
+func NewUpdateCDNHSTS(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNHSTS {
 	return &UpdateCDNHSTS{queue: queue, provider: provider}
 }
 

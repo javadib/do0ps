@@ -7,6 +7,7 @@ import (
 
 	"github.com/javadib/do0ps/internal/core/app"
 	"github.com/javadib/do0ps/internal/core/domain"
+	"github.com/javadib/do0ps/internal/core/ports"
 )
 
 // fakeCDNNetworkProvider implements the local cdnNetworkProvider interface
@@ -15,10 +16,11 @@ import (
 // interface is local to cdn_network.go rather than part of
 // ports.ParspackProvider (see that file's doc comment for why).
 type fakeCDNNetworkProvider struct {
-	httpsConvertor *domain.CDNHTTPSConvertorSetting
-	getHTTPSErr    error
-	updatedHTTPS   *domain.CDNHTTPSConvertorSetting
-	updateHTTPSErr error
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	httpsConvertor         *domain.CDNHTTPSConvertorSetting
+	getHTTPSErr            error
+	updatedHTTPS           *domain.CDNHTTPSConvertorSetting
+	updateHTTPSErr         error
 
 	edgeConnection *domain.CDNEdgeToUpstreamConnectionSetting
 	getEdgeErr     error

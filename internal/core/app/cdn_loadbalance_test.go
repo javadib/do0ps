@@ -8,6 +8,7 @@ import (
 
 	"github.com/javadib/do0ps/internal/core/app"
 	"github.com/javadib/do0ps/internal/core/domain"
+	"github.com/javadib/do0ps/internal/core/ports"
 )
 
 // fakeCDNLoadBalanceProvider is a package-local fake satisfying app's
@@ -16,8 +17,9 @@ import (
 // other concurrent work also touches): only the CDN load-balance methods
 // these use cases actually call need to exist here.
 type fakeCDNLoadBalanceProvider struct {
-	loadBalances []domain.CDNLoadBalance
-	servers      []domain.CDNLoadBalanceServer
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	loadBalances           []domain.CDNLoadBalance
+	servers                []domain.CDNLoadBalanceServer
 
 	createdLoadBalance *domain.CDNLoadBalance
 	updatedLoadBalance *domain.CDNLoadBalance

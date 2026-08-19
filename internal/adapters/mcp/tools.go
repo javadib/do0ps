@@ -64,6 +64,117 @@ type UseCases struct {
 	ListLoadBalancers     *app.ListLoadBalancers
 	UpdateLoadBalancer    *app.UpdateLoadBalancer
 	DeleteLoadBalancer    *app.DeleteLoadBalancer
+
+	// CDN capabilities beyond zone/DNS (issue #24).
+	GetCDNAntivirusStatus       *app.GetCDNAntivirusStatus
+	UpdateCDNAntivirusStatus    *app.UpdateCDNAntivirusStatus
+	GetCDNDNSSecStatus          *app.GetCDNDNSSecStatus
+	UpdateCDNDNSSecStatus       *app.UpdateCDNDNSSecStatus
+	GetCDNOptimizationStatus    *app.GetCDNOptimizationStatus
+	UpdateCDNOptimization       *app.UpdateCDNOptimization
+	UpdateCDNDeveloperMode      *app.UpdateCDNDeveloperMode
+	UpdateCDNMaintenanceMode    *app.UpdateCDNMaintenanceMode
+	UpdateCDNQueryStringSetting *app.UpdateCDNQueryStringSetting
+	UpdateCDNOriginOffline      *app.UpdateCDNOriginOffline
+
+	ListCDNBulklists         *app.ListCDNBulklists
+	CreateCDNBulklist        *app.CreateCDNBulklist
+	GetCDNBulklist           *app.GetCDNBulklist
+	UpdateCDNBulklist        *app.UpdateCDNBulklist
+	DeleteCDNBulklist        *app.DeleteCDNBulklist
+	ListCDNFirewallCountries *app.ListCDNFirewallCountries
+
+	UpdateCDNCacheTTL              *app.UpdateCDNCacheTTL
+	UpdateCDNCacheRule             *app.UpdateCDNCacheRule
+	UpdateCDNCacheUserAgentSetting *app.UpdateCDNCacheUserAgentSetting
+	GetCDNCacheSettings            *app.GetCDNCacheSettings
+	ListCDNCacheEntries            *app.ListCDNCacheEntries
+	PurgeCDNCache                  *app.PurgeCDNCache
+	GetCDNCacheEntry               *app.GetCDNCacheEntry
+
+	ListCDNAccessRules    *app.ListCDNAccessRules
+	CreateCDNAccessRule   *app.CreateCDNAccessRule
+	GetCDNAccessRule      *app.GetCDNAccessRule
+	UpdateCDNAccessRule   *app.UpdateCDNAccessRule
+	DeleteCDNAccessRule   *app.DeleteCDNAccessRule
+	GetCDNIPReputation    *app.GetCDNIPReputation
+	UpdateCDNIPReputation *app.UpdateCDNIPReputation
+	GetCDNDDoSActions     *app.GetCDNDDoSActions
+	UpdateCDNDDoSActions  *app.UpdateCDNDDoSActions
+
+	ListCDNLoadBalances        *app.ListCDNLoadBalances
+	CreateCDNLoadBalance       *app.CreateCDNLoadBalance
+	GetCDNLoadBalance          *app.GetCDNLoadBalance
+	UpdateCDNLoadBalance       *app.UpdateCDNLoadBalance
+	DeleteCDNLoadBalance       *app.DeleteCDNLoadBalance
+	ListCDNLoadBalanceServers  *app.ListCDNLoadBalanceServers
+	CreateCDNLoadBalanceServer *app.CreateCDNLoadBalanceServer
+	GetCDNLoadBalanceServer    *app.GetCDNLoadBalanceServer
+	UpdateCDNLoadBalanceServer *app.UpdateCDNLoadBalanceServer
+	DeleteCDNLoadBalanceServer *app.DeleteCDNLoadBalanceServer
+
+	GetCDNModSecStatus    *app.GetCDNModSecStatus
+	UpdateCDNModSecStatus *app.UpdateCDNModSecStatus
+	ListCDNModSecData     *app.ListCDNModSecData
+	CreateCDNModSecData   *app.CreateCDNModSecData
+	GetCDNModSecData      *app.GetCDNModSecData
+	UpdateCDNModSecData   *app.UpdateCDNModSecData
+	DeleteCDNModSecData   *app.DeleteCDNModSecData
+	ListCDNModSecRules    *app.ListCDNModSecRules
+	CreateCDNModSecRule   *app.CreateCDNModSecRule
+	GetCDNModSecRule      *app.GetCDNModSecRule
+	UpdateCDNModSecRule   *app.UpdateCDNModSecRule
+	DeleteCDNModSecRule   *app.DeleteCDNModSecRule
+
+	GetCDNHTTPSConvertor              *app.GetCDNHTTPSConvertor
+	UpdateCDNHTTPSConvertor           *app.UpdateCDNHTTPSConvertor
+	GetCDNEdgeToUpstreamConnection    *app.GetCDNEdgeToUpstreamConnection
+	UpdateCDNEdgeToUpstreamConnection *app.UpdateCDNEdgeToUpstreamConnection
+	GetCDNWWWRedirection              *app.GetCDNWWWRedirection
+	UpdateCDNWWWRedirection           *app.UpdateCDNWWWRedirection
+	GetCDNWebSocket                   *app.GetCDNWebSocket
+	UpdateCDNWebSocket                *app.UpdateCDNWebSocket
+
+	ListCDNOriginRules  *app.ListCDNOriginRules
+	CreateCDNOriginRule *app.CreateCDNOriginRule
+	GetCDNOriginRule    *app.GetCDNOriginRule
+	UpdateCDNOriginRule *app.UpdateCDNOriginRule
+	DeleteCDNOriginRule *app.DeleteCDNOriginRule
+	ToggleCDNOriginRule *app.ToggleCDNOriginRule
+
+	ListCDNPageRules  *app.ListCDNPageRules
+	CreateCDNPageRule *app.CreateCDNPageRule
+	GetCDNPageRule    *app.GetCDNPageRule
+	UpdateCDNPageRule *app.UpdateCDNPageRule
+	DeleteCDNPageRule *app.DeleteCDNPageRule
+
+	ListCDNTransformRules  *app.ListCDNTransformRules
+	CreateCDNTransformRule *app.CreateCDNTransformRule
+	GetCDNTransformRule    *app.GetCDNTransformRule
+	UpdateCDNTransformRule *app.UpdateCDNTransformRule
+	DeleteCDNTransformRule *app.DeleteCDNTransformRule
+	ToggleCDNTransformRule *app.ToggleCDNTransformRule
+
+	ListCDNRateLimitRules          *app.ListCDNRateLimitRules
+	CreateCDNRateLimitRule         *app.CreateCDNRateLimitRule
+	GetCDNRateLimitRule            *app.GetCDNRateLimitRule
+	UpdateCDNRateLimitRule         *app.UpdateCDNRateLimitRule
+	DeleteCDNRateLimitRule         *app.DeleteCDNRateLimitRule
+	UpdateCDNRateLimitRulePriority *app.UpdateCDNRateLimitRulePriority
+	GetCDNUpstreamErrors           *app.GetCDNUpstreamErrors
+	UpdateCDNUpstreamErrors        *app.UpdateCDNUpstreamErrors
+
+	GetCDNAccessLog           *app.GetCDNAccessLog
+	GetCDNSecurityLog         *app.GetCDNSecurityLog
+	GetCDNErrorLog            *app.GetCDNErrorLog
+	GetCDNWAFLog              *app.GetCDNWAFLog
+	GetCDNTopVisitors         *app.GetCDNTopVisitors
+	GetCDNMonthlyTrafficUsage *app.GetCDNMonthlyTrafficUsage
+	GetCDNMinTLSVersion       *app.GetCDNMinTLSVersion
+	UpdateCDNMinTLSVersion    *app.UpdateCDNMinTLSVersion
+	ListCDNCertificates       *app.ListCDNCertificates
+	GetCDNHSTS                *app.GetCDNHSTS
+	UpdateCDNHSTS             *app.UpdateCDNHSTS
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -143,6 +254,115 @@ func Tools(uc UseCases) []Tool {
 		listLoadBalancersTool(uc.ListLoadBalancers),
 		updateLoadBalancerTool(uc.UpdateLoadBalancer),
 		deleteLoadBalancerTool(uc.DeleteLoadBalancer),
+
+		// CDN capabilities beyond zone/DNS (issue #24).
+		getCDNAntivirusStatusTool(uc.GetCDNAntivirusStatus),
+		updateCDNAntivirusStatusTool(uc.UpdateCDNAntivirusStatus),
+		getCDNDNSSecStatusTool(uc.GetCDNDNSSecStatus),
+		updateCDNDNSSecStatusTool(uc.UpdateCDNDNSSecStatus),
+		getCDNOptimizationStatusTool(uc.GetCDNOptimizationStatus),
+		updateCDNOptimizationTool(uc.UpdateCDNOptimization),
+		updateCDNDeveloperModeTool(uc.UpdateCDNDeveloperMode),
+		updateCDNMaintenanceModeTool(uc.UpdateCDNMaintenanceMode),
+		updateCDNQueryStringSettingTool(uc.UpdateCDNQueryStringSetting),
+		updateCDNOriginOfflineTool(uc.UpdateCDNOriginOffline),
+
+		listCDNBulklistsTool(uc.ListCDNBulklists),
+		createCDNBulklistTool(uc.CreateCDNBulklist),
+		getCDNBulklistTool(uc.GetCDNBulklist),
+		updateCDNBulklistTool(uc.UpdateCDNBulklist),
+		deleteCDNBulklistTool(uc.DeleteCDNBulklist),
+		listCDNFirewallCountriesTool(uc.ListCDNFirewallCountries),
+
+		updateCDNCacheTTLTool(uc.UpdateCDNCacheTTL),
+		updateCDNCacheRuleTool(uc.UpdateCDNCacheRule),
+		updateCDNCacheUserAgentTool(uc.UpdateCDNCacheUserAgentSetting),
+		getCDNCacheSettingsTool(uc.GetCDNCacheSettings),
+		listCDNCacheEntriesTool(uc.ListCDNCacheEntries),
+		purgeCDNCacheTool(uc.PurgeCDNCache),
+		getCDNCacheEntryTool(uc.GetCDNCacheEntry),
+
+		listCDNAccessRulesTool(uc.ListCDNAccessRules),
+		createCDNAccessRuleTool(uc.CreateCDNAccessRule),
+		getCDNAccessRuleTool(uc.GetCDNAccessRule),
+		updateCDNAccessRuleTool(uc.UpdateCDNAccessRule),
+		deleteCDNAccessRuleTool(uc.DeleteCDNAccessRule),
+		getCDNIPReputationTool(uc.GetCDNIPReputation),
+		updateCDNIPReputationTool(uc.UpdateCDNIPReputation),
+		getCDNDDoSActionsTool(uc.GetCDNDDoSActions),
+		updateCDNDDoSActionsTool(uc.UpdateCDNDDoSActions),
+
+		listCDNLoadBalancesTool(uc.ListCDNLoadBalances),
+		createCDNLoadBalanceTool(uc.CreateCDNLoadBalance),
+		getCDNLoadBalanceTool(uc.GetCDNLoadBalance),
+		updateCDNLoadBalanceTool(uc.UpdateCDNLoadBalance),
+		deleteCDNLoadBalanceTool(uc.DeleteCDNLoadBalance),
+		listCDNLoadBalanceServersTool(uc.ListCDNLoadBalanceServers),
+		createCDNLoadBalanceServerTool(uc.CreateCDNLoadBalanceServer),
+		getCDNLoadBalanceServerTool(uc.GetCDNLoadBalanceServer),
+		updateCDNLoadBalanceServerTool(uc.UpdateCDNLoadBalanceServer),
+		deleteCDNLoadBalanceServerTool(uc.DeleteCDNLoadBalanceServer),
+
+		getCDNModSecStatusTool(uc.GetCDNModSecStatus),
+		updateCDNModSecStatusTool(uc.UpdateCDNModSecStatus),
+		listCDNModSecDataTool(uc.ListCDNModSecData),
+		createCDNModSecDataTool(uc.CreateCDNModSecData),
+		getCDNModSecDataTool(uc.GetCDNModSecData),
+		updateCDNModSecDataTool(uc.UpdateCDNModSecData),
+		deleteCDNModSecDataTool(uc.DeleteCDNModSecData),
+		listCDNModSecRulesTool(uc.ListCDNModSecRules),
+		createCDNModSecRuleTool(uc.CreateCDNModSecRule),
+		getCDNModSecRuleTool(uc.GetCDNModSecRule),
+		updateCDNModSecRuleTool(uc.UpdateCDNModSecRule),
+		deleteCDNModSecRuleTool(uc.DeleteCDNModSecRule),
+
+		getCDNHTTPSConvertorTool(uc.GetCDNHTTPSConvertor),
+		updateCDNHTTPSConvertorTool(uc.UpdateCDNHTTPSConvertor),
+		getCDNEdgeToUpstreamConnectionTool(uc.GetCDNEdgeToUpstreamConnection),
+		updateCDNEdgeToUpstreamConnectionTool(uc.UpdateCDNEdgeToUpstreamConnection),
+		getCDNWWWRedirectionTool(uc.GetCDNWWWRedirection),
+		updateCDNWWWRedirectionTool(uc.UpdateCDNWWWRedirection),
+		getCDNWebSocketTool(uc.GetCDNWebSocket),
+		updateCDNWebSocketTool(uc.UpdateCDNWebSocket),
+
+		listCDNOriginRulesTool(uc.ListCDNOriginRules),
+		createCDNOriginRuleTool(uc.CreateCDNOriginRule),
+		getCDNOriginRuleTool(uc.GetCDNOriginRule),
+		updateCDNOriginRuleTool(uc.UpdateCDNOriginRule),
+		deleteCDNOriginRuleTool(uc.DeleteCDNOriginRule),
+		toggleCDNOriginRuleTool(uc.ToggleCDNOriginRule),
+		listCDNPageRulesTool(uc.ListCDNPageRules),
+		createCDNPageRuleTool(uc.CreateCDNPageRule),
+		getCDNPageRuleTool(uc.GetCDNPageRule),
+		updateCDNPageRuleTool(uc.UpdateCDNPageRule),
+		deleteCDNPageRuleTool(uc.DeleteCDNPageRule),
+		listCDNTransformRulesTool(uc.ListCDNTransformRules),
+		createCDNTransformRuleTool(uc.CreateCDNTransformRule),
+		getCDNTransformRuleTool(uc.GetCDNTransformRule),
+		updateCDNTransformRuleTool(uc.UpdateCDNTransformRule),
+		deleteCDNTransformRuleTool(uc.DeleteCDNTransformRule),
+		toggleCDNTransformRuleTool(uc.ToggleCDNTransformRule),
+
+		listCDNRateLimitRulesTool(uc.ListCDNRateLimitRules),
+		createCDNRateLimitRuleTool(uc.CreateCDNRateLimitRule),
+		getCDNRateLimitRuleTool(uc.GetCDNRateLimitRule),
+		updateCDNRateLimitRuleTool(uc.UpdateCDNRateLimitRule),
+		deleteCDNRateLimitRuleTool(uc.DeleteCDNRateLimitRule),
+		updateCDNRateLimitRulePriorityTool(uc.UpdateCDNRateLimitRulePriority),
+		getCDNUpstreamErrorsTool(uc.GetCDNUpstreamErrors),
+		updateCDNUpstreamErrorsTool(uc.UpdateCDNUpstreamErrors),
+
+		getCDNAccessLogTool(uc.GetCDNAccessLog),
+		getCDNSecurityLogTool(uc.GetCDNSecurityLog),
+		getCDNErrorLogTool(uc.GetCDNErrorLog),
+		getCDNWAFLogTool(uc.GetCDNWAFLog),
+		getCDNTopVisitorsTool(uc.GetCDNTopVisitors),
+		getCDNMonthlyTrafficUsageTool(uc.GetCDNMonthlyTrafficUsage),
+		getCDNMinTLSVersionTool(uc.GetCDNMinTLSVersion),
+		updateCDNMinTLSVersionTool(uc.UpdateCDNMinTLSVersion),
+		listCDNCertificatesTool(uc.ListCDNCertificates),
+		getCDNHSTSTool(uc.GetCDNHSTS),
+		updateCDNHSTSTool(uc.UpdateCDNHSTS),
 	}
 }
 

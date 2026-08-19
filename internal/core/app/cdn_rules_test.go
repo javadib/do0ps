@@ -8,6 +8,7 @@ import (
 
 	"github.com/javadib/do0ps/internal/core/app"
 	"github.com/javadib/do0ps/internal/core/domain"
+	"github.com/javadib/do0ps/internal/core/ports"
 )
 
 // The fakes below are package-local to this file (not the shared fakeProvider
@@ -16,15 +17,16 @@ import (
 // that interface actually declares.
 
 type fakeOriginRuleProvider struct {
-	rules           []domain.CDNOriginRule
-	createdZoneUUID string
-	createdRule     *domain.CDNOriginRule
-	updatedRuleID   string
-	updatedRule     *domain.CDNOriginRule
-	deleteErr       error
-	deletedRuleID   string
-	toggledRuleID   string
-	toggledEnabled  bool
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	rules                  []domain.CDNOriginRule
+	createdZoneUUID        string
+	createdRule            *domain.CDNOriginRule
+	updatedRuleID          string
+	updatedRule            *domain.CDNOriginRule
+	deleteErr              error
+	deletedRuleID          string
+	toggledRuleID          string
+	toggledEnabled         bool
 }
 
 func (p *fakeOriginRuleProvider) ListCDNOriginRules(context.Context, domain.ProviderCredentials, string) ([]domain.CDNOriginRule, error) {
@@ -196,13 +198,14 @@ func TestToggleCDNOriginRuleCallsProvider(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 type fakePageRuleProvider struct {
-	rules           []domain.CDNPageRule
-	createdZoneUUID string
-	createdRule     *domain.CDNPageRule
-	updatedRuleID   string
-	updatedRule     *domain.CDNPageRule
-	deleteErr       error
-	deletedRuleID   string
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	rules                  []domain.CDNPageRule
+	createdZoneUUID        string
+	createdRule            *domain.CDNPageRule
+	updatedRuleID          string
+	updatedRule            *domain.CDNPageRule
+	deleteErr              error
+	deletedRuleID          string
 }
 
 func (p *fakePageRuleProvider) ListCDNPageRules(context.Context, domain.ProviderCredentials, string) ([]domain.CDNPageRule, error) {
@@ -338,15 +341,16 @@ func TestDeleteCDNPageRuleTreatsAlreadyGoneAsSuccess(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 type fakeTransformRuleProvider struct {
-	rules           []domain.CDNTransformRule
-	createdZoneUUID string
-	createdRule     *domain.CDNTransformRule
-	updatedRuleID   string
-	updatedRule     *domain.CDNTransformRule
-	deleteErr       error
-	deletedRuleID   string
-	toggledRuleID   string
-	toggledEnabled  bool
+	ports.ParspackProvider // embedded nil; only the methods below are overridden
+	rules                  []domain.CDNTransformRule
+	createdZoneUUID        string
+	createdRule            *domain.CDNTransformRule
+	updatedRuleID          string
+	updatedRule            *domain.CDNTransformRule
+	deleteErr              error
+	deletedRuleID          string
+	toggledRuleID          string
+	toggledEnabled         bool
 }
 
 func (p *fakeTransformRuleProvider) ListCDNTransformRules(context.Context, domain.ProviderCredentials, string) ([]domain.CDNTransformRule, error) {

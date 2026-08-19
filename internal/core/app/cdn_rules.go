@@ -100,10 +100,6 @@ func validateCDNTransformRule(rule domain.CDNTransformRule) error {
 // ---------------------------------------------------------------------------
 // Origin Rules.
 
-type originRuleLister interface {
-	ListCDNOriginRules(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.CDNOriginRule, error)
-}
-
 // ListCDNOriginRulesInput identifies the zone whose origin rules to list.
 type ListCDNOriginRulesInput struct {
 	Credentials domain.ProviderCredentials
@@ -114,11 +110,11 @@ type ListCDNOriginRulesInput struct {
 // caller waits for the result inside the same tool call.
 type ListCDNOriginRules struct {
 	queue    ports.Queue
-	provider originRuleLister
+	provider ports.ParspackProvider
 }
 
 // NewListCDNOriginRules builds the use case from its ports.
-func NewListCDNOriginRules(queue ports.Queue, provider originRuleLister) *ListCDNOriginRules {
+func NewListCDNOriginRules(queue ports.Queue, provider ports.ParspackProvider) *ListCDNOriginRules {
 	return &ListCDNOriginRules{queue: queue, provider: provider}
 }
 
@@ -149,10 +145,6 @@ func (uc *ListCDNOriginRules) Execute(ctx context.Context, in ListCDNOriginRules
 	return rules, nil
 }
 
-type originRuleCreator interface {
-	CreateCDNOriginRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, rule domain.CDNOriginRule) (*domain.CDNOriginRule, error)
-}
-
 // CreateCDNOriginRuleInput is the normalized form of a
 // create_cdn_origin_rule tool call.
 type CreateCDNOriginRuleInput struct {
@@ -165,11 +157,11 @@ type CreateCDNOriginRuleInput struct {
 // caller waits for the result inside the same tool call.
 type CreateCDNOriginRule struct {
 	queue    ports.Queue
-	provider originRuleCreator
+	provider ports.ParspackProvider
 }
 
 // NewCreateCDNOriginRule builds the use case from its ports.
-func NewCreateCDNOriginRule(queue ports.Queue, provider originRuleCreator) *CreateCDNOriginRule {
+func NewCreateCDNOriginRule(queue ports.Queue, provider ports.ParspackProvider) *CreateCDNOriginRule {
 	return &CreateCDNOriginRule{queue: queue, provider: provider}
 }
 
@@ -205,10 +197,6 @@ func (uc *CreateCDNOriginRule) Execute(ctx context.Context, in CreateCDNOriginRu
 	return &created, nil
 }
 
-type originRuleGetter interface {
-	GetCDNOriginRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) (*domain.CDNOriginRule, error)
-}
-
 // GetCDNOriginRuleInput identifies the origin rule to look up.
 type GetCDNOriginRuleInput struct {
 	Credentials domain.ProviderCredentials
@@ -220,11 +208,11 @@ type GetCDNOriginRuleInput struct {
 // waits for the result inside the same tool call.
 type GetCDNOriginRule struct {
 	queue    ports.Queue
-	provider originRuleGetter
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNOriginRule builds the use case from its ports.
-func NewGetCDNOriginRule(queue ports.Queue, provider originRuleGetter) *GetCDNOriginRule {
+func NewGetCDNOriginRule(queue ports.Queue, provider ports.ParspackProvider) *GetCDNOriginRule {
 	return &GetCDNOriginRule{queue: queue, provider: provider}
 }
 
@@ -258,10 +246,6 @@ func (uc *GetCDNOriginRule) Execute(ctx context.Context, in GetCDNOriginRuleInpu
 	return &rule, nil
 }
 
-type originRuleUpdater interface {
-	UpdateCDNOriginRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string, rule domain.CDNOriginRule) (*domain.CDNOriginRule, error)
-}
-
 // UpdateCDNOriginRuleInput is the normalized form of an
 // update_cdn_origin_rule tool call.
 type UpdateCDNOriginRuleInput struct {
@@ -275,11 +259,11 @@ type UpdateCDNOriginRuleInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNOriginRule struct {
 	queue    ports.Queue
-	provider originRuleUpdater
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNOriginRule builds the use case from its ports.
-func NewUpdateCDNOriginRule(queue ports.Queue, provider originRuleUpdater) *UpdateCDNOriginRule {
+func NewUpdateCDNOriginRule(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNOriginRule {
 	return &UpdateCDNOriginRule{queue: queue, provider: provider}
 }
 
@@ -317,10 +301,6 @@ func (uc *UpdateCDNOriginRule) Execute(ctx context.Context, in UpdateCDNOriginRu
 	return &updated, nil
 }
 
-type originRuleDeleter interface {
-	DeleteCDNOriginRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) error
-}
-
 // DeleteCDNOriginRuleInput identifies the origin rule to remove.
 type DeleteCDNOriginRuleInput struct {
 	Credentials domain.ProviderCredentials
@@ -333,11 +313,11 @@ type DeleteCDNOriginRuleInput struct {
 // call it more than once safely.
 type DeleteCDNOriginRule struct {
 	queue    ports.Queue
-	provider originRuleDeleter
+	provider ports.ParspackProvider
 }
 
 // NewDeleteCDNOriginRule builds the use case from its ports.
-func NewDeleteCDNOriginRule(queue ports.Queue, provider originRuleDeleter) *DeleteCDNOriginRule {
+func NewDeleteCDNOriginRule(queue ports.Queue, provider ports.ParspackProvider) *DeleteCDNOriginRule {
 	return &DeleteCDNOriginRule{queue: queue, provider: provider}
 }
 
@@ -365,10 +345,6 @@ func (uc *DeleteCDNOriginRule) Execute(ctx context.Context, in DeleteCDNOriginRu
 	return err
 }
 
-type originRuleToggler interface {
-	ToggleCDNOriginRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string, enabled bool) error
-}
-
 // ToggleCDNOriginRuleInput identifies the origin rule to enable or disable.
 type ToggleCDNOriginRuleInput struct {
 	Credentials domain.ProviderCredentials
@@ -381,11 +357,11 @@ type ToggleCDNOriginRuleInput struct {
 // without deleting it.
 type ToggleCDNOriginRule struct {
 	queue    ports.Queue
-	provider originRuleToggler
+	provider ports.ParspackProvider
 }
 
 // NewToggleCDNOriginRule builds the use case from its ports.
-func NewToggleCDNOriginRule(queue ports.Queue, provider originRuleToggler) *ToggleCDNOriginRule {
+func NewToggleCDNOriginRule(queue ports.Queue, provider ports.ParspackProvider) *ToggleCDNOriginRule {
 	return &ToggleCDNOriginRule{queue: queue, provider: provider}
 }
 
@@ -415,10 +391,6 @@ func (uc *ToggleCDNOriginRule) Execute(ctx context.Context, in ToggleCDNOriginRu
 // spec confirms only list/create/get/update/delete), so there is no
 // ToggleCDNPageRule use case.
 
-type pageRuleLister interface {
-	ListCDNPageRules(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.CDNPageRule, error)
-}
-
 // ListCDNPageRulesInput identifies the zone whose page rules to list.
 type ListCDNPageRulesInput struct {
 	Credentials domain.ProviderCredentials
@@ -429,11 +401,11 @@ type ListCDNPageRulesInput struct {
 // waits for the result inside the same tool call.
 type ListCDNPageRules struct {
 	queue    ports.Queue
-	provider pageRuleLister
+	provider ports.ParspackProvider
 }
 
 // NewListCDNPageRules builds the use case from its ports.
-func NewListCDNPageRules(queue ports.Queue, provider pageRuleLister) *ListCDNPageRules {
+func NewListCDNPageRules(queue ports.Queue, provider ports.ParspackProvider) *ListCDNPageRules {
 	return &ListCDNPageRules{queue: queue, provider: provider}
 }
 
@@ -464,10 +436,6 @@ func (uc *ListCDNPageRules) Execute(ctx context.Context, in ListCDNPageRulesInpu
 	return rules, nil
 }
 
-type pageRuleCreator interface {
-	CreateCDNPageRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, rule domain.CDNPageRule) (*domain.CDNPageRule, error)
-}
-
 // CreateCDNPageRuleInput is the normalized form of a create_cdn_page_rule
 // tool call.
 type CreateCDNPageRuleInput struct {
@@ -480,11 +448,11 @@ type CreateCDNPageRuleInput struct {
 // waits for the result inside the same tool call.
 type CreateCDNPageRule struct {
 	queue    ports.Queue
-	provider pageRuleCreator
+	provider ports.ParspackProvider
 }
 
 // NewCreateCDNPageRule builds the use case from its ports.
-func NewCreateCDNPageRule(queue ports.Queue, provider pageRuleCreator) *CreateCDNPageRule {
+func NewCreateCDNPageRule(queue ports.Queue, provider ports.ParspackProvider) *CreateCDNPageRule {
 	return &CreateCDNPageRule{queue: queue, provider: provider}
 }
 
@@ -520,10 +488,6 @@ func (uc *CreateCDNPageRule) Execute(ctx context.Context, in CreateCDNPageRuleIn
 	return &created, nil
 }
 
-type pageRuleGetter interface {
-	GetCDNPageRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) (*domain.CDNPageRule, error)
-}
-
 // GetCDNPageRuleInput identifies the page rule to look up.
 type GetCDNPageRuleInput struct {
 	Credentials domain.ProviderCredentials
@@ -535,11 +499,11 @@ type GetCDNPageRuleInput struct {
 // waits for the result inside the same tool call.
 type GetCDNPageRule struct {
 	queue    ports.Queue
-	provider pageRuleGetter
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNPageRule builds the use case from its ports.
-func NewGetCDNPageRule(queue ports.Queue, provider pageRuleGetter) *GetCDNPageRule {
+func NewGetCDNPageRule(queue ports.Queue, provider ports.ParspackProvider) *GetCDNPageRule {
 	return &GetCDNPageRule{queue: queue, provider: provider}
 }
 
@@ -573,10 +537,6 @@ func (uc *GetCDNPageRule) Execute(ctx context.Context, in GetCDNPageRuleInput) (
 	return &rule, nil
 }
 
-type pageRuleUpdater interface {
-	UpdateCDNPageRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string, rule domain.CDNPageRule) (*domain.CDNPageRule, error)
-}
-
 // UpdateCDNPageRuleInput is the normalized form of an update_cdn_page_rule
 // tool call.
 type UpdateCDNPageRuleInput struct {
@@ -590,11 +550,11 @@ type UpdateCDNPageRuleInput struct {
 // waits for the result inside the same tool call.
 type UpdateCDNPageRule struct {
 	queue    ports.Queue
-	provider pageRuleUpdater
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNPageRule builds the use case from its ports.
-func NewUpdateCDNPageRule(queue ports.Queue, provider pageRuleUpdater) *UpdateCDNPageRule {
+func NewUpdateCDNPageRule(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNPageRule {
 	return &UpdateCDNPageRule{queue: queue, provider: provider}
 }
 
@@ -632,10 +592,6 @@ func (uc *UpdateCDNPageRule) Execute(ctx context.Context, in UpdateCDNPageRuleIn
 	return &updated, nil
 }
 
-type pageRuleDeleter interface {
-	DeleteCDNPageRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) error
-}
-
 // DeleteCDNPageRuleInput identifies the page rule to remove.
 type DeleteCDNPageRuleInput struct {
 	Credentials domain.ProviderCredentials
@@ -648,11 +604,11 @@ type DeleteCDNPageRuleInput struct {
 // call it more than once safely.
 type DeleteCDNPageRule struct {
 	queue    ports.Queue
-	provider pageRuleDeleter
+	provider ports.ParspackProvider
 }
 
 // NewDeleteCDNPageRule builds the use case from its ports.
-func NewDeleteCDNPageRule(queue ports.Queue, provider pageRuleDeleter) *DeleteCDNPageRule {
+func NewDeleteCDNPageRule(queue ports.Queue, provider ports.ParspackProvider) *DeleteCDNPageRule {
 	return &DeleteCDNPageRule{queue: queue, provider: provider}
 }
 
@@ -683,10 +639,6 @@ func (uc *DeleteCDNPageRule) Execute(ctx context.Context, in DeleteCDNPageRuleIn
 // ---------------------------------------------------------------------------
 // Transform Rules.
 
-type transformRuleLister interface {
-	ListCDNTransformRules(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.CDNTransformRule, error)
-}
-
 // ListCDNTransformRulesInput identifies the zone whose transform rules to
 // list.
 type ListCDNTransformRulesInput struct {
@@ -698,11 +650,11 @@ type ListCDNTransformRulesInput struct {
 // caller waits for the result inside the same tool call.
 type ListCDNTransformRules struct {
 	queue    ports.Queue
-	provider transformRuleLister
+	provider ports.ParspackProvider
 }
 
 // NewListCDNTransformRules builds the use case from its ports.
-func NewListCDNTransformRules(queue ports.Queue, provider transformRuleLister) *ListCDNTransformRules {
+func NewListCDNTransformRules(queue ports.Queue, provider ports.ParspackProvider) *ListCDNTransformRules {
 	return &ListCDNTransformRules{queue: queue, provider: provider}
 }
 
@@ -733,10 +685,6 @@ func (uc *ListCDNTransformRules) Execute(ctx context.Context, in ListCDNTransfor
 	return rules, nil
 }
 
-type transformRuleCreator interface {
-	CreateCDNTransformRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, rule domain.CDNTransformRule) (*domain.CDNTransformRule, error)
-}
-
 // CreateCDNTransformRuleInput is the normalized form of a
 // create_cdn_transform_rule tool call.
 type CreateCDNTransformRuleInput struct {
@@ -749,11 +697,11 @@ type CreateCDNTransformRuleInput struct {
 // caller waits for the result inside the same tool call.
 type CreateCDNTransformRule struct {
 	queue    ports.Queue
-	provider transformRuleCreator
+	provider ports.ParspackProvider
 }
 
 // NewCreateCDNTransformRule builds the use case from its ports.
-func NewCreateCDNTransformRule(queue ports.Queue, provider transformRuleCreator) *CreateCDNTransformRule {
+func NewCreateCDNTransformRule(queue ports.Queue, provider ports.ParspackProvider) *CreateCDNTransformRule {
 	return &CreateCDNTransformRule{queue: queue, provider: provider}
 }
 
@@ -789,10 +737,6 @@ func (uc *CreateCDNTransformRule) Execute(ctx context.Context, in CreateCDNTrans
 	return &created, nil
 }
 
-type transformRuleGetter interface {
-	GetCDNTransformRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) (*domain.CDNTransformRule, error)
-}
-
 // GetCDNTransformRuleInput identifies the transform rule to look up.
 type GetCDNTransformRuleInput struct {
 	Credentials domain.ProviderCredentials
@@ -804,11 +748,11 @@ type GetCDNTransformRuleInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNTransformRule struct {
 	queue    ports.Queue
-	provider transformRuleGetter
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNTransformRule builds the use case from its ports.
-func NewGetCDNTransformRule(queue ports.Queue, provider transformRuleGetter) *GetCDNTransformRule {
+func NewGetCDNTransformRule(queue ports.Queue, provider ports.ParspackProvider) *GetCDNTransformRule {
 	return &GetCDNTransformRule{queue: queue, provider: provider}
 }
 
@@ -842,10 +786,6 @@ func (uc *GetCDNTransformRule) Execute(ctx context.Context, in GetCDNTransformRu
 	return &rule, nil
 }
 
-type transformRuleUpdater interface {
-	UpdateCDNTransformRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string, rule domain.CDNTransformRule) (*domain.CDNTransformRule, error)
-}
-
 // UpdateCDNTransformRuleInput is the normalized form of an
 // update_cdn_transform_rule tool call.
 type UpdateCDNTransformRuleInput struct {
@@ -859,11 +799,11 @@ type UpdateCDNTransformRuleInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNTransformRule struct {
 	queue    ports.Queue
-	provider transformRuleUpdater
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNTransformRule builds the use case from its ports.
-func NewUpdateCDNTransformRule(queue ports.Queue, provider transformRuleUpdater) *UpdateCDNTransformRule {
+func NewUpdateCDNTransformRule(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNTransformRule {
 	return &UpdateCDNTransformRule{queue: queue, provider: provider}
 }
 
@@ -901,10 +841,6 @@ func (uc *UpdateCDNTransformRule) Execute(ctx context.Context, in UpdateCDNTrans
 	return &updated, nil
 }
 
-type transformRuleDeleter interface {
-	DeleteCDNTransformRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) error
-}
-
 // DeleteCDNTransformRuleInput identifies the transform rule to remove.
 type DeleteCDNTransformRuleInput struct {
 	Credentials domain.ProviderCredentials
@@ -917,11 +853,11 @@ type DeleteCDNTransformRuleInput struct {
 // can call it more than once safely.
 type DeleteCDNTransformRule struct {
 	queue    ports.Queue
-	provider transformRuleDeleter
+	provider ports.ParspackProvider
 }
 
 // NewDeleteCDNTransformRule builds the use case from its ports.
-func NewDeleteCDNTransformRule(queue ports.Queue, provider transformRuleDeleter) *DeleteCDNTransformRule {
+func NewDeleteCDNTransformRule(queue ports.Queue, provider ports.ParspackProvider) *DeleteCDNTransformRule {
 	return &DeleteCDNTransformRule{queue: queue, provider: provider}
 }
 
@@ -949,10 +885,6 @@ func (uc *DeleteCDNTransformRule) Execute(ctx context.Context, in DeleteCDNTrans
 	return err
 }
 
-type transformRuleToggler interface {
-	ToggleCDNTransformRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string, enabled bool) error
-}
-
 // ToggleCDNTransformRuleInput identifies the transform rule to enable or
 // disable.
 type ToggleCDNTransformRuleInput struct {
@@ -966,11 +898,11 @@ type ToggleCDNTransformRuleInput struct {
 // without deleting it.
 type ToggleCDNTransformRule struct {
 	queue    ports.Queue
-	provider transformRuleToggler
+	provider ports.ParspackProvider
 }
 
 // NewToggleCDNTransformRule builds the use case from its ports.
-func NewToggleCDNTransformRule(queue ports.Queue, provider transformRuleToggler) *ToggleCDNTransformRule {
+func NewToggleCDNTransformRule(queue ports.Queue, provider ports.ParspackProvider) *ToggleCDNTransformRule {
 	return &ToggleCDNTransformRule{queue: queue, provider: provider}
 }
 

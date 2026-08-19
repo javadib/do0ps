@@ -123,6 +123,17 @@ Once connected, the assistant has tools covering (Parspack, phase 1):
 - **SSL certificates** -- order, verify domain challenge, issue, reissue
 - **CDN zones and DNS records** -- create/get/delete zones, manage DNS
   records and nameservers within a zone
+- **CDN edge capabilities beyond zone/DNS** -- zone settings and toggles
+  (antivirus, DNSSEC, asset optimization, developer/maintenance mode, query
+  string handling, origin offline), bulklists and the firewall country
+  reference list, cache management, edge-level firewall (access rules, IP
+  reputation, DDoS actions -- distinct from the VM-network-level firewalls
+  above), edge-level load balancing (distinct from the VM-network-level
+  load balancers above), ModSec WAF rules, network settings (HTTPS
+  convertor, edge-to-upstream connection, WWW redirection, WebSocket),
+  origin/page/transform rule engines, rate limit rules, access/security/
+  error/WAF logs and traffic analytics, and zone-level SSL settings
+  (minimum TLS version, attached certificates, HSTS)
 - **Long-running operations** -- `get_operation_status` to poll anything
   that returns an `operation_id` instead of blocking (server provisioning,
   load balancer creation, etc.)

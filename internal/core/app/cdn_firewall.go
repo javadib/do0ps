@@ -9,29 +9,8 @@ import (
 	"github.com/javadib/do0ps/internal/core/ports"
 )
 
-// cdnFirewallProvider is the slice of provider behavior this file's use
-// cases depend on: CDN-edge access-management rules, IP-reputation blocking
-// and DDoS mitigation actions (issue #24). It is declared locally rather
-// than added to ports.ParspackProvider directly because that file is being
-// integrated centrally; the method set below is shaped exactly like the
-// extension ports.ParspackProvider will receive, and *parspack.Client
-// already implements it structurally, so this compiles and runs today
-// without editing ports.go.
-//
-// These are entirely distinct from ports.ParspackProvider's existing
 // CreateFirewall/GetFirewall/ListFirewalls/UpdateFirewall/DeleteFirewall
 // methods, which are the cloud-server/VM-network-level firewall (issue #11).
-type cdnFirewallProvider interface {
-	ListCDNAccessRules(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.CDNAccessRule, error)
-	CreateCDNAccessRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, rule domain.CDNAccessRule) (*domain.CDNAccessRule, error)
-	GetCDNAccessRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) (*domain.CDNAccessRule, error)
-	UpdateCDNAccessRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, rule domain.CDNAccessRule) (*domain.CDNAccessRule, error)
-	DeleteCDNAccessRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) error
-	GetCDNIPReputation(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNIPReputationSettings, error)
-	UpdateCDNIPReputation(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, settings domain.CDNIPReputationSettings) (*domain.CDNIPReputationSettings, error)
-	GetCDNDDoSActions(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNDDoSActionSettings, error)
-	UpdateCDNDDoSActions(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, settings domain.CDNDDoSActionSettings) (*domain.CDNDDoSActionSettings, error)
-}
 
 func validateCDNAccessRuleForCreate(rule domain.CDNAccessRule) error {
 	if !domain.ValidCDNAccessRuleType(rule.Type) {
@@ -69,11 +48,11 @@ type ListCDNAccessRulesInput struct {
 // waits for the result inside the same tool call.
 type ListCDNAccessRules struct {
 	queue    ports.Queue
-	provider cdnFirewallProvider
+	provider ports.ParspackProvider
 }
 
 // NewListCDNAccessRules builds the use case from its ports.
-func NewListCDNAccessRules(queue ports.Queue, provider cdnFirewallProvider) *ListCDNAccessRules {
+func NewListCDNAccessRules(queue ports.Queue, provider ports.ParspackProvider) *ListCDNAccessRules {
 	return &ListCDNAccessRules{queue: queue, provider: provider}
 }
 
@@ -115,11 +94,11 @@ type GetCDNAccessRuleInput struct {
 // waits for the result inside the same tool call.
 type GetCDNAccessRule struct {
 	queue    ports.Queue
-	provider cdnFirewallProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNAccessRule builds the use case from its ports.
-func NewGetCDNAccessRule(queue ports.Queue, provider cdnFirewallProvider) *GetCDNAccessRule {
+func NewGetCDNAccessRule(queue ports.Queue, provider ports.ParspackProvider) *GetCDNAccessRule {
 	return &GetCDNAccessRule{queue: queue, provider: provider}
 }
 
@@ -167,11 +146,11 @@ type CreateCDNAccessRuleInput struct {
 // parspack.Client.CreateCDNAccessRule).
 type CreateCDNAccessRule struct {
 	queue    ports.Queue
-	provider cdnFirewallProvider
+	provider ports.ParspackProvider
 }
 
 // NewCreateCDNAccessRule builds the use case from its ports.
-func NewCreateCDNAccessRule(queue ports.Queue, provider cdnFirewallProvider) *CreateCDNAccessRule {
+func NewCreateCDNAccessRule(queue ports.Queue, provider ports.ParspackProvider) *CreateCDNAccessRule {
 	return &CreateCDNAccessRule{queue: queue, provider: provider}
 }
 
@@ -218,11 +197,11 @@ type UpdateCDNAccessRuleInput struct {
 // endpoint reports no body — see parspack.Client.UpdateCDNAccessRule).
 type UpdateCDNAccessRule struct {
 	queue    ports.Queue
-	provider cdnFirewallProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNAccessRule builds the use case from its ports.
-func NewUpdateCDNAccessRule(queue ports.Queue, provider cdnFirewallProvider) *UpdateCDNAccessRule {
+func NewUpdateCDNAccessRule(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNAccessRule {
 	return &UpdateCDNAccessRule{queue: queue, provider: provider}
 }
 
@@ -268,11 +247,11 @@ type DeleteCDNAccessRuleInput struct {
 // call it more than once safely.
 type DeleteCDNAccessRule struct {
 	queue    ports.Queue
-	provider cdnFirewallProvider
+	provider ports.ParspackProvider
 }
 
 // NewDeleteCDNAccessRule builds the use case from its ports.
-func NewDeleteCDNAccessRule(queue ports.Queue, provider cdnFirewallProvider) *DeleteCDNAccessRule {
+func NewDeleteCDNAccessRule(queue ports.Queue, provider ports.ParspackProvider) *DeleteCDNAccessRule {
 	return &DeleteCDNAccessRule{queue: queue, provider: provider}
 }
 
@@ -311,11 +290,11 @@ type GetCDNIPReputationInput struct {
 // waits for the result inside the same tool call.
 type GetCDNIPReputation struct {
 	queue    ports.Queue
-	provider cdnFirewallProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNIPReputation builds the use case from its ports.
-func NewGetCDNIPReputation(queue ports.Queue, provider cdnFirewallProvider) *GetCDNIPReputation {
+func NewGetCDNIPReputation(queue ports.Queue, provider ports.ParspackProvider) *GetCDNIPReputation {
 	return &GetCDNIPReputation{queue: queue, provider: provider}
 }
 
@@ -359,11 +338,11 @@ type UpdateCDNIPReputationInput struct {
 // returned within the same tool call.
 type UpdateCDNIPReputation struct {
 	queue    ports.Queue
-	provider cdnFirewallProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNIPReputation builds the use case from its ports.
-func NewUpdateCDNIPReputation(queue ports.Queue, provider cdnFirewallProvider) *UpdateCDNIPReputation {
+func NewUpdateCDNIPReputation(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNIPReputation {
 	return &UpdateCDNIPReputation{queue: queue, provider: provider}
 }
 
@@ -419,11 +398,11 @@ type GetCDNDDoSActionsInput struct {
 // waits for the result inside the same tool call.
 type GetCDNDDoSActions struct {
 	queue    ports.Queue
-	provider cdnFirewallProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNDDoSActions builds the use case from its ports.
-func NewGetCDNDDoSActions(queue ports.Queue, provider cdnFirewallProvider) *GetCDNDDoSActions {
+func NewGetCDNDDoSActions(queue ports.Queue, provider ports.ParspackProvider) *GetCDNDDoSActions {
 	return &GetCDNDDoSActions{queue: queue, provider: provider}
 }
 
@@ -467,11 +446,11 @@ type UpdateCDNDDoSActionsInput struct {
 // returned within the same tool call.
 type UpdateCDNDDoSActions struct {
 	queue    ports.Queue
-	provider cdnFirewallProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNDDoSActions builds the use case from its ports.
-func NewUpdateCDNDDoSActions(queue ports.Queue, provider cdnFirewallProvider) *UpdateCDNDDoSActions {
+func NewUpdateCDNDDoSActions(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNDDoSActions {
 	return &UpdateCDNDDoSActions{queue: queue, provider: provider}
 }
 

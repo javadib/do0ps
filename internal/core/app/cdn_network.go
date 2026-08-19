@@ -9,29 +9,6 @@ import (
 	"github.com/javadib/do0ps/internal/core/ports"
 )
 
-// cdnNetworkProvider is the subset of provider operations these use cases
-// need for zone-level network settings (issue #24's Network tag: HTTPS
-// convertor, edge-to-upstream connection protocol, www redirection, and
-// WebSocket support). It is declared locally, rather than added to
-// ports.ParspackProvider directly, because that port is being integrated
-// centrally later across several concurrently-developed slices of issue
-// #24 — *parspack.Client already satisfies this interface structurally
-// (Go structural typing), and this method set is intended to be merged
-// into ports.ParspackProvider verbatim once that integration happens.
-type cdnNetworkProvider interface {
-	GetCDNHTTPSConvertor(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNHTTPSConvertorSetting, error)
-	UpdateCDNHTTPSConvertor(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, setting domain.CDNHTTPSConvertorSetting) (*domain.CDNHTTPSConvertorSetting, error)
-
-	GetCDNEdgeToUpstreamConnection(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNEdgeToUpstreamConnectionSetting, error)
-	UpdateCDNEdgeToUpstreamConnection(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, setting domain.CDNEdgeToUpstreamConnectionSetting) (*domain.CDNEdgeToUpstreamConnectionSetting, error)
-
-	GetCDNWWWRedirection(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNWWWRedirectionSetting, error)
-	UpdateCDNWWWRedirection(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, setting domain.CDNWWWRedirectionSetting) (*domain.CDNWWWRedirectionSetting, error)
-
-	GetCDNWebSocket(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNWebSocketSetting, error)
-	UpdateCDNWebSocket(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, setting domain.CDNWebSocketSetting) (*domain.CDNWebSocketSetting, error)
-}
-
 // --- HTTPS convertor -------------------------------------------------------
 
 // GetCDNHTTPSConvertorInput identifies the zone whose HTTPS convertor
@@ -45,11 +22,11 @@ type GetCDNHTTPSConvertorInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNHTTPSConvertor struct {
 	queue    ports.Queue
-	provider cdnNetworkProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNHTTPSConvertor builds the use case from its ports.
-func NewGetCDNHTTPSConvertor(queue ports.Queue, provider cdnNetworkProvider) *GetCDNHTTPSConvertor {
+func NewGetCDNHTTPSConvertor(queue ports.Queue, provider ports.ParspackProvider) *GetCDNHTTPSConvertor {
 	return &GetCDNHTTPSConvertor{queue: queue, provider: provider}
 }
 
@@ -92,11 +69,11 @@ type UpdateCDNHTTPSConvertorInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNHTTPSConvertor struct {
 	queue    ports.Queue
-	provider cdnNetworkProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNHTTPSConvertor builds the use case from its ports.
-func NewUpdateCDNHTTPSConvertor(queue ports.Queue, provider cdnNetworkProvider) *UpdateCDNHTTPSConvertor {
+func NewUpdateCDNHTTPSConvertor(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNHTTPSConvertor {
 	return &UpdateCDNHTTPSConvertor{queue: queue, provider: provider}
 }
 
@@ -141,11 +118,11 @@ type GetCDNEdgeToUpstreamConnectionInput struct {
 // but the caller waits for the result inside the same tool call.
 type GetCDNEdgeToUpstreamConnection struct {
 	queue    ports.Queue
-	provider cdnNetworkProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNEdgeToUpstreamConnection builds the use case from its ports.
-func NewGetCDNEdgeToUpstreamConnection(queue ports.Queue, provider cdnNetworkProvider) *GetCDNEdgeToUpstreamConnection {
+func NewGetCDNEdgeToUpstreamConnection(queue ports.Queue, provider ports.ParspackProvider) *GetCDNEdgeToUpstreamConnection {
 	return &GetCDNEdgeToUpstreamConnection{queue: queue, provider: provider}
 }
 
@@ -189,11 +166,11 @@ type UpdateCDNEdgeToUpstreamConnectionInput struct {
 // worker but the caller waits for the result inside the same tool call.
 type UpdateCDNEdgeToUpstreamConnection struct {
 	queue    ports.Queue
-	provider cdnNetworkProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNEdgeToUpstreamConnection builds the use case from its ports.
-func NewUpdateCDNEdgeToUpstreamConnection(queue ports.Queue, provider cdnNetworkProvider) *UpdateCDNEdgeToUpstreamConnection {
+func NewUpdateCDNEdgeToUpstreamConnection(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNEdgeToUpstreamConnection {
 	return &UpdateCDNEdgeToUpstreamConnection{queue: queue, provider: provider}
 }
 
@@ -241,11 +218,11 @@ type GetCDNWWWRedirectionInput struct {
 // caller waits for the result inside the same tool call.
 type GetCDNWWWRedirection struct {
 	queue    ports.Queue
-	provider cdnNetworkProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNWWWRedirection builds the use case from its ports.
-func NewGetCDNWWWRedirection(queue ports.Queue, provider cdnNetworkProvider) *GetCDNWWWRedirection {
+func NewGetCDNWWWRedirection(queue ports.Queue, provider ports.ParspackProvider) *GetCDNWWWRedirection {
 	return &GetCDNWWWRedirection{queue: queue, provider: provider}
 }
 
@@ -288,11 +265,11 @@ type UpdateCDNWWWRedirectionInput struct {
 // caller waits for the result inside the same tool call.
 type UpdateCDNWWWRedirection struct {
 	queue    ports.Queue
-	provider cdnNetworkProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNWWWRedirection builds the use case from its ports.
-func NewUpdateCDNWWWRedirection(queue ports.Queue, provider cdnNetworkProvider) *UpdateCDNWWWRedirection {
+func NewUpdateCDNWWWRedirection(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNWWWRedirection {
 	return &UpdateCDNWWWRedirection{queue: queue, provider: provider}
 }
 
@@ -340,11 +317,11 @@ type GetCDNWebSocketInput struct {
 // waits for the result inside the same tool call.
 type GetCDNWebSocket struct {
 	queue    ports.Queue
-	provider cdnNetworkProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNWebSocket builds the use case from its ports.
-func NewGetCDNWebSocket(queue ports.Queue, provider cdnNetworkProvider) *GetCDNWebSocket {
+func NewGetCDNWebSocket(queue ports.Queue, provider ports.ParspackProvider) *GetCDNWebSocket {
 	return &GetCDNWebSocket{queue: queue, provider: provider}
 }
 
@@ -386,11 +363,11 @@ type UpdateCDNWebSocketInput struct {
 // waits for the result inside the same tool call.
 type UpdateCDNWebSocket struct {
 	queue    ports.Queue
-	provider cdnNetworkProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNWebSocket builds the use case from its ports.
-func NewUpdateCDNWebSocket(queue ports.Queue, provider cdnNetworkProvider) *UpdateCDNWebSocket {
+func NewUpdateCDNWebSocket(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNWebSocket {
 	return &UpdateCDNWebSocket{queue: queue, provider: provider}
 }
 

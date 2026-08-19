@@ -33,20 +33,15 @@ type GetCDNModSecStatusInput struct {
 	ZoneUUID    string
 }
 
-// getCDNModSecStatusProvider is the one provider method GetCDNModSecStatus needs.
-type getCDNModSecStatusProvider interface {
-	GetCDNModSecStatus(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.CDNModSecStatus, error)
-}
-
 // GetCDNModSecStatus is a fast operation: it runs on a worker but the caller
 // waits for the result inside the same tool call.
 type GetCDNModSecStatus struct {
 	queue    ports.Queue
-	provider getCDNModSecStatusProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNModSecStatus builds the use case from its ports.
-func NewGetCDNModSecStatus(queue ports.Queue, provider getCDNModSecStatusProvider) *GetCDNModSecStatus {
+func NewGetCDNModSecStatus(queue ports.Queue, provider ports.ParspackProvider) *GetCDNModSecStatus {
 	return &GetCDNModSecStatus{queue: queue, provider: provider}
 }
 
@@ -85,21 +80,17 @@ type UpdateCDNModSecStatusInput struct {
 	SelectedRuleIDs []string
 }
 
-// updateCDNModSecStatusProvider is the one provider method
 // UpdateCDNModSecStatus needs.
-type updateCDNModSecStatusProvider interface {
-	UpdateCDNModSecStatus(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, selectedRuleIDs []string) (*domain.CDNModSecStatus, error)
-}
 
 // UpdateCDNModSecStatus is a fast operation: it runs on a worker but the
 // caller waits for the result inside the same tool call.
 type UpdateCDNModSecStatus struct {
 	queue    ports.Queue
-	provider updateCDNModSecStatusProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNModSecStatus builds the use case from its ports.
-func NewUpdateCDNModSecStatus(queue ports.Queue, provider updateCDNModSecStatusProvider) *UpdateCDNModSecStatus {
+func NewUpdateCDNModSecStatus(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNModSecStatus {
 	return &UpdateCDNModSecStatus{queue: queue, provider: provider}
 }
 
@@ -139,20 +130,15 @@ type ListCDNModSecDataInput struct {
 	ZoneUUID    string
 }
 
-// listCDNModSecDataProvider is the one provider method ListCDNModSecData needs.
-type listCDNModSecDataProvider interface {
-	ListCDNModSecData(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.CDNModSecData, error)
-}
-
 // ListCDNModSecData is a fast operation: it runs on a worker but the caller
 // waits for the result inside the same tool call.
 type ListCDNModSecData struct {
 	queue    ports.Queue
-	provider listCDNModSecDataProvider
+	provider ports.ParspackProvider
 }
 
 // NewListCDNModSecData builds the use case from its ports.
-func NewListCDNModSecData(queue ports.Queue, provider listCDNModSecDataProvider) *ListCDNModSecData {
+func NewListCDNModSecData(queue ports.Queue, provider ports.ParspackProvider) *ListCDNModSecData {
 	return &ListCDNModSecData{queue: queue, provider: provider}
 }
 
@@ -192,20 +178,15 @@ type CreateCDNModSecDataInput struct {
 	Data        domain.CDNModSecData
 }
 
-// createCDNModSecDataProvider is the one provider method CreateCDNModSecData needs.
-type createCDNModSecDataProvider interface {
-	CreateCDNModSecData(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, data domain.CDNModSecData) (*domain.CDNModSecData, error)
-}
-
 // CreateCDNModSecData is a fast operation: it runs on a worker but the
 // caller waits for the result inside the same tool call.
 type CreateCDNModSecData struct {
 	queue    ports.Queue
-	provider createCDNModSecDataProvider
+	provider ports.ParspackProvider
 }
 
 // NewCreateCDNModSecData builds the use case from its ports.
-func NewCreateCDNModSecData(queue ports.Queue, provider createCDNModSecDataProvider) *CreateCDNModSecData {
+func NewCreateCDNModSecData(queue ports.Queue, provider ports.ParspackProvider) *CreateCDNModSecData {
 	return &CreateCDNModSecData{queue: queue, provider: provider}
 }
 
@@ -259,20 +240,15 @@ type GetCDNModSecDataInput struct {
 	ID          string
 }
 
-// getCDNModSecDataProvider is the one provider method GetCDNModSecData needs.
-type getCDNModSecDataProvider interface {
-	GetCDNModSecData(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, id string) (*domain.CDNModSecData, error)
-}
-
 // GetCDNModSecData is a fast operation: it runs on a worker but the caller
 // waits for the result inside the same tool call.
 type GetCDNModSecData struct {
 	queue    ports.Queue
-	provider getCDNModSecDataProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNModSecData builds the use case from its ports.
-func NewGetCDNModSecData(queue ports.Queue, provider getCDNModSecDataProvider) *GetCDNModSecData {
+func NewGetCDNModSecData(queue ports.Queue, provider ports.ParspackProvider) *GetCDNModSecData {
 	return &GetCDNModSecData{queue: queue, provider: provider}
 }
 
@@ -315,20 +291,15 @@ type UpdateCDNModSecDataInput struct {
 	Data        domain.CDNModSecData
 }
 
-// updateCDNModSecDataProvider is the one provider method UpdateCDNModSecData needs.
-type updateCDNModSecDataProvider interface {
-	UpdateCDNModSecData(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, id string, data domain.CDNModSecData) (*domain.CDNModSecData, error)
-}
-
 // UpdateCDNModSecData is a fast operation: it runs on a worker but the
 // caller waits for the result inside the same tool call.
 type UpdateCDNModSecData struct {
 	queue    ports.Queue
-	provider updateCDNModSecDataProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNModSecData builds the use case from its ports.
-func NewUpdateCDNModSecData(queue ports.Queue, provider updateCDNModSecDataProvider) *UpdateCDNModSecData {
+func NewUpdateCDNModSecData(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNModSecData {
 	return &UpdateCDNModSecData{queue: queue, provider: provider}
 }
 
@@ -373,21 +344,16 @@ type DeleteCDNModSecDataInput struct {
 	ID          string
 }
 
-// deleteCDNModSecDataProvider is the one provider method DeleteCDNModSecData needs.
-type deleteCDNModSecDataProvider interface {
-	DeleteCDNModSecData(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, id string) error
-}
-
 // DeleteCDNModSecData is a fast operation. Deleting a data value the
 // provider no longer has is treated as already-done rather than an error, so
 // callers can call it more than once safely.
 type DeleteCDNModSecData struct {
 	queue    ports.Queue
-	provider deleteCDNModSecDataProvider
+	provider ports.ParspackProvider
 }
 
 // NewDeleteCDNModSecData builds the use case from its ports.
-func NewDeleteCDNModSecData(queue ports.Queue, provider deleteCDNModSecDataProvider) *DeleteCDNModSecData {
+func NewDeleteCDNModSecData(queue ports.Queue, provider ports.ParspackProvider) *DeleteCDNModSecData {
 	return &DeleteCDNModSecData{queue: queue, provider: provider}
 }
 
@@ -424,20 +390,15 @@ type ListCDNModSecRulesInput struct {
 	ZoneUUID    string
 }
 
-// listCDNModSecRulesProvider is the one provider method ListCDNModSecRules needs.
-type listCDNModSecRulesProvider interface {
-	ListCDNModSecRules(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.CDNModSecRule, error)
-}
-
 // ListCDNModSecRules is a fast operation: it runs on a worker but the caller
 // waits for the result inside the same tool call.
 type ListCDNModSecRules struct {
 	queue    ports.Queue
-	provider listCDNModSecRulesProvider
+	provider ports.ParspackProvider
 }
 
 // NewListCDNModSecRules builds the use case from its ports.
-func NewListCDNModSecRules(queue ports.Queue, provider listCDNModSecRulesProvider) *ListCDNModSecRules {
+func NewListCDNModSecRules(queue ports.Queue, provider ports.ParspackProvider) *ListCDNModSecRules {
 	return &ListCDNModSecRules{queue: queue, provider: provider}
 }
 
@@ -477,20 +438,15 @@ type CreateCDNModSecRuleInput struct {
 	Rule        domain.CDNModSecRule
 }
 
-// createCDNModSecRuleProvider is the one provider method CreateCDNModSecRule needs.
-type createCDNModSecRuleProvider interface {
-	CreateCDNModSecRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, rule domain.CDNModSecRule) (*domain.CDNModSecRule, error)
-}
-
 // CreateCDNModSecRule is a fast operation: it runs on a worker but the
 // caller waits for the result inside the same tool call.
 type CreateCDNModSecRule struct {
 	queue    ports.Queue
-	provider createCDNModSecRuleProvider
+	provider ports.ParspackProvider
 }
 
 // NewCreateCDNModSecRule builds the use case from its ports.
-func NewCreateCDNModSecRule(queue ports.Queue, provider createCDNModSecRuleProvider) *CreateCDNModSecRule {
+func NewCreateCDNModSecRule(queue ports.Queue, provider ports.ParspackProvider) *CreateCDNModSecRule {
 	return &CreateCDNModSecRule{queue: queue, provider: provider}
 }
 
@@ -544,20 +500,15 @@ type GetCDNModSecRuleInput struct {
 	RuleID      string
 }
 
-// getCDNModSecRuleProvider is the one provider method GetCDNModSecRule needs.
-type getCDNModSecRuleProvider interface {
-	GetCDNModSecRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) (*domain.CDNModSecRule, error)
-}
-
 // GetCDNModSecRule is a fast operation: it runs on a worker but the caller
 // waits for the result inside the same tool call.
 type GetCDNModSecRule struct {
 	queue    ports.Queue
-	provider getCDNModSecRuleProvider
+	provider ports.ParspackProvider
 }
 
 // NewGetCDNModSecRule builds the use case from its ports.
-func NewGetCDNModSecRule(queue ports.Queue, provider getCDNModSecRuleProvider) *GetCDNModSecRule {
+func NewGetCDNModSecRule(queue ports.Queue, provider ports.ParspackProvider) *GetCDNModSecRule {
 	return &GetCDNModSecRule{queue: queue, provider: provider}
 }
 
@@ -603,20 +554,15 @@ type UpdateCDNModSecRuleInput struct {
 	Rule        domain.CDNModSecRule
 }
 
-// updateCDNModSecRuleProvider is the one provider method UpdateCDNModSecRule needs.
-type updateCDNModSecRuleProvider interface {
-	UpdateCDNModSecRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string, rule domain.CDNModSecRule) (*domain.CDNModSecRule, error)
-}
-
 // UpdateCDNModSecRule is a fast operation: it runs on a worker but the
 // caller waits for the result inside the same tool call.
 type UpdateCDNModSecRule struct {
 	queue    ports.Queue
-	provider updateCDNModSecRuleProvider
+	provider ports.ParspackProvider
 }
 
 // NewUpdateCDNModSecRule builds the use case from its ports.
-func NewUpdateCDNModSecRule(queue ports.Queue, provider updateCDNModSecRuleProvider) *UpdateCDNModSecRule {
+func NewUpdateCDNModSecRule(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNModSecRule {
 	return &UpdateCDNModSecRule{queue: queue, provider: provider}
 }
 
@@ -663,21 +609,16 @@ type DeleteCDNModSecRuleInput struct {
 	RuleID      string
 }
 
-// deleteCDNModSecRuleProvider is the one provider method DeleteCDNModSecRule needs.
-type deleteCDNModSecRuleProvider interface {
-	DeleteCDNModSecRule(ctx context.Context, creds domain.ProviderCredentials, zoneUUID, ruleID string) error
-}
-
 // DeleteCDNModSecRule is a fast operation. Deleting a rule the provider no
 // longer has is treated as already-done rather than an error, so callers can
 // call it more than once safely.
 type DeleteCDNModSecRule struct {
 	queue    ports.Queue
-	provider deleteCDNModSecRuleProvider
+	provider ports.ParspackProvider
 }
 
 // NewDeleteCDNModSecRule builds the use case from its ports.
-func NewDeleteCDNModSecRule(queue ports.Queue, provider deleteCDNModSecRuleProvider) *DeleteCDNModSecRule {
+func NewDeleteCDNModSecRule(queue ports.Queue, provider ports.ParspackProvider) *DeleteCDNModSecRule {
 	return &DeleteCDNModSecRule{queue: queue, provider: provider}
 }
 
