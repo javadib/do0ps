@@ -9,6 +9,9 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/gofiber/fiber/v3/log"
+	"github.com/joho/godotenv"
 )
 
 // Config holds every runtime setting read from the environment.
@@ -34,6 +37,11 @@ type Config struct {
 // or invalid required value returns an error so the server can fail fast on
 // startup instead of coming up half-configured.
 func Load() (Config, error) {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	cfg := Config{
 		AuthTokens:   os.Getenv("MCP_AUTH_TOKENS"),
 		DatabasePath: envString("DB_PATH", "./data/do0ps.db"),
@@ -81,18 +89,22 @@ func envString(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	}
+
 	return fallback
 }
 
 func envInt(key string, fallback int) (int, error) {
 	raw := os.Getenv(key)
+
 	if raw == "" {
 		return fallback, nil
 	}
+
 	v, err := strconv.Atoi(raw)
 	if err != nil {
 		return 0, fmt.Errorf("%s must be an integer, got %q", key, raw)
 	}
+
 	return v, nil
 }
 
@@ -101,9 +113,12 @@ func envDuration(key string, fallback time.Duration) (time.Duration, error) {
 	if raw == "" {
 		return fallback, nil
 	}
+
 	v, err := time.ParseDuration(raw)
+
 	if err != nil {
 		return 0, fmt.Errorf("%s must be a duration such as 30s, got %q", key, raw)
 	}
+
 	return v, nil
 }
