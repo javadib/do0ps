@@ -184,11 +184,10 @@ internal/adapters/
 
 internal/auth/                 Bearer token middleware, sits in front of the mcp primary adapter
 
-cmd/mcpb-manifest/             build tooling — generates an MCP bundle manifest.json from the mcp adapter's
-                                tool registry, so the two cannot drift. Not part of the running server.
-
-scripts/build-mcpb.sh          cross-compiles the server and packs dist/mcpb/*.mcpb, one bundle per
-                                GOOS/GOARCH. See docs/mcp-bundle.md.
+cmd/mcpb-build/                build tooling — cross-compiles the server and packs dist/mcpb/*.mcpb, one
+                                bundle per GOOS/GOARCH, with the manifest generated from the mcp adapter's
+                                tool registry so the two cannot drift. Not part of the running server.
+                                See docs/mcp-bundle.md.
 
 docs/api-specs/                OpenAPI specs for external Parspack APIs (see §4.5) — reference material, not
                                 code Claude generates; treat as ground truth for adapter implementation.
@@ -203,6 +202,11 @@ docs/api-specs/                OpenAPI specs for external Parspack APIs (see §4
 - Wrap errors with context: `fmt.Errorf("doing X: %w", err)`. Avoid panics in library code — return errors.
 - **All comments, log output, and identifiers must be in English**, regardless of the language used in project
   discussions or issue descriptions.
+- **Build and release tooling is written in Go, not shell.** Contributors build on Windows as well as macOS
+  and Linux, and a `.sh` file needs a POSIX shell plus whatever binaries it shells out to (`zip`, `make`) that
+  Windows does not have. A `go run ./cmd/<tool>` command works identically on all three with only the
+  toolchain the project already requires — and it can be tested. Makefile targets are welcome as thin
+  conveniences over those commands, never as the only way to run them.
 - No secrets or credentials committed to the repository, ever — provider credentials only ever flow through
   MCP tool call parameters at runtime (see §4.2).
 

@@ -8,6 +8,10 @@
 #   lint   - golangci-lint (v2.12.0 matches CI)
 #   fmt    - gofmt all Go sources
 #   mcpb   - build installable MCP bundles into dist/mcpb/ (see docs/mcp-bundle.md)
+#
+# Every target here is a one-line wrapper around a `go` command, so anything
+# in this file can be run directly with the Go toolchain when make is not
+# available (Windows).
 
 GOLANGCI_LINT_VERSION := v2.12.0
 
@@ -32,14 +36,18 @@ fmt:
 	gofmt -l -w .
 
 # Build the .mcpb bundles end users install into a chat client. VERSION
-# defaults to the current git tag; TARGETS defaults to every supported
+# defaults to the current git tag; TARGETS defaults to every released
 # GOOS/GOARCH pair. See docs/mcp-bundle.md.
+#
+# These are conveniences: the builder is a Go program, so `go run
+# ./cmd/mcpb-build` works identically without make -- which is how it is built
+# on Windows.
 mcpb:
-	./scripts/build-mcpb.sh $(VERSION) $(TARGETS)
+	go run ./cmd/mcpb-build $(if $(VERSION),-version $(VERSION)) $(if $(TARGETS),-targets $(TARGETS))
 
 # One bundle for this machine, for a quick local install test.
 mcpb-local:
-	./scripts/build-mcpb.sh "$(VERSION)" "$$(go env GOOS)/$$(go env GOARCH)"
+	go run ./cmd/mcpb-build -targets host $(if $(VERSION),-version $(VERSION))
 
 clean:
 	rm -rf dist

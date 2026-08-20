@@ -58,8 +58,10 @@ jobs:
           fi
           echo "app_version=${version}" >> "$GITHUB_OUTPUT"
 
+      # The builder is a Go program on purpose: no bash, no zip binary, no
+      # make, so this same command is what a contributor runs on Windows.
       - name: Build bundles
-        run: ./scripts/build-mcpb.sh "${{ steps.version.outputs.app_version }}"
+        run: go run ./cmd/mcpb-build ${{ steps.version.outputs.app_version && format('-version {0}', steps.version.outputs.app_version) || '' }}
 
       # Every bundle is opened and checked rather than trusted: a bundle whose
       # manifest is missing or malformed installs as a broken extension, and

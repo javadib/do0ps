@@ -20,26 +20,68 @@ one dispatcher — so nothing behaves differently depending on how you installed
 
 ## Building
 
-```sh
-make mcpb                                  # all default targets, version from the current git tag
-make mcpb VERSION=1.2.3                    # explicit version
-make mcpb VERSION=1.2.3 TARGETS=linux/amd64
-make mcpb-local                            # just this machine, for a quick install test
+### Prerequisites
+
+**The Go toolchain, and nothing else.** The builder is a Go program
+([`cmd/mcpb-build`](../cmd/mcpb-build)), not a shell script: it invokes `go build` once per target and writes
+each archive with `archive/zip`. There is no bash, no `zip` binary, no `make`, and no Node/`mcpb` CLI in the
+path — which is what lets the same command work on Windows, macOS and Linux.
+
+| | Needed |
+| --- | --- |
+| Go | the version [`go.mod`](../go.mod) pins |
+| git | optional — only used to derive the version from a tag; without it you get `0.0.0-dev`, or pass `-version` |
+| Anything else | no |
+
+Cross-compilation needs no extra setup either: `CGO_ENABLED=0` is set by the builder, and the SQLite driver is
+pure Go, so **any one machine can build the bundles for all five targets**. A Windows laptop produces working
+macOS bundles, and the unix execute bit is written into the archive explicitly rather than inherited from the
+host filesystem — so a bundle packed on Windows still unpacks into a runnable binary on macOS and Linux.
+
+### Commands
+
+Everything is one command, identical on all three operating systems — PowerShell, cmd, Terminal, bash:
+
+```
+go run ./cmd/mcpb-build                             # every released target
+go run ./cmd/mcpb-build -targets host               # just this machine, for a quick install test
+go run ./cmd/mcpb-build -version 1.2.3
+go run ./cmd/mcpb-build -targets linux/amd64,darwin/arm64
+go run ./cmd/mcpb-build -print-manifest             # inspect manifest.json without building
 ```
 
-Bundles land in `dist/mcpb/`. Requirements are Go (the version in `go.mod`) and `zip` — no Node, no `mcpb`
-CLI.
+Run it from anywhere inside the repository — it finds the module root itself.
 
-Default targets: `darwin/arm64`, `darwin/amd64`, `linux/amd64`, `linux/arm64`, `windows/amd64`. The bundle
+On macOS and Linux the [`Makefile`](../Makefile) wraps the same commands, if you prefer:
+
+```sh
+make mcpb                                  # every released target
+make mcpb VERSION=1.2.3 TARGETS=linux/amd64
+make mcpb-local                            # -targets host
+```
+
+`make` is not standard on Windows; use the `go run` form there. The Makefile targets are thin wrappers, so
+nothing is only reachable through them.
+
+### Options
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `-version` | current git tag, else `0.0.0-dev+<short sha>` | Bundle version, without a leading `v`. Stamped into both the binary and the manifest |
+| `-targets` | every target in the table below | Comma-separated `GOOS/GOARCH` pairs, or `host` for this machine |
+| `-out` | `dist/mcpb` | Directory to write the bundles into |
+| `-print-manifest` | off | Print the `manifest.json` for the first target and exit, building nothing |
+
+Released targets: `darwin/arm64`, `darwin/amd64`, `linux/amd64`, `linux/arm64`, `windows/amd64`. The bundle
 format distinguishes operating systems but not CPU architectures, so each target gets its own bundle rather
-than one archive that might pick the wrong binary on Apple silicon.
+than one archive that might hand an Intel binary to an Apple silicon machine.
 
 The version is stamped into the binary (`-X main.version=...`) and into the manifest from the same value, so
 `do0ps --version` and what a client reports after installing always agree.
 
 CI builds bundles on every pull request as a smoke test — packing them, validating each manifest, and driving
 a real `initialize` handshake against the packed binary — and `release.yml` attaches them to the GitHub release
-after a version is cut — the released bundles are on the repository's
+after a version is cut. The released bundles are on the repository's
 [Releases](https://github.com/javadib/do0ps/releases) page.
 
 ## Installing
@@ -51,8 +93,19 @@ the file in. Claude reads `manifest.json`, registers the tools, and manages the 
 
 ### Any other MCP client
 
-Clients that do not read `.mcpb` files still run the same binary — unzip the bundle and point the client at
-`server/do0ps --stdio`. The bundle is a plain zip, so `unzip do0ps-*.mcpb -d ~/do0ps` is all it takes.
+Clients that do not read `.mcpb` files still run the same binary — unpack the bundle and point the client at
+`server/do0ps --stdio`. A `.mcpb` is a plain zip, so any unzip tool works; rename it to `.zip` first if your
+tool insists on the extension.
+
+```sh
+# macOS / Linux
+unzip do0ps-*.mcpb -d ~/do0ps
+```
+
+```powershell
+# Windows PowerShell
+Expand-Archive -Path .\do0ps-1.2.3-windows-amd64.mcpb -DestinationPath $HOME\do0ps
+```
 
 No bearer token is involved in any of these: the allow-list guards the HTTP listener, and there is no listener
 here.
@@ -78,6 +131,19 @@ args = ["--stdio"]
   "mcpServers": {
     "do0ps": {
       "command": "/home/you/do0ps/server/do0ps",
+      "args": ["--stdio"]
+    }
+  }
+}
+```
+
+On Windows the same entry points at the `.exe`, with backslashes escaped for JSON:
+
+```json
+{
+  "mcpServers": {
+    "do0ps": {
+      "command": "C:\\Users\\you\\do0ps\\server\\do0ps.exe",
       "args": ["--stdio"]
     }
   }
@@ -124,13 +190,24 @@ to stderr (never stdout, which carries the protocol), and clients capture stderr
 **macOS refuses to run the binary.** The binaries are not code-signed or notarized yet. Right-click the
 binary → Open once, or `xattr -d com.apple.quarantine server/do0ps`.
 
+**The binary will not start.** Run it yourself: `server/do0ps --version` should print the bundle's version.
+
 **Verify a bundle by hand** — unpack it and drive a handshake the way a client would:
 
 ```sh
+# macOS / Linux
 unzip -q do0ps-*.mcpb -d /tmp/do0ps-check
 printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}' \
                '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
   | /tmp/do0ps-check/server/do0ps --stdio
+```
+
+```powershell
+# Windows PowerShell
+Expand-Archive .\do0ps-1.2.3-windows-amd64.mcpb -DestinationPath $env:TEMP\do0ps-check -Force
+'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}',
+'{"jsonrpc":"2.0","id":2,"method":"tools/list"}' |
+  & "$env:TEMP\do0ps-check\server\do0ps.exe" --stdio
 ```
 
 You should get an `initialize` result naming the server and version, then the tool list.

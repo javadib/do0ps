@@ -1,18 +1,6 @@
-// Command mcpb-manifest generates the manifest.json for an MCP bundle (.mcpb).
-//
-// It is build tooling, not part of the server: scripts/build-mcpb.sh runs it
-// once per target platform while assembling the bundle. The tool list is read
-// straight out of the MCP adapter's registry, so the manifest a chat client
-// reads at install time can never drift from the tools the binary actually
-// serves -- adding a tool to internal/adapters/mcp is enough.
 package main
 
 import (
-	"encoding/json"
-	"flag"
-	"fmt"
-	"os"
-
 	"github.com/javadib/do0ps/internal/adapters/mcp"
 )
 
@@ -29,46 +17,12 @@ var platforms = map[string]string{
 	"windows": "win32",
 }
 
-func main() {
-	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "mcpb-manifest: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func run() error {
-	version := flag.String("version", "0.0.0", "bundle version, without a leading v")
-	goos := flag.String("os", "", "target GOOS: darwin, linux or windows")
-	out := flag.String("out", "-", `file to write the manifest to, or "-" for stdout`)
-	flag.Parse()
-
-	platform, ok := platforms[*goos]
-	if !ok {
-		return fmt.Errorf("-os must be one of darwin, linux or windows, got %q", *goos)
-	}
-
-	encoded, err := json.MarshalIndent(build(*version, platform), "", "  ")
-	if err != nil {
-		return fmt.Errorf("encoding manifest: %w", err)
-	}
-	encoded = append(encoded, '\n')
-
-	if *out == "-" {
-		_, err := os.Stdout.Write(encoded)
-		return err
-	}
-	if err := os.WriteFile(*out, encoded, 0o644); err != nil {
-		return fmt.Errorf("writing %s: %w", *out, err)
-	}
-	return nil
-}
-
-// build assembles the manifest for one target platform.
+// buildManifest assembles the manifest for one target platform.
 //
 // Ordered map literals would be nicer, but the spec pins no field order and
 // encoding/json sorts map keys, so a typed struct keeps the output stable and
 // diffable across builds.
-func build(version, platform string) manifest {
+func buildManifest(version, platform string) manifest {
 	return manifest{
 		ManifestVersion: manifestVersion,
 		Name:            "do0ps",
@@ -90,9 +44,9 @@ func build(version, platform string) manifest {
 			Type: "binary",
 			// The host app appends .exe on Windows, so the manifest names the
 			// binary the same way on every platform.
-			EntryPoint: "server/do0ps",
+			EntryPoint: bundleBinaryPath,
 			MCPConfig: mcpConfig{
-				Command: "server/do0ps",
+				Command: bundleBinaryPath,
 				Args:    []string{"--stdio"},
 				Env:     map[string]string{},
 			},
@@ -110,9 +64,10 @@ func build(version, platform string) manifest {
 
 // toolSummaries lists the registered tools for the manifest.
 //
-// The zero UseCases is deliberate: Tools only captures the use cases inside
-// handler closures, and no handler runs here -- this reads names and
-// descriptions, which are static.
+// Reading them out of the adapter's own registry is the point: the manifest a
+// chat client sees at install time cannot drift from the tools the binary
+// serves. The zero UseCases is deliberate — Tools only captures the use cases
+// inside handler closures, and no handler runs here.
 func toolSummaries() []toolSummary {
 	registered := mcp.Tools(mcp.UseCases{})
 
