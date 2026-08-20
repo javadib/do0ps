@@ -17,6 +17,7 @@
 .DS_Store
 .idea/
 .vscode/
+/dist/
 
 # Claude Code agent worktrees (local harness state, not project source)
 .claude/worktrees/
