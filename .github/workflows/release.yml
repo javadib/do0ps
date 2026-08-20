@@ -4,16 +4,29 @@ name: Release
 # for go-semantic-release (github.com/go-semantic-release), a Go-native
 # semantic-release implementation with its own GitHub Action -- avoids
 # pulling in a Python or Node toolchain just to cut releases.
+#
+# Two branches, two different things:
+#
+#   master  -> a real release: v<major>.<minor>.<patch>, plus the Docker image
+#              and the MCP bundles. This is the only branch that produces a
+#              stable version.
+#   develop -> a release candidate: v<next version>-RC.<n>, flagged as a
+#              pre-release on GitHub. No image, no bundles -- it exists to name
+#              what is queued for the next stable release.
 on:
   push:
-    branches: [master]
+    branches: [master, develop]
+
+concurrency:
+  # Per branch: a develop push must not queue behind a master release.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
+  # --- stable releases, master only ------------------------------------
   release:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
-    concurrency:
-      group: release
-      cancel-in-progress: false
     permissions:
       contents: write
       id-token: write
@@ -39,15 +52,105 @@ jobs:
 
       # Outputs `version` (empty string if no release was warranted by the
       # commits since the last tag -- see the `released` job output above).
-      # Check go-semantic-release/action's README for additional optional
-      # inputs (changelog formatting, initial version, etc.) if needed --
-      # kept minimal here rather than guessing at flags.
+      #
+      # allow-initial-development-versions keeps the project in 0.x: starting
+      # from the 0.0.0 baseline the first release is 0.1.0, and a breaking
+      # change bumps the minor rather than jumping to 1.0.0. Reaching 1.0.0 is
+      # then a deliberate act, not something a commit message causes.
+      #
+      # NOTE: go-semantic-release ignores this flag once a release with major
+      # version >= 1 exists. The v1.0.0 release in this repository therefore
+      # has to be deleted for 0.x versioning to take effect; while it is there,
+      # releases continue from 1.x.
       - name: Run semantic release
         id: release
         uses: go-semantic-release/action@v1
         with:
           github-token: ${{ secrets.JIFFY_REPO_PAT }}
+          allow-initial-development-versions: true
 
+  # --- release candidates, develop only --------------------------------
+  prerelease:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.JIFFY_REPO_PAT }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      # The RC version is computed here rather than by the action, because
+      # go-semantic-release cannot produce one on its own: its `prerelease`
+      # input only ticks GitHub's pre-release checkbox, it does not add a
+      # suffix, so develop would emit the same bare version master is about to
+      # publish. Its `--maintained-version` route does take a `-RC` suffix but
+      # recomputes its base from the flag every run, so it returns RC.1
+      # forever and the second push collides with the first tag.
+      #
+      # So: ask semantic-release what the next version would be (--dry writes
+      # it to .version-unreleased and creates nothing), then attach the RC
+      # counter below. --allow-no-changes leaves the file absent when there is
+      # nothing to release, which is not a failure on a branch that takes
+      # every merge.
+      - name: Compute the next version
+        uses: go-semantic-release/action@v1
+        with:
+          github-token: ${{ secrets.JIFFY_REPO_PAT }}
+          allow-initial-development-versions: true
+          dry: true
+          custom-arguments: --version-file --allow-no-changes
+
+      # The counter is derived from the tags that already exist rather than
+      # kept anywhere, so it stays correct across re-runs and reverts.
+      - name: Pick the release candidate number
+        id: rc
+        run: |
+          if [ ! -f .version-unreleased ]; then
+            echo "No releasable commits since the last release; skipping."
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          version="$(cat .version-unreleased)"
+          git fetch --tags --quiet
+
+          highest=0
+          while read -r existing; do
+            [ -n "$existing" ] || continue
+            n="${existing##*-RC.}"
+            case "$n" in
+              ''|*[!0-9]*) continue ;;
+            esac
+            if [ "$n" -gt "$highest" ]; then
+              highest="$n"
+            fi
+          done <<< "$(git tag --list "v${version}-RC.*")"
+
+          next=$((highest + 1))
+          echo "Next release candidate for ${version}: RC.${next}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${version}-RC.${next}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the release candidate
+        if: steps.rc.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.JIFFY_REPO_PAT }}
+        run: |
+          gh release create "${{ steps.rc.outputs.tag }}" \
+            --target "${{ github.sha }}" \
+            --title "${{ steps.rc.outputs.tag }}" \
+            --prerelease \
+            --generate-notes
+
+  # --- artifacts, stable releases only ---------------------------------
   docker:
     needs: release
     if: needs.release.outputs.released == 'true'

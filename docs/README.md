@@ -162,6 +162,7 @@ imports no Fiber, no `database/sql`, no MCP SDK, no provider client. See [Archit
 | Container | Multi-stage `../Dockerfile`, `CGO_ENABLED=0`, **distroless nonroot** final image | No shell, no libc, no root in the runtime image |
 | CI/CD | GitHub Actions | Build/test, lint, semantic release, GHCR image publish |
 | Release | **go-semantic-release** | Go-native; avoids pulling a Python/Node toolchain in just to cut releases |
+| Versioning | **0.x during development** | `allow-initial-development-versions`: from the 0.0.0 baseline the first release is 0.1.0, and breaking changes bump the minor. Reaching 1.0.0 is a deliberate act |
 
 **Deployment target is self-hosted only:** Docker container, VPS, or a single static binary.
 **Vercel and serverless platforms are explicitly not a target.** They have no persistent process, no
@@ -658,10 +659,33 @@ referenced issue is actually closed rather than assuming the numbering implies i
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
 | `ci.yml` | PR / push to `master` or `step/ph1` | `go build`, `go vet`, `go test ./... -race -cover`; golangci-lint v2.12 as a parallel job |
-| `release.yml` | push to `master` | go-semantic-release; on a release, calls the docker workflow |
+| `release.yml` | push to `master` | go-semantic-release cuts `vX.Y.Z`, then calls the docker and mcpb workflows |
+| `release.yml` | push to `develop` | Computes the next version, publishes it as a `vX.Y.Z-RC.N` GitHub pre-release. No image, no bundles |
 | `docker-publish.yml` | `v*.*.*` tag, manual, or called by release | Builds the `runner` target with `APP_VERSION` and pushes to GHCR |
 | `jiffy.yml` | issue opened / comment containing `@jiffy` | Dispatches the issue thread to the Jiffy gateway |
 | `close-linked-issues.yml` | PR merged into a non-default branch | Closes issues referenced by closing keywords |
+
+### Versioning and releases
+
+Only `master` produces a stable version. `develop` produces release candidates for whatever version is
+queued up next, and nothing else publishes.
+
+| Branch | Produces | Marked pre-release | Docker image | MCP bundles |
+| --- | --- | --- | --- | --- |
+| `master` | `vX.Y.Z` | no | yes | yes |
+| `develop` | `vX.Y.Z-RC.N` | yes | no | no |
+
+Versions stay in 0.x while the project is pre-1.0: from the 0.0.0 baseline the first release is `v0.1.0`, and
+a breaking change bumps the minor rather than jumping to `v1.0.0`. That is
+`allow-initial-development-versions`, and go-semantic-release **ignores it once a release with major version
+≥ 1 exists** — so the existing `v1.0.0` release has to be deleted for 0.x numbering to take effect.
+
+The `-RC.N` suffix is computed in the workflow rather than by go-semantic-release, which cannot produce one:
+its `prerelease` input only ticks GitHub's pre-release checkbox without changing the version, and its
+`--maintained-version` route recomputes its base from the flag on every run, so it returns `RC.1` forever and
+the second push collides with the first tag. Instead `develop` asks semantic-release for the next version with
+`--dry`, then takes the next free `RC` number from the tags that already exist — which keeps the counter
+correct across re-runs and reverts, since nothing is stored anywhere.
 
 ### Testing
 
