@@ -478,13 +478,69 @@ type ParspackProvider interface {
 // methods take a `domain string` (e.g. "example.com") where the Parspack port
 // takes a zoneUUID.
 //
-// The interface is deliberately empty at this point. It is declared here so
-// the capability issues that follow each have a stable place to add their
-// methods to, and so the adapter can assert against it from its first commit.
+// The interface started deliberately empty (issue #61); this is the first
+// capability to extend it. Other CDN capabilities (DNS records, firewall,
+// WAF, load balancing, ...) each land in their own issue and extend this
+// interface the same way.
 type ArvanCloudProvider interface {
-	// Intentionally no methods yet: the CDN capabilities (domain lifecycle,
-	// DNS records, firewall, WAF, load balancing, ...) each land in their own
-	// issue and extend this interface then.
+	// Domain lifecycle (issue #62): onboarding a domain onto ArvanCloud's
+	// CDN, listing/inspecting it, and removing it. All fast operations — the
+	// CDN API answers each of these in one synchronous round trip.
+	//
+	// CreateDomain is not assumed idempotent (see above); a caller that must
+	// not duplicate a domain on retry checks first, e.g. via ListDomains.
+	ListDomains(ctx context.Context, creds domain.ProviderCredentials) ([]domain.ArvanCloudDomain, error)
+	CreateDomain(ctx context.Context, creds domain.ProviderCredentials, spec domain.ArvanCloudDomainSpec) (*domain.ArvanCloudDomain, error)
+	GetDomain(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudDomain, error)
+	// DeleteDomain removes a domain by name. As with ParspackProvider's
+	// DeleteServer/DeleteCDNZone, an already-absent domain reports
+	// domain.ErrNotFound rather than succeeding silently, so callers decide
+	// for themselves whether that counts as done.
+	DeleteDomain(ctx context.Context, creds domain.ProviderCredentials, domainName string) error
+
+	// NS Setup (issue #62), for a "full" (NS-based) domain: the registrar
+	// points its nameservers at ArvanCloud, which then owns DNS resolution
+	// for the whole domain. All fast operations. Each returns the domain's
+	// nameserver-related fields only — the CDN API's set/reset/optional-keys
+	// endpoints do not echo the rest of the domain resource.
+	SetNSKeys(ctx context.Context, creds domain.ProviderCredentials, domainName string, nsKeys []string) (*domain.ArvanCloudDomain, error)
+	ResetNSKeys(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudDomain, error)
+	// CheckNSStatus reports whether the registrar has actually been
+	// repointed: the returned domain's NSKeys is what ArvanCloud expects,
+	// CurrentNS is what it currently sees configured at the registrar.
+	CheckNSStatus(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudDomain, error)
+	// UseOptionalNSKeys switches the domain to ArvanCloud's alternate NS key
+	// set (e.g. when the primary set is rejected by a registrar).
+	UseOptionalNSKeys(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudDomain, error)
+
+	// CNAME Setup (issue #62), for a "partial" domain: only a subdomain's
+	// traffic is routed through ArvanCloud via a CNAME record, while the rest
+	// of the domain's DNS stays wherever it already is hosted. This is the
+	// mode for a caller who says something like "my domain's DNS is hosted
+	// elsewhere, I just want the CDN on a subdomain" — NS Setup above would
+	// instead require moving the whole domain's DNS to ArvanCloud. All fast
+	// operations; each returns the domain resource as ArvanCloud reports it
+	// after the change.
+	SetCnameTarget(ctx context.Context, creds domain.ProviderCredentials, domainName, address string) (*domain.ArvanCloudDomain, error)
+	ResetCnameTarget(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudDomain, error)
+	ConvertToCnameSetup(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudDomain, error)
+	// CheckCnameStatus reports whether the CNAME has been activated yet.
+	CheckCnameStatus(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudDomain, error)
+
+	// Other domain actions (issue #62). All fast operations.
+	//
+	// CloneDomainConfig copies another domain's CDN configuration (cache
+	// rules, firewall, ...) onto domainName; fromDomain is the domain the
+	// configuration is copied FROM.
+	CloneDomainConfig(ctx context.Context, creds domain.ProviderCredentials, domainName, fromDomain string) error
+	// RegenerateDomainConfig re-publishes the domain's current configuration
+	// to the edge servers. The call itself returns immediately; the actual
+	// propagation to edge servers happens asynchronously on ArvanCloud's own
+	// side afterward, with nothing this port exposes to poll for it.
+	RegenerateDomainConfig(ctx context.Context, creds domain.ProviderCredentials, domainName string) error
+	// HoldDomain pauses CDN service for the domain; UnholdDomain resumes it.
+	HoldDomain(ctx context.Context, creds domain.ProviderCredentials, domainName string) error
+	UnholdDomain(ctx context.Context, creds domain.ProviderCredentials, domainName string) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
