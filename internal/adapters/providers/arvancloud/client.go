@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
@@ -54,6 +55,11 @@ const (
 	// providerName identifies this adapter's upstream in the errors it
 	// returns.
 	providerName = "arvancloud"
+
+	// multipartZoneFileField is the request field name the CDN API expects
+	// for a BIND zone file upload (dns-records.import, the spec's
+	// DnsRecordImport schema: {"f_zone_file": <binary>}).
+	multipartZoneFileField = "f_zone_file"
 
 	// defaultMaxRetries is how many times a transient failure is retried
 	// before the call gives up, on top of the first attempt. Retry/backoff
@@ -267,11 +273,18 @@ func (c *Client) doJSON(ctx context.Context, creds domain.ProviderCredentials, m
 	return nil
 }
 
-// send performs one attempt of an outbound call. Failures that are worth
-// another attempt are returned as-is for the backoff loop; everything else is
-// wrapped in backoff.Permanent so the loop stops at once. backoff.Retry
-// unwraps a permanent error, so callers still see the *domain.ProviderError.
-func (c *Client) send(ctx context.Context, authorization, method, path string, body []byte, env *envelope) error {
+// roundTrip performs one attempt of an outbound call and returns the
+// response body verbatim, whatever its shape. It is the one place that
+// builds the request, applies headers and classifies the response status —
+// send, doMultipart and doRawGET all funnel through it, so every request
+// shape this client sends (JSON, multipart, and the one raw-response GET)
+// retries and maps errors identically.
+//
+// Failures worth another attempt are returned as-is for the backoff loop;
+// everything else is wrapped in backoff.Permanent so the loop stops at once.
+// backoff.Retry unwraps a permanent error, so callers still see the
+// *domain.ProviderError.
+func (c *Client) roundTrip(ctx context.Context, authorization, method, path, contentType, accept string, body []byte) ([]byte, error) {
 	var reqBody io.Reader
 	if body != nil {
 		reqBody = bytes.NewReader(body)
@@ -279,11 +292,13 @@ func (c *Client) send(ctx context.Context, authorization, method, path string, b
 
 	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+"/"+strings.TrimPrefix(path, "/"), reqBody)
 	if err != nil {
-		return backoff.Permanent(fmt.Errorf("building %s %s request: %w", method, path, err))
+		return nil, backoff.Permanent(fmt.Errorf("building %s %s request: %w", method, path, err))
 	}
 	req.Header.Set("Authorization", authorization)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", accept)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
 	req.Header.Set("User-Agent", c.userAgent)
 
 	c.logger.Debug("arvancloud request",
@@ -295,7 +310,7 @@ func (c *Client) send(ctx context.Context, authorization, method, path string, b
 		// refused connection, DNS) rather than a bare "provider unavailable",
 		// and let the backoff loop try again: this is the most common
 		// transient failure there is.
-		return &domain.ProviderError{
+		return nil, &domain.ProviderError{
 			Provider:  providerName,
 			Operation: method + " " + path,
 			Message:   transportReason(err),
@@ -306,7 +321,7 @@ func (c *Client) send(ctx context.Context, authorization, method, path string, b
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("reading %s %s response: %w", method, path, err)
+		return nil, fmt.Errorf("reading %s %s response: %w", method, path, err)
 	}
 
 	c.logger.Debug("arvancloud response",
@@ -317,11 +332,21 @@ func (c *Client) send(ctx context.Context, authorization, method, path string, b
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		mapped := mapErrorResponse(method, path, resp.StatusCode, data)
 		if retryableStatus(resp.StatusCode) {
-			return mapped
+			return nil, mapped
 		}
-		return backoff.Permanent(mapped)
+		return nil, backoff.Permanent(mapped)
 	}
 
+	return data, nil
+}
+
+// send performs one attempt of an outbound JSON call, decoding a non-empty
+// 2xx body into env. See roundTrip for the shared request/retry mechanics.
+func (c *Client) send(ctx context.Context, authorization, method, path string, body []byte, env *envelope) error {
+	data, err := c.roundTrip(ctx, authorization, method, path, "application/json", "application/json", body)
+	if err != nil {
+		return err
+	}
 	if len(data) == 0 {
 		return nil
 	}
@@ -329,6 +354,99 @@ func (c *Client) send(ctx context.Context, authorization, method, path string, b
 		return backoff.Permanent(fmt.Errorf("decoding %s %s response: %w", method, path, err))
 	}
 	return nil
+}
+
+// doMultipart uploads fileContent as a multipart/form-data request under
+// multipartZoneFileField and decodes the response envelope's "data" into out
+// (nil to discard), with the same retry/error-mapping behavior as doJSON.
+// This is the one request body among ports.ArvanCloudProvider's DNS methods
+// that is not JSON (dns-records.import, the spec's DnsRecordImport schema).
+func (c *Client) doMultipart(ctx context.Context, creds domain.ProviderCredentials, method, path, fileName string, fileContent []byte, out any) error {
+	authorization, err := authorizationHeader(creds.APIKey)
+	if err != nil {
+		return fmt.Errorf("building %s %s request: %w", method, path, err)
+	}
+
+	var env envelope
+	attempt := 0
+	operation := func() error {
+		if attempt > 0 && c.nowRetrying != nil {
+			c.nowRetrying()
+		}
+		attempt++
+		env = envelope{}
+
+		var buf bytes.Buffer
+		writer := multipart.NewWriter(&buf)
+		part, err := writer.CreateFormFile(multipartZoneFileField, fileName)
+		if err != nil {
+			return backoff.Permanent(fmt.Errorf("building multipart body for %s %s: %w", method, path, err))
+		}
+		if _, err := part.Write(fileContent); err != nil {
+			return backoff.Permanent(fmt.Errorf("writing multipart body for %s %s: %w", method, path, err))
+		}
+		if err := writer.Close(); err != nil {
+			return backoff.Permanent(fmt.Errorf("closing multipart body for %s %s: %w", method, path, err))
+		}
+
+		data, err := c.roundTrip(ctx, authorization, method, path, writer.FormDataContentType(), "application/json", buf.Bytes())
+		if err != nil {
+			return err
+		}
+		if len(data) == 0 {
+			return nil
+		}
+		if err := json.Unmarshal(data, &env); err != nil {
+			return backoff.Permanent(fmt.Errorf("decoding %s %s response: %w", method, path, err))
+		}
+		return nil
+	}
+
+	sequence := backoff.WithContext(backoff.WithMaxRetries(c.newBackOff(), c.maxRetries), ctx)
+	if err := backoff.Retry(operation, sequence); err != nil {
+		return err
+	}
+
+	if out == nil || len(env.Data) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(env.Data, out); err != nil {
+		return fmt.Errorf("decoding %s %s response data: %w", method, path, err)
+	}
+	return nil
+}
+
+// doRawGET performs a GET request whose successful response body is not the
+// CDN API's JSON envelope and is returned unparsed — used for
+// dns-records.export, whose declared 200 response Content-Type is
+// text/plain (a BIND zone file), not application/json. Retries the same
+// transient failures as doJSON, via the shared roundTrip.
+func (c *Client) doRawGET(ctx context.Context, creds domain.ProviderCredentials, path, accept string) ([]byte, error) {
+	authorization, err := authorizationHeader(creds.APIKey)
+	if err != nil {
+		return nil, fmt.Errorf("building GET %s request: %w", path, err)
+	}
+
+	var result []byte
+	attempt := 0
+	operation := func() error {
+		if attempt > 0 && c.nowRetrying != nil {
+			c.nowRetrying()
+		}
+		attempt++
+		data, err := c.roundTrip(ctx, authorization, http.MethodGet, path, "", accept, nil)
+		if err != nil {
+			return err
+		}
+		result = data
+		return nil
+	}
+
+	sequence := backoff.WithContext(backoff.WithMaxRetries(c.newBackOff(), c.maxRetries), ctx)
+	if err := backoff.Retry(operation, sequence); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // retryableStatus reports whether a status is worth another attempt: a

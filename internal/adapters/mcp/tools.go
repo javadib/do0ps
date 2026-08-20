@@ -193,6 +193,21 @@ type UseCases struct {
 	RegenerateArvanCloudDomainConfig *app.RegenerateArvanCloudDomainConfig
 	HoldArvanCloudDomain             *app.HoldArvanCloudDomain
 	UnholdArvanCloudDomain           *app.UnholdArvanCloudDomain
+
+	// ArvanCloud DNS records, DNSSEC and Secondary DNS (issue #63).
+	ListArvanCloudDNSRecords       *app.ListArvanCloudDNSRecords
+	GetArvanCloudDNSRecord         *app.GetArvanCloudDNSRecord
+	CreateArvanCloudDNSRecord      *app.CreateArvanCloudDNSRecord
+	UpdateArvanCloudDNSRecord      *app.UpdateArvanCloudDNSRecord
+	DeleteArvanCloudDNSRecord      *app.DeleteArvanCloudDNSRecord
+	ToggleArvanCloudDNSRecordCloud *app.ToggleArvanCloudDNSRecordCloud
+	ImportArvanCloudDNSRecords     *app.ImportArvanCloudDNSRecords
+	ExportArvanCloudDNSRecords     *app.ExportArvanCloudDNSRecords
+	GetArvanCloudDNSSecStatus      *app.GetArvanCloudDNSSecStatus
+	UpdateArvanCloudDNSSecStatus   *app.UpdateArvanCloudDNSSecStatus
+	GetArvanCloudSecondaryDNS      *app.GetArvanCloudSecondaryDNS
+	SetArvanCloudSecondaryDNS      *app.SetArvanCloudSecondaryDNS
+	RemoveArvanCloudSecondaryDNS   *app.RemoveArvanCloudSecondaryDNS
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -398,6 +413,20 @@ func Tools(uc UseCases) []Tool {
 		regenerateArvanCloudDomainConfigTool(uc.RegenerateArvanCloudDomainConfig),
 		holdArvanCloudDomainTool(uc.HoldArvanCloudDomain),
 		unholdArvanCloudDomainTool(uc.UnholdArvanCloudDomain),
+
+		listArvanCloudDNSRecordsTool(uc.ListArvanCloudDNSRecords),
+		getArvanCloudDNSRecordTool(uc.GetArvanCloudDNSRecord),
+		createArvanCloudDNSRecordTool(uc.CreateArvanCloudDNSRecord),
+		updateArvanCloudDNSRecordTool(uc.UpdateArvanCloudDNSRecord),
+		deleteArvanCloudDNSRecordTool(uc.DeleteArvanCloudDNSRecord),
+		toggleArvanCloudDNSRecordCloudTool(uc.ToggleArvanCloudDNSRecordCloud),
+		importArvanCloudDNSRecordsTool(uc.ImportArvanCloudDNSRecords),
+		exportArvanCloudDNSRecordsTool(uc.ExportArvanCloudDNSRecords),
+		getArvanCloudDNSSecStatusTool(uc.GetArvanCloudDNSSecStatus),
+		updateArvanCloudDNSSecStatusTool(uc.UpdateArvanCloudDNSSecStatus),
+		getArvanCloudSecondaryDNSTool(uc.GetArvanCloudSecondaryDNS),
+		setArvanCloudSecondaryDNSTool(uc.SetArvanCloudSecondaryDNS),
+		removeArvanCloudSecondaryDNSTool(uc.RemoveArvanCloudSecondaryDNS),
 	}
 }
 
