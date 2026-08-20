@@ -175,6 +175,24 @@ type UseCases struct {
 	ListCDNCertificates       *app.ListCDNCertificates
 	GetCDNHSTS                *app.GetCDNHSTS
 	UpdateCDNHSTS             *app.UpdateCDNHSTS
+
+	// ArvanCloud domain onboarding and lifecycle (issue #62).
+	CreateArvanCloudDomain           *app.CreateArvanCloudDomain
+	ListArvanCloudDomains            *app.ListArvanCloudDomains
+	GetArvanCloudDomain              *app.GetArvanCloudDomain
+	DeleteArvanCloudDomain           *app.DeleteArvanCloudDomain
+	SetArvanCloudNSKeys              *app.SetArvanCloudNSKeys
+	ResetArvanCloudNSKeys            *app.ResetArvanCloudNSKeys
+	CheckArvanCloudNSStatus          *app.CheckArvanCloudNSStatus
+	UseArvanCloudOptionalNSKeys      *app.UseArvanCloudOptionalNSKeys
+	SetArvanCloudCnameTarget         *app.SetArvanCloudCnameTarget
+	ResetArvanCloudCnameTarget       *app.ResetArvanCloudCnameTarget
+	ConvertArvanCloudToCnameSetup    *app.ConvertArvanCloudToCnameSetup
+	CheckArvanCloudCnameStatus       *app.CheckArvanCloudCnameStatus
+	CloneArvanCloudDomainConfig      *app.CloneArvanCloudDomainConfig
+	RegenerateArvanCloudDomainConfig *app.RegenerateArvanCloudDomainConfig
+	HoldArvanCloudDomain             *app.HoldArvanCloudDomain
+	UnholdArvanCloudDomain           *app.UnholdArvanCloudDomain
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -363,6 +381,23 @@ func Tools(uc UseCases) []Tool {
 		listCDNCertificatesTool(uc.ListCDNCertificates),
 		getCDNHSTSTool(uc.GetCDNHSTS),
 		updateCDNHSTSTool(uc.UpdateCDNHSTS),
+
+		createArvanCloudDomainTool(uc.CreateArvanCloudDomain),
+		listArvanCloudDomainsTool(uc.ListArvanCloudDomains),
+		getArvanCloudDomainTool(uc.GetArvanCloudDomain),
+		deleteArvanCloudDomainTool(uc.DeleteArvanCloudDomain),
+		setArvanCloudNSKeysTool(uc.SetArvanCloudNSKeys),
+		resetArvanCloudNSKeysTool(uc.ResetArvanCloudNSKeys),
+		checkArvanCloudNSStatusTool(uc.CheckArvanCloudNSStatus),
+		useArvanCloudOptionalNSKeysTool(uc.UseArvanCloudOptionalNSKeys),
+		setArvanCloudCnameTargetTool(uc.SetArvanCloudCnameTarget),
+		resetArvanCloudCnameTargetTool(uc.ResetArvanCloudCnameTarget),
+		convertArvanCloudToCnameSetupTool(uc.ConvertArvanCloudToCnameSetup),
+		checkArvanCloudCnameStatusTool(uc.CheckArvanCloudCnameStatus),
+		cloneArvanCloudDomainConfigTool(uc.CloneArvanCloudDomainConfig),
+		regenerateArvanCloudDomainConfigTool(uc.RegenerateArvanCloudDomainConfig),
+		holdArvanCloudDomainTool(uc.HoldArvanCloudDomain),
+		unholdArvanCloudDomainTool(uc.UnholdArvanCloudDomain),
 	}
 }
 

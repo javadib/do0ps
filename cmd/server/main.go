@@ -21,6 +21,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"github.com/javadib/do0ps/internal/adapters/mcp"
+	"github.com/javadib/do0ps/internal/adapters/providers/arvancloud"
 	"github.com/javadib/do0ps/internal/adapters/providers/parspack"
 	"github.com/javadib/do0ps/internal/adapters/queue"
 	"github.com/javadib/do0ps/internal/adapters/sqlite"
@@ -120,6 +121,15 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	ids := system.IDGenerator{}
 
 	provider, err := parspack.New(parspack.WithLogger(logger))
+	if err != nil {
+		return err
+	}
+
+	arvanClient, err := arvancloud.New(arvancloud.WithLogger(logger))
+	if err != nil {
+		return err
+	}
+	arvanProvider, err := arvancloud.NewProvider(arvanClient)
 	if err != nil {
 		return err
 	}
@@ -321,6 +331,24 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	getCDNHSTS := app.NewGetCDNHSTS(pool, provider)
 	updateCDNHSTS := app.NewUpdateCDNHSTS(pool, provider)
 
+	// --- ArvanCloud domain onboarding and lifecycle (issue #62) ----------
+	createArvanCloudDomain := app.NewCreateArvanCloudDomain(pool, arvanProvider)
+	listArvanCloudDomains := app.NewListArvanCloudDomains(pool, arvanProvider)
+	getArvanCloudDomain := app.NewGetArvanCloudDomain(pool, arvanProvider)
+	deleteArvanCloudDomain := app.NewDeleteArvanCloudDomain(pool, arvanProvider)
+	setArvanCloudNSKeys := app.NewSetArvanCloudNSKeys(pool, arvanProvider)
+	resetArvanCloudNSKeys := app.NewResetArvanCloudNSKeys(pool, arvanProvider)
+	checkArvanCloudNSStatus := app.NewCheckArvanCloudNSStatus(pool, arvanProvider)
+	useArvanCloudOptionalNSKeys := app.NewUseArvanCloudOptionalNSKeys(pool, arvanProvider)
+	setArvanCloudCnameTarget := app.NewSetArvanCloudCnameTarget(pool, arvanProvider)
+	resetArvanCloudCnameTarget := app.NewResetArvanCloudCnameTarget(pool, arvanProvider)
+	convertArvanCloudToCnameSetup := app.NewConvertArvanCloudToCnameSetup(pool, arvanProvider)
+	checkArvanCloudCnameStatus := app.NewCheckArvanCloudCnameStatus(pool, arvanProvider)
+	cloneArvanCloudDomainConfig := app.NewCloneArvanCloudDomainConfig(pool, arvanProvider)
+	regenerateArvanCloudDomainConfig := app.NewRegenerateArvanCloudDomainConfig(pool, arvanProvider)
+	holdArvanCloudDomain := app.NewHoldArvanCloudDomain(pool, arvanProvider)
+	unholdArvanCloudDomain := app.NewUnholdArvanCloudDomain(pool, arvanProvider)
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Register(domain.JobTypeCreateSnapshot, createSnapshot.Handle)
 	pool.Register(domain.JobTypeRestoreVM, restoreVM.Handle)
@@ -510,6 +538,23 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		ListCDNCertificates:       listCDNCertificates,
 		GetCDNHSTS:                getCDNHSTS,
 		UpdateCDNHSTS:             updateCDNHSTS,
+
+		CreateArvanCloudDomain:           createArvanCloudDomain,
+		ListArvanCloudDomains:            listArvanCloudDomains,
+		GetArvanCloudDomain:              getArvanCloudDomain,
+		DeleteArvanCloudDomain:           deleteArvanCloudDomain,
+		SetArvanCloudNSKeys:              setArvanCloudNSKeys,
+		ResetArvanCloudNSKeys:            resetArvanCloudNSKeys,
+		CheckArvanCloudNSStatus:          checkArvanCloudNSStatus,
+		UseArvanCloudOptionalNSKeys:      useArvanCloudOptionalNSKeys,
+		SetArvanCloudCnameTarget:         setArvanCloudCnameTarget,
+		ResetArvanCloudCnameTarget:       resetArvanCloudCnameTarget,
+		ConvertArvanCloudToCnameSetup:    convertArvanCloudToCnameSetup,
+		CheckArvanCloudCnameStatus:       checkArvanCloudCnameStatus,
+		CloneArvanCloudDomainConfig:      cloneArvanCloudDomainConfig,
+		RegenerateArvanCloudDomainConfig: regenerateArvanCloudDomainConfig,
+		HoldArvanCloudDomain:             holdArvanCloudDomain,
+		UnholdArvanCloudDomain:           unholdArvanCloudDomain,
 	}), mcp.WithLogger(logger), mcp.WithInfo(mcp.Info{Name: "do0ps", Version: version}))
 	if err != nil {
 		return err
