@@ -1,15 +1,5 @@
 name: Build and Publish Docker image
 
-# Ported from javadib/sonar_srv's docker-publish.yml. Docker/GHCR steps are
-# language-agnostic and mostly unchanged; version extraction is reworked since
-# Go has no pyproject.toml-style manifest field to read the version from.
-#
-# Build the production image and push it to the GitHub Container Registry.
-# Triggered ONLY after a release tag is created (v*.*.*), ensuring images are
-# always built from a released version. Can also be triggered manually, or
-# called as a reusable workflow from release.yml (which passes app_version
-# explicitly, since at call time GITHUB_REF_NAME is the branch, not the tag
-# that was just created).
 on:
   push:
     tags: ["v*.*.*"]

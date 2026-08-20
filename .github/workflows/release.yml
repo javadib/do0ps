@@ -1,18 +1,5 @@
 name: Release
 
-# Ported from javadib/sonar_srv's release.yml. Swaps python-semantic-release
-# for go-semantic-release (github.com/go-semantic-release), a Go-native
-# semantic-release implementation with its own GitHub Action -- avoids
-# pulling in a Python or Node toolchain just to cut releases.
-#
-# Two branches, two different things:
-#
-#   master  -> a real release: v<major>.<minor>.<patch>, plus the Docker image
-#              and the MCP bundles. This is the only branch that produces a
-#              stable version.
-#   develop -> a release candidate: v<next version>-RC.<n>, flagged as a
-#              pre-release on GitHub. No image, no bundles -- it exists to name
-#              what is queued for the next stable release.
 on:
   push:
     branches: [master, develop]

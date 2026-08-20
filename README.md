@@ -8,7 +8,7 @@
 
 **[فارسی / Persian →](docs/README_FA.md)**
 
-do0ps connects AI assistants — Claude, ChatGPT/Codex, Cursor, or anything else that speaks the
+do0ps (Do Ops) connects AI assistants — Claude, ChatGPT/Codex, Cursor, or anything else that speaks the
 [Model Context Protocol](https://modelcontextprotocol.io) — to hosting and PaaS providers, starting with the
 Iranian provider [Parspack](https://parspack.com). Ask for a server in plain language and it calls the
 provider's API for you:
