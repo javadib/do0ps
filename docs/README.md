@@ -4,7 +4,10 @@
 
 > An MCP server that lets a chatbot run your infrastructure.
 
-**[فارسی / Persian →](README_FA.md)**
+**[فارسی / Persian →](README_FA.md)** · **[← Project overview](../README.md)**
+
+This is the full reference. For a short tour of the project — what it does, how to install it, and where
+everything lives — start at the [root README](../README.md).
 
 ---
 
