@@ -76,12 +76,38 @@ func main() {
 	}
 }
 
+// runBridge forwards this process's stdio pipe to a self-hosted do0ps server,
+// adding the configured bearer token. The chat client gets the remote server's
+// own tool list, so an installed bundle and a directly connected client see
+// exactly the same thing.
+func runBridge(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
+	proxy, err := mcp.NewProxy(cfg.RemoteURL, cfg.RemoteToken, mcp.WithProxyLogger(logger))
+	if err != nil {
+		return err
+	}
+
+	logger.Info("bridging mcp over stdio to a remote server", "endpoint", proxy.Endpoint(), "version", version)
+
+	if err := proxy.ServeStdio(ctx, os.Stdin, os.Stdout); err != nil {
+		return err
+	}
+	logger.Info("shutdown complete")
+	return nil
+}
+
 // run builds every adapter, wires the use cases behind their ports, and
 // serves the MCP endpoint until ctx is canceled. onListen, if non-nil, is
 // invoked with the address Fiber actually bound to — nil in production,
 // where cfg.Addr is already a fixed host:port; tests use it to discover an
 // ephemeral port.
 func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen func(net.Addr)) error {
+	// A bundle configured with a server URL is a bridge, not a server: it owns
+	// no job store, no worker pool and no provider client, so none of the
+	// adapters below are built at all.
+	if cfg.RemoteURL != "" {
+		return runBridge(ctx, cfg, logger)
+	}
+
 	// --- secondary adapters ---------------------------------------------
 	db, err := sqlite.Open(ctx, cfg.DatabasePath)
 	if err != nil {

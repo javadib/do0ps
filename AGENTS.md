@@ -150,6 +150,10 @@ SPA that tooling generally cannot scrape.
   process boundary is the trust boundary). Both transports go through the same `dispatch` in
   `internal/adapters/mcp`; never implement a protocol method for only one of them. Under stdio, stdout is the
   protocol channel — logs go to stderr, and a single stray `fmt.Println` breaks the connection.
+- An installed bundle can also run as a **bridge** (`mcp.Proxy`): the user fills a server URL and token into
+  the extension's settings, and the binary forwards stdio JSON-RPC to a self-hosted server's `/mcp` instead of
+  running the adapters in-process. A bridge builds no job store, queue or provider client — keep it that way,
+  and keep both stdio paths on the shared loop in `stdio.go` so framing and concurrency stay identical.
 - Use Fiber v3's official **`github.com/gofiber/fiber/v3/middleware/sse`** package for the streaming side of
   the transport (`sse.New(sse.Config{Handler: ...})`) rather than hand-rolling `SetBodyStreamWriter` logic.
   Client disconnect is handled via `stream.Context()`, which is canceled when the stream ends or a write fails.

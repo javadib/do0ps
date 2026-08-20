@@ -71,7 +71,7 @@ func run() error {
 	version = strings.TrimPrefix(version, "v")
 
 	if *printManifest {
-		encoded, err := encodeManifest(buildManifest(version, platforms[targets[0].goos]))
+		encoded, err := encodeManifest(buildManifest(version, targets[0].goos))
 		if err != nil {
 			return err
 		}
@@ -139,7 +139,7 @@ func buildBundle(root, goBin, outDir, version string, t target, stamp time.Time)
 		return "", err
 	}
 
-	encoded, err := encodeManifest(buildManifest(version, platforms[t.goos]))
+	encoded, err := encodeManifest(buildManifest(version, t.goos))
 	if err != nil {
 		return "", err
 	}

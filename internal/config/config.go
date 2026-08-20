@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -40,6 +41,15 @@ type Config struct {
 	// Transport is how MCP clients reach this process: HTTP when self-hosted,
 	// stdio when installed as an MCP bundle.
 	Transport Transport
+
+	// RemoteURL, when set, turns the stdio transport into a thin bridge to a
+	// self-hosted do0ps server at that URL instead of running the adapters in
+	// this process. It is what an installed bundle fills in from the user's
+	// extension settings, so a team can share one server.
+	RemoteURL string
+	// RemoteToken is the bearer token presented to RemoteURL. Required
+	// whenever RemoteURL is set, ignored otherwise.
+	RemoteToken string
 	// AuthTokens is the raw MCP_AUTH_TOKENS value: a comma-separated list of
 	// "token:client_id[:name]" entries. It is parsed by internal/auth.
 	AuthTokens string
@@ -100,6 +110,17 @@ func Load(args []string) (Config, error) {
 		cfg.Transport = TransportStdio
 	}
 	cfg.DatabasePath = databasePath(cfg.Transport)
+	cfg.RemoteURL = userConfigValue(os.Getenv("DO0PS_SERVER_URL"))
+	cfg.RemoteToken = userConfigValue(os.Getenv("DO0PS_AUTH_TOKEN"))
+
+	if cfg.RemoteURL != "" {
+		if cfg.Transport != TransportStdio {
+			return cfg, errors.New("DO0PS_SERVER_URL only applies to the stdio transport: it points this process at another do0ps server, which is not something a server does for itself")
+		}
+		if cfg.RemoteToken == "" {
+			return cfg, errors.New("DO0PS_AUTH_TOKEN is required alongside DO0PS_SERVER_URL: the remote server's MCP endpoint is behind a bearer allow-list")
+		}
+	}
 
 	port, err := envInt("HTTP_PORT", 8080)
 	if err != nil {
@@ -161,6 +182,20 @@ func databasePath(t Transport) string {
 		return "./data/do0ps.db"
 	}
 	return filepath.Join(dir, "do0ps", "jobs.db")
+}
+
+// userConfigValue cleans a value that came from an MCP bundle's user_config.
+//
+// A host app substitutes ${user_config.x} into the environment it spawns the
+// bundle with. When the user leaves an optional field empty, some hosts pass
+// the placeholder through literally rather than an empty string — which would
+// otherwise be read as a configured value and fail with a baffling error.
+func userConfigValue(raw string) string {
+	value := strings.TrimSpace(raw)
+	if strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}") {
+		return ""
+	}
+	return value
 }
 
 func envString(key, fallback string) string {

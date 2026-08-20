@@ -6,8 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"sync"
 )
+
+// dispatcher answers one JSON-RPC message. The second return value is false
+// for messages that must not be answered at all (notifications).
+//
+// Two implement it: Server, which runs the tools in this process, and Proxy,
+// which forwards them to a self-hosted server. The stdio loop below is shared
+// between them.
+type dispatcher func(ctx context.Context, req rpcRequest) (rpcResponse, bool)
 
 // ServeStdio runs the MCP server over a newline-delimited JSON-RPC stream.
 //
@@ -22,7 +31,12 @@ import (
 //
 // It returns when in reaches EOF, when ctx is canceled, or on a stream error.
 func (s *Server) ServeStdio(ctx context.Context, in io.Reader, out io.Writer) error {
-	requests, readErr := s.readStdio(ctx, in)
+	return serveStdio(ctx, in, out, s.logger, s.dispatch)
+}
+
+// serveStdio is the transport loop both ServeStdio implementations share.
+func serveStdio(ctx context.Context, in io.Reader, out io.Writer, logger *slog.Logger, dispatch dispatcher) error {
+	requests, readErr := readStdio(ctx, in)
 
 	enc := json.NewEncoder(out)
 	var writeMu sync.Mutex
@@ -47,7 +61,7 @@ func (s *Server) ServeStdio(ctx context.Context, in io.Reader, out io.Writer) er
 			go func() {
 				defer wg.Done()
 
-				resp, wantsReply := s.dispatch(ctx, req)
+				resp, wantsReply := dispatch(ctx, req)
 				if !wantsReply {
 					return
 				}
@@ -55,7 +69,7 @@ func (s *Server) ServeStdio(ctx context.Context, in io.Reader, out io.Writer) er
 				writeMu.Lock()
 				defer writeMu.Unlock()
 				if err := enc.Encode(resp); err != nil {
-					s.logger.Error("writing stdio response", "method", req.Method, "error", err)
+					logger.Error("writing stdio response", "method", req.Method, "error", err)
 				}
 			}()
 		}
@@ -67,7 +81,7 @@ func (s *Server) ServeStdio(ctx context.Context, in io.Reader, out io.Writer) er
 //
 // The error channel is buffered and closed-on-send: a nil value means the
 // client closed the pipe, which is an ordinary shutdown, not a failure.
-func (s *Server) readStdio(ctx context.Context, in io.Reader) (<-chan rpcRequest, <-chan error) {
+func readStdio(ctx context.Context, in io.Reader) (<-chan rpcRequest, <-chan error) {
 	requests := make(chan rpcRequest)
 	readErr := make(chan error, 1)
 

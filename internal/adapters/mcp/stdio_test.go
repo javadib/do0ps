@@ -31,13 +31,13 @@ func echoTool() Tool {
 	}
 }
 
-// serveStdio runs the loop over a canned request stream and returns every
+// runStdioSession runs the loop over a canned request stream and returns every
 // response it wrote, keyed by request id.
 //
 // Keyed rather than ordered on purpose: the loop answers requests
 // concurrently, so a slow tool call does not hold up a ping queued behind it,
 // and JSON-RPC clients match responses by id rather than by position.
-func serveStdio(t *testing.T, requests string) map[float64]map[string]any {
+func runStdioSession(t *testing.T, requests string) map[float64]map[string]any {
 	t.Helper()
 
 	srv, err := NewServer([]Tool{echoTool()}, WithInfo(Info{Name: "do0ps", Version: "1.2.3"}))
@@ -73,7 +73,7 @@ func serveStdio(t *testing.T, requests string) map[float64]map[string]any {
 }
 
 func TestServeStdioHandshake(t *testing.T) {
-	got := serveStdio(t, `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}`+"\n")
+	got := runStdioSession(t, `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}`+"\n")
 
 	if len(got) != 1 {
 		t.Fatalf("got %d responses, want 1: %v", len(got), got)
@@ -99,7 +99,7 @@ func TestServeStdioHandshake(t *testing.T) {
 }
 
 func TestServeStdioListsAndCallsTools(t *testing.T) {
-	got := serveStdio(t, strings.Join([]string{
+	got := runStdioSession(t, strings.Join([]string{
 		`{"jsonrpc":"2.0","id":1,"method":"tools/list"}`,
 		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"echo","arguments":{"value":"hi"}}}`,
 		"",
@@ -124,7 +124,7 @@ func TestServeStdioListsAndCallsTools(t *testing.T) {
 func TestServeStdioIgnoresNotifications(t *testing.T) {
 	// notifications/initialized carries no id; answering it would desynchronize
 	// clients that match responses to requests by position.
-	got := serveStdio(t, strings.Join([]string{
+	got := runStdioSession(t, strings.Join([]string{
 		`{"jsonrpc":"2.0","method":"notifications/initialized"}`,
 		`{"jsonrpc":"2.0","id":1,"method":"ping"}`,
 		"",
@@ -139,7 +139,7 @@ func TestServeStdioIgnoresNotifications(t *testing.T) {
 }
 
 func TestServeStdioRejectsUnknownTool(t *testing.T) {
-	got := serveStdio(t, `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"nope","arguments":{}}}`+"\n")
+	got := runStdioSession(t, `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"nope","arguments":{}}}`+"\n")
 
 	rpcErr, ok := got[1]["error"].(map[string]any)
 	if !ok {

@@ -369,6 +369,8 @@ All configuration is read from environment variables, with `.env` loaded at star
 | --- | --- | --- | --- |
 | `MCP_AUTH_TOKENS` | **yes** for HTTP | — | Bearer allow-list: `token:client_id[:name]`, comma-separated. Tokens must be ≥16 chars. Not used under `stdio`, which has no listener to guard |
 | `MCP_TRANSPORT` | no | `http` | `http` (Streamable HTTP over Fiber) or `stdio` (the chat client spawns this binary — how an installed MCP bundle runs). The `--stdio` flag does the same |
+| `DO0PS_SERVER_URL` | no | — | Bundle only: MCP endpoint of a self-hosted do0ps server to bridge to, e.g. `https://do0ps.example.com/mcp`. Empty runs the server in-process. Rejected under `http` |
+| `DO0PS_AUTH_TOKEN` | no | — | Bearer token presented to `DO0PS_SERVER_URL`. Required whenever that is set |
 | `DB_PATH` | no | `../data/do0ps.db` | SQLite job-store file. Its parent directory is created automatically. Under `stdio` the default moves to the per-user config directory |
 | `HTTP_PORT` | no | `8080` | Port the server listens on |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, or `error` |
@@ -488,7 +490,11 @@ There are two ways to connect, and they serve the same 147 tools — the transpo
 Download the `.mcpb` for your platform from
 [Releases](https://github.com/javadib/do0ps/releases) and install it into your chat client — in Claude
 Desktop, double-click it or drop it into **Settings → Extensions**. The client spawns the bundled binary over
-stdio and manages it from then on; there is no host, no port and no bearer token involved.
+stdio and manages it from then on.
+
+The extension's settings carry two optional fields. Leave both empty and the bundle runs the whole server
+itself — no host, no port, no token. Fill in a **server URL** and an **access token** and the same bundle
+becomes a thin bridge to a self-hosted server instead, so a team shares one deployment and one job history.
 
 For clients that do not read `.mcpb` files, unzip the bundle and point them at `server/do0ps --stdio`.
 [docs/mcp-bundle.md](mcp-bundle.md) has the per-client configuration and the build instructions.

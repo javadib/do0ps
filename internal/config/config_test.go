@@ -7,6 +7,7 @@ import (
 )
 
 func TestLoadValid(t *testing.T) {
+	t.Setenv("DO0PS_SERVER_URL", "")
 	t.Setenv("MCP_AUTH_TOKENS", "tok-a:client-a,tok-b:client-b")
 	t.Setenv("DB_PATH", "/tmp/test.db")
 	t.Setenv("HTTP_PORT", "9090")
@@ -163,5 +164,63 @@ func TestLoadKeepsTransportOnValidationError(t *testing.T) {
 	}
 	if cfg.Transport != TransportStdio {
 		t.Errorf("Transport = %q on error, want %q", cfg.Transport, TransportStdio)
+	}
+}
+
+func TestLoadRemoteBridge(t *testing.T) {
+	t.Setenv("MCP_AUTH_TOKENS", "")
+	t.Setenv("MCP_TRANSPORT", "stdio")
+	t.Setenv("DO0PS_SERVER_URL", "https://do0ps.example.com/mcp")
+	t.Setenv("DO0PS_AUTH_TOKEN", "remote-token")
+
+	cfg, err := Load(nil)
+	if err != nil {
+		t.Fatalf("Load(nil) error = %v", err)
+	}
+	if cfg.RemoteURL != "https://do0ps.example.com/mcp" {
+		t.Errorf("RemoteURL = %q, want the configured endpoint", cfg.RemoteURL)
+	}
+	if cfg.RemoteToken != "remote-token" {
+		t.Errorf("RemoteToken = %q, want the configured token", cfg.RemoteToken)
+	}
+}
+
+// A host app that leaves an optional user_config field unset may pass the
+// placeholder through verbatim. Reading that as a URL would send the user
+// chasing a connection error instead of just running locally.
+func TestLoadIgnoresUnsubstitutedUserConfig(t *testing.T) {
+	t.Setenv("MCP_AUTH_TOKENS", "")
+	t.Setenv("MCP_TRANSPORT", "stdio")
+	t.Setenv("DO0PS_SERVER_URL", "${user_config.server_url}")
+	t.Setenv("DO0PS_AUTH_TOKEN", "${user_config.auth_token}")
+
+	cfg, err := Load(nil)
+	if err != nil {
+		t.Fatalf("Load(nil) error = %v", err)
+	}
+	if cfg.RemoteURL != "" || cfg.RemoteToken != "" {
+		t.Errorf("RemoteURL = %q, RemoteToken = %q, want both empty", cfg.RemoteURL, cfg.RemoteToken)
+	}
+}
+
+func TestLoadRemoteURLWithoutToken(t *testing.T) {
+	t.Setenv("MCP_AUTH_TOKENS", "")
+	t.Setenv("MCP_TRANSPORT", "stdio")
+	t.Setenv("DO0PS_SERVER_URL", "https://do0ps.example.com/mcp")
+	t.Setenv("DO0PS_AUTH_TOKEN", "")
+
+	if _, err := Load(nil); err == nil {
+		t.Fatal("Load(nil) succeeded, want an error for a server URL with no token")
+	}
+}
+
+func TestLoadRemoteURLRejectedUnderHTTP(t *testing.T) {
+	t.Setenv("MCP_AUTH_TOKENS", "tok-a:client-a")
+	t.Setenv("MCP_TRANSPORT", "http")
+	t.Setenv("DO0PS_SERVER_URL", "https://do0ps.example.com/mcp")
+	t.Setenv("DO0PS_AUTH_TOKEN", "remote-token")
+
+	if _, err := Load(nil); err == nil {
+		t.Fatal("Load(nil) succeeded, want an error: a server does not bridge to itself")
 	}
 }

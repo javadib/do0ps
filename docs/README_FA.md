@@ -399,6 +399,8 @@ curl -s localhost:8080/mcp \
 | --- | --- | --- | --- |
 | `MCP_AUTH_TOKENS` | برای `http` **بله** | — | فهرست مجاز Bearer: `token:client_id[:name]` با جداکنندهٔ کاما. توکن حداقل ۱۶ کاراکتر. در حالت `stdio` استفاده نمی‌شود، چون listenerی برای محافظت وجود ندارد |
 | `MCP_TRANSPORT` | خیر | `http` | `http` (‏Streamable HTTP روی Fiber) یا `stdio` (کلاینت چت خودش این باینری را اجرا می‌کند؛ همان چیزی که یک MCP Bundle نصب‌شده با آن کار می‌کند). فلگ `--stdio` هم همین کار را می‌کند |
+| `DO0PS_SERVER_URL` | خیر | — | فقط برای bundle: نشانی endpoint یک سرور do0ps که این پروسه به آن پل می‌زند، مثل `https://do0ps.example.com/mcp`. خالی یعنی سرور درون همین پروسه اجرا شود. در حالت `http` پذیرفته نمی‌شود |
+| `DO0PS_AUTH_TOKEN` | خیر | — | توکن Bearer برای `DO0PS_SERVER_URL`. هر وقت آن تنظیم شود، این هم لازم است |
 | `DB_PATH` | خیر | `../data/do0ps.db` | فایل SQLite انبارهٔ job. پوشهٔ والدش خودکار ساخته می‌شود. در حالت `stdio` پیش‌فرض به پوشهٔ config کاربر منتقل می‌شود |
 | `HTTP_PORT` | خیر | `8080` | پورتی که سرور روی آن گوش می‌دهد |
 | `LOG_LEVEL` | خیر | `info` | یکی از `debug`، `info`، `warn` یا `error` |
@@ -526,8 +528,11 @@ curl -s localhost:8080/mcp -H "Authorization: Bearer $TOKEN" \
 
 فایل `.mcpb` مربوط به سیستم‌عامل خود را از [Releases](https://github.com/javadib/do0ps/releases) دانلود و در
 کلاینت چت نصب کنید — در Claude Desktop کافی است روی آن دابل‌کلیک کنید یا در **Settings → Extensions** رهایش
-کنید. کلاینت، باینری داخل bundle را روی stdio اجرا و از آن پس خودش مدیریتش می‌کند؛ هیچ host، port یا توکن
-Bearer در کار نیست.
+کنید. کلاینت، باینری داخل bundle را روی stdio اجرا و از آن پس خودش مدیریتش می‌کند.
+
+تنظیمات این extension دو فیلد اختیاری دارد. اگر هر دو را خالی بگذارید، bundle خودش کل سرور را اجرا می‌کند —
+بدون host، بدون port و بدون توکن. اگر **نشانی سرور** و **توکن دسترسی** را پر کنید، همان bundle به یک پل نازک
+به سمت سرور self-hosted شما تبدیل می‌شود، تا یک تیم روی یک استقرار و یک تاریخچهٔ job مشترک باشد.
 
 برای کلاینت‌هایی که فایل `.mcpb` نمی‌خوانند، bundle را unzip کنید و کلاینت را به `server/do0ps --stdio` وصل
 کنید. پیکربندی هر کلاینت و دستور build در [docs/mcp-bundle.md](mcp-bundle.md) آمده است.

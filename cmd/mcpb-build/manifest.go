@@ -22,7 +22,8 @@ var platforms = map[string]string{
 // Ordered map literals would be nicer, but the spec pins no field order and
 // encoding/json sorts map keys, so a typed struct keeps the output stable and
 // diffable across builds.
-func buildManifest(version, platform string) manifest {
+func buildManifest(version, goos string) manifest {
+	binary := bundleBinaryPath + exeSuffix(goos)
 	return manifest{
 		ManifestVersion: manifestVersion,
 		Name:            "do0ps",
@@ -42,19 +43,55 @@ func buildManifest(version, platform string) manifest {
 		Support:       repositoryURL + "/issues",
 		Server: server{
 			Type: "binary",
-			// The host app appends .exe on Windows, so the manifest names the
-			// binary the same way on every platform.
-			EntryPoint: bundleBinaryPath,
+			// Both paths are spelled out rather than left to the host app.
+			//
+			// ${__dirname} is required: Claude Desktop does not resolve a
+			// relative command against the extension directory, it spawns the
+			// string as given and fails with ENOENT.
+			//
+			// The .exe is required for the same reason. The bundle spec says
+			// hosts append it on Windows, but Claude Desktop 1.32885 spawned
+			// "server/do0ps" verbatim there — no extension added. Naming the
+			// real file is what actually works, and each bundle targets one
+			// platform, so nothing is guessed here.
+			EntryPoint: binary,
 			MCPConfig: mcpConfig{
-				Command: bundleBinaryPath,
+				Command: "${__dirname}/" + binary,
 				Args:    []string{"--stdio"},
-				Env:     map[string]string{},
+				// Filled in by the host app from the settings the user typed;
+				// both are optional, and empty means "run the server inside
+				// this bundle" (see user_config below).
+				Env: map[string]string{
+					"DO0PS_SERVER_URL": "${user_config.server_url}",
+					"DO0PS_AUTH_TOKEN": "${user_config.auth_token}",
+				},
+			},
+		},
+		UserConfig: map[string]userConfigField{
+			"server_url": {
+				Type:  "string",
+				Title: "do0ps server URL",
+				Description: "Optional. The MCP endpoint of a self-hosted do0ps server, including the /mcp path — " +
+					"for example https://do0ps.example.com/mcp. Leave this empty to run the server inside this " +
+					"extension instead, which needs no server and no token.",
+				Required: false,
+				Default:  "",
+			},
+			"auth_token": {
+				Type:  "string",
+				Title: "Access token",
+				Description: "The bearer token for that server, from its MCP_AUTH_TOKENS allow-list. Required only " +
+					"when a server URL is set above. This is not your hosting provider API key — that one is never " +
+					"stored, you give it to the assistant per request.",
+				Required:  false,
+				Sensitive: true,
+				Default:   "",
 			},
 		},
 		Tools:    toolSummaries(),
 		Keywords: []string{"mcp", "devops", "hosting", "dns", "cdn", "ssl", "vps", "parspack", "iran"},
 		Compatibility: compatibility{
-			Platforms: []string{platform},
+			Platforms: []string{platforms[goos]},
 			// A static Go binary carries its own runtime, so there is nothing
 			// for the host app to install or version-check.
 			Runtimes: map[string]string{},
@@ -94,6 +131,20 @@ type manifest struct {
 	Tools           []toolSummary `json:"tools"`
 	Keywords        []string      `json:"keywords,omitempty"`
 	Compatibility   compatibility `json:"compatibility"`
+
+	// UserConfig declares the fields the host app asks the user to fill in and
+	// substitutes into mcp_config above.
+	UserConfig map[string]userConfigField `json:"user_config,omitempty"`
+}
+
+// userConfigField is one setting shown in the client's extension settings UI.
+type userConfigField struct {
+	Type        string `json:"type"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Required    bool   `json:"required"`
+	Sensitive   bool   `json:"sensitive,omitempty"`
+	Default     string `json:"default,omitempty"`
 }
 
 type author struct {

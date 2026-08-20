@@ -53,25 +53,88 @@ func TestParseTargets(t *testing.T) {
 	}
 }
 
+// TestManifestSpawnPath guards the two things that made Claude Desktop fail
+// with "spawn server/do0ps ENOENT": a command relative to nothing in
+// particular, and a Windows binary named without its extension.
+func TestManifestSpawnPath(t *testing.T) {
+	cases := []struct {
+		goos         string
+		wantCommand  string
+		wantEntry    string
+		wantPlatform string
+	}{
+		{goos: "windows", wantCommand: "${__dirname}/server/do0ps.exe", wantEntry: "server/do0ps.exe", wantPlatform: "win32"},
+		{goos: "darwin", wantCommand: "${__dirname}/server/do0ps", wantEntry: "server/do0ps", wantPlatform: "darwin"},
+		{goos: "linux", wantCommand: "${__dirname}/server/do0ps", wantEntry: "server/do0ps", wantPlatform: "linux"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.goos, func(t *testing.T) {
+			m := buildManifest("1.2.3", tc.goos)
+
+			// Hosts spawn this string as given; without ${__dirname} it
+			// resolves against a working directory nobody chose.
+			if m.Server.MCPConfig.Command != tc.wantCommand {
+				t.Errorf("command = %q, want %q", m.Server.MCPConfig.Command, tc.wantCommand)
+			}
+			if m.Server.EntryPoint != tc.wantEntry {
+				t.Errorf("entry_point = %q, want %q", m.Server.EntryPoint, tc.wantEntry)
+			}
+			if len(m.Compatibility.Platforms) != 1 || m.Compatibility.Platforms[0] != tc.wantPlatform {
+				t.Errorf("platforms = %v, want [%s]", m.Compatibility.Platforms, tc.wantPlatform)
+			}
+		})
+	}
+}
+
+// TestManifestUserConfig checks that the settings a user fills in actually
+// reach the process: a field with no matching env substitution is a field that
+// silently does nothing.
+func TestManifestUserConfig(t *testing.T) {
+	m := buildManifest("1.2.3", "linux")
+
+	for _, field := range []string{"server_url", "auth_token"} {
+		declared, ok := m.UserConfig[field]
+		if !ok {
+			t.Fatalf("user_config has no %q field", field)
+		}
+		if declared.Title == "" || declared.Description == "" {
+			t.Errorf("user_config.%s needs a title and a description: %+v", field, declared)
+		}
+
+		want := "${user_config." + field + "}"
+		found := false
+		for _, value := range m.Server.MCPConfig.Env {
+			if value == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("no env entry substitutes %s; env = %v", want, m.Server.MCPConfig.Env)
+		}
+	}
+
+	// Neither is required: an empty pair means "run the server in-process",
+	// which is the zero-configuration install.
+	if m.UserConfig["server_url"].Required || m.UserConfig["auth_token"].Required {
+		t.Error("neither settings field may be required: the local mode needs neither")
+	}
+	// The token is a credential; a host that renders it in plain text is a
+	// shoulder-surfing problem.
+	if !m.UserConfig["auth_token"].Sensitive {
+		t.Error("auth_token must be marked sensitive")
+	}
+}
+
 func TestManifestMatchesToolRegistry(t *testing.T) {
-	m := buildManifest("1.2.3", platforms["windows"])
+	m := buildManifest("1.2.3", "windows")
 
 	if m.Version != "1.2.3" {
 		t.Errorf("Version = %q, want 1.2.3", m.Version)
 	}
-	if m.Server.MCPConfig.Command != bundleBinaryPath {
-		t.Errorf("command = %q, want %q", m.Server.MCPConfig.Command, bundleBinaryPath)
-	}
-	// The host app appends .exe itself on Windows; naming it here would give
-	// the client do0ps.exe.exe to run.
-	if filepath.Ext(m.Server.MCPConfig.Command) != "" {
-		t.Errorf("command = %q, want no file extension", m.Server.MCPConfig.Command)
-	}
 	if len(m.Server.MCPConfig.Args) == 0 || m.Server.MCPConfig.Args[0] != "--stdio" {
 		t.Errorf("args = %v, want the server started with --stdio", m.Server.MCPConfig.Args)
-	}
-	if len(m.Compatibility.Platforms) != 1 || m.Compatibility.Platforms[0] != "win32" {
-		t.Errorf("platforms = %v, want [win32]", m.Compatibility.Platforms)
 	}
 
 	// The manifest exists to describe the served tools; an empty list would

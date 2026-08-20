@@ -18,6 +18,21 @@ The bundled server runs over **stdio**: the chat client spawns it as a child pro
 the pipe. That is the same tool surface the self-hosted Streamable HTTP server exposes — both transports share
 one dispatcher — so nothing behaves differently depending on how you installed it.
 
+## Two ways to run it
+
+The same bundle covers both, chosen by what you type into the extension's settings:
+
+| | **Local** (settings left empty) | **Connected** (server URL filled in) |
+| --- | --- | --- |
+| What runs | the whole server, inside the extension | a thin bridge to your own server |
+| Needs a server | no | yes — see [README.md](README.md) |
+| Needs a token | no | yes |
+| Job state | on this machine | on the server, shared |
+| Good for | one person, nothing to deploy | a team sharing one deployment and one job history |
+
+Local is the default and needs no configuration at all. Switch to connected when several people should see the
+same operations, or when the machine running the chat client should not talk to provider APIs directly.
+
 ## Building
 
 ### Prerequisites
@@ -91,6 +106,18 @@ after a version is cut. The released bundles are on the repository's
 Download the `.mcpb` for your platform, then either double-click it or go to **Settings → Extensions** and drop
 the file in. Claude reads `manifest.json`, registers the tools, and manages the process from then on.
 
+The extension's settings then offer two fields, both optional:
+
+| Setting | Leave empty to… | Fill in to… |
+| --- | --- | --- |
+| **do0ps server URL** | run the server inside the extension | point at your own server, e.g. `https://do0ps.example.com/mcp` — include the `/mcp` path |
+| **Access token** | — | authenticate against it: one token from that server's `MCP_AUTH_TOKENS` |
+
+Neither is your hosting provider's API key. That one is never stored anywhere — you give it to the assistant
+per request, and it lives only in the chat session.
+
+Changing either setting restarts the extension; there is nothing else to configure.
+
 ### Any other MCP client
 
 Clients that do not read `.mcpb` files still run the same binary — unpack the bundle and point the client at
@@ -122,6 +149,11 @@ claude mcp add do0ps -- ~/do0ps/server/do0ps --stdio
 [mcp_servers.do0ps]
 command = "/home/you/do0ps/server/do0ps"
 args = ["--stdio"]
+
+# Optional: bridge to your own server instead of running one locally.
+[mcp_servers.do0ps.env]
+DO0PS_SERVER_URL = "https://do0ps.example.com/mcp"
+DO0PS_AUTH_TOKEN = "your-token"
 ```
 
 **Cursor, Windsurf, and other `mcpServers`-style clients:**
@@ -160,7 +192,8 @@ bearer token from `MCP_AUTH_TOKENS`. The bundle and the server are the same buil
 — see [README.md](README.md) for the self-hosted setup.
 
 `MCP_TRANSPORT=stdio` is the environment-variable equivalent of `--stdio`, for clients that configure
-environment rather than arguments.
+environment rather than arguments. `DO0PS_SERVER_URL` and `DO0PS_AUTH_TOKEN` are what the two settings fields
+above map onto, so any client that can set environment variables can use connected mode.
 
 ## Using it
 
@@ -171,7 +204,8 @@ Provider credentials are **not stored by the server**. You supply your provider 
 tool call, and it lives only in the chat session (see AGENTS.md §4.2). Nothing is written to disk except job
 state.
 
-The bundled server keeps that job state in a SQLite file so a long provisioning operation survives a restart:
+In local mode the bundled server keeps job state in a SQLite file, so a long provisioning operation survives a
+restart:
 
 | Path | Default |
 | --- | --- |
@@ -180,12 +214,22 @@ The bundled server keeps that job state in a SQLite file so a long provisioning 
 | Windows | `%AppData%\do0ps\jobs.db` |
 
 Set `DB_PATH` to move it. (Under HTTP the default stays `./data/do0ps.db`, relative to the working directory
-the deployment chose.)
+the deployment chose.) In connected mode nothing is written here at all — the server owns the job store.
 
 ## Troubleshooting
 
 **The extension installs but no tools appear.** Check the client's MCP log. The server writes structured logs
-to stderr (never stdout, which carries the protocol), and clients capture stderr into their own log files.
+to stderr (never stdout, which carries the protocol), and clients capture stderr into their own log files. In
+connected mode the first line names the endpoint it is bridging to.
+
+**`spawn … ENOENT` in the log.** The client could not find the binary inside the extension. Every bundle this
+repository builds spells the path out as `${__dirname}/server/do0ps` (`.exe` on Windows), so this means the
+bundle was hand-edited or built elsewhere — rebuild it with `go run ./cmd/mcpb-build`.
+
+**"rejected the access token" or "cannot reach the do0ps server".** Connected mode is configured but the server
+is not answering. The message names the endpoint it tried; check the URL includes `/mcp`, that the token
+matches an entry in the server's `MCP_AUTH_TOKENS`, and that the server is reachable from this machine. To fall
+back to local mode, clear the server URL field.
 
 **macOS refuses to run the binary.** The binaries are not code-signed or notarized yet. Right-click the
 binary → Open once, or `xattr -d com.apple.quarantine server/do0ps`.
