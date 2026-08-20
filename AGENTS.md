@@ -255,6 +255,10 @@ anywhere else. Issues carry two kinds of labels, plus `backlog` for anything del
       work twice out of a shared queue.
     - `status:blocked` — has an explicit unmet dependency (stated in the issue body). Do not start until the
       blocking issue is closed.
+    - `status:needs-human` — an orchestrator routine escalated a decision it can't make on its own (e.g. one of
+      §8's open questions, an ambiguous merge conflict, a suspected infra/credentials failure) and is waiting
+      on a human response. Don't pick these up or relabel them — the escalating routine owns clearing this
+      label once it processes the human's answer.
 
 **Before writing any code against an issue:** change its label from `status:ready` to `status:in-progress`
 first. This is a hard rule, not a suggestion — it's the only thing standing between this repo and duplicate
