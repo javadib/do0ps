@@ -1,12 +1,11 @@
 // Package parspack is the secondary adapter implementing
-// ports.ParspackProvider against the Parspack API.
+// ports.ParspackProvider against the Parspack cloud-server API.
 //
-// The transport concerns — authentication, timeouts, retry/backoff and the
-// translation of HTTP failures into domain errors — are implemented here.
-// The endpoint paths and response shapes still have to be filled in from the
-// Parspack API documentation; every method below marks that with
-// errNotImplemented so a missing piece fails loudly instead of silently
-// returning zero values.
+// Base URL and auth scheme are confirmed against AGENTS.md 4.5 and
+// github.com/abrhacom/go-api-abrha, the Go REST client the Parspack
+// cloud-server API is built on (Abrha-based): same host as the CDN and SSL
+// surfaces, distinct "/cserver" path prefix, Bearer-token auth. Credentials
+// are never stored — every method receives them from the caller.
 package parspack
 
 import (
@@ -24,20 +23,28 @@ import (
 )
 
 const (
-	defaultBaseURL = "https://api.parspack.com"
-	defaultTimeout = 30 * time.Second
-	maxAttempts    = 4
-	baseBackoff    = 500 * time.Millisecond
-	maxBodyBytes   = 4 << 20 // 4 MiB: refuse to buffer an unbounded response
+	defaultBaseURL    = "https://my.parspack.com/cserver"
+	defaultCDNBaseURL = "https://my.parspack.com/cdnapi"
+	defaultSSLBaseURL = "https://my.parspack.com/sslv2"
+	defaultTimeout    = 30 * time.Second
 )
 
-var errNotImplemented = errors.New("parspack endpoint not implemented yet")
+// errEmptyResponse means the provider returned 2xx with no resource in the
+// body where one was expected.
+var errEmptyResponse = errors.New("parspack returned an empty response body")
 
 // Client talks to the Parspack API. It holds no credentials: every method
-// receives the caller's credentials, which belong to the chatbot session.
+// receives the caller's credentials, which belong to the chatbot session
+// (AGENTS.md 4.2).
+//
+// Parspack exposes three distinct API surfaces on the same host under
+// different path prefixes (AGENTS.md 4.5). They share nothing but the auth
+// scheme, so each gets its own base URL rather than one shared config.
 type Client struct {
-	baseURL string
-	http    *http.Client
+	baseURL    string // cloud-server surface, e.g. .../cserver
+	cdnBaseURL string // CDN surface (zones and DNS records), e.g. .../cdnapi
+	sslBaseURL string // SSL ordering surface, e.g. .../sslv2
+	http       *http.Client
 }
 
 var _ ports.ParspackProvider = (*Client)(nil)
@@ -45,13 +52,38 @@ var _ ports.ParspackProvider = (*Client)(nil)
 // Option configures a Client.
 type Option func(*Client) error
 
-// WithBaseURL overrides the API root, mainly for tests against a fake server.
+// WithBaseURL overrides the cloud-server API root, mainly for tests against a
+// fake server.
 func WithBaseURL(u string) Option {
 	return func(c *Client) error {
 		if u == "" {
 			return errors.New("base URL must not be empty")
 		}
 		c.baseURL = u
+		return nil
+	}
+}
+
+// WithCDNBaseURL overrides the CDN API root, mainly for tests against a fake
+// server.
+func WithCDNBaseURL(u string) Option {
+	return func(c *Client) error {
+		if u == "" {
+			return errors.New("CDN base URL must not be empty")
+		}
+		c.cdnBaseURL = u
+		return nil
+	}
+}
+
+// WithSSLBaseURL overrides the SSL ordering API root, mainly for tests
+// against a fake server.
+func WithSSLBaseURL(u string) Option {
+	return func(c *Client) error {
+		if u == "" {
+			return errors.New("SSL base URL must not be empty")
+		}
+		c.sslBaseURL = u
 		return nil
 	}
 }
@@ -81,8 +113,10 @@ func WithTimeout(d time.Duration) Option {
 // New builds a Parspack client.
 func New(opts ...Option) (*Client, error) {
 	c := &Client{
-		baseURL: defaultBaseURL,
-		http:    &http.Client{Timeout: defaultTimeout},
+		baseURL:    defaultBaseURL,
+		cdnBaseURL: defaultCDNBaseURL,
+		sslBaseURL: defaultSSLBaseURL,
+		http:       &http.Client{Timeout: defaultTimeout},
 	}
 	for _, opt := range opts {
 		if err := opt(c); err != nil {
@@ -92,112 +126,139 @@ func New(opts ...Option) (*Client, error) {
 	return c, nil
 }
 
-// do performs a request with retry/backoff and decodes the JSON response into
-// out. Retries stop on context cancellation and on non-retryable statuses.
-func (c *Client) do(
-	ctx context.Context,
-	creds domain.ProviderCredentials,
-	method, path string,
-	body, out any,
-) error {
-	var payload []byte
+// errorResponse is the JSON error body shape used across go-api-abrha-based
+// APIs: {"message": "...", "request_id": "..."}.
+type errorResponse struct {
+	Message   string `json:"message"`
+	RequestID string `json:"request_id"`
+}
+
+// doJSON sends a request against the cloud-server API with an optional JSON
+// body and decodes a JSON response into out (nil to discard the body, e.g.
+// for DELETE). Non-2xx responses are translated into the sentinel domain
+// errors ports callers are expected to check with errors.Is (AGENTS.md 4.2,
+// 4.4).
+func (c *Client) doJSON(ctx context.Context, creds domain.ProviderCredentials, method, path string, body, out any) error {
+	return c.doJSONBase(ctx, creds, c.baseURL, method, path, body, out)
+}
+
+// doJSONSSL is doJSON against the SSL ordering surface instead of the
+// cloud-server one — same auth and error-mapping, different base URL
+// (AGENTS.md 4.5).
+func (c *Client) doJSONSSL(ctx context.Context, creds domain.ProviderCredentials, method, path string, body, out any) error {
+	return c.doJSONBase(ctx, creds, c.sslBaseURL, method, path, body, out)
+}
+
+// cdnEnvelope is the {"success","message","data"} response shape every CDN
+// API endpoint uses (docs/api-specs/parspack-cdn.openapi.yaml), wrapping the payload
+// doJSON's cloud-server callers get directly.
+type cdnEnvelope struct {
+	Success bool            `json:"success"`
+	Message string          `json:"message"`
+	Data    json.RawMessage `json:"data"`
+}
+
+// doCDNJSON is doJSON's counterpart for the CDN API surface (AGENTS.md 4.5):
+// same auth scheme and error handling, different base URL and response
+// envelope. It unwraps the envelope's "data" field into out.
+func (c *Client) doCDNJSON(ctx context.Context, creds domain.ProviderCredentials, method, path string, body, out any) error {
+	var env cdnEnvelope
+	if err := c.doJSONBase(ctx, creds, c.cdnBaseURL, method, path, body, &env); err != nil {
+		return err
+	}
+	if out == nil || len(env.Data) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(env.Data, out); err != nil {
+		return fmt.Errorf("decoding %s %s response data: %w", method, path, err)
+	}
+	return nil
+}
+
+// doJSONBase is the shared transport doJSON, doJSONSSL and doCDNJSON build
+// on, targeting an explicit base URL since Parspack's API surfaces share a
+// host but not a path prefix (AGENTS.md 4.5).
+func (c *Client) doJSONBase(ctx context.Context, creds domain.ProviderCredentials, baseURL, method, path string, body, out any) error {
+	var reqBody io.Reader
 	if body != nil {
 		encoded, err := json.Marshal(body)
 		if err != nil {
 			return fmt.Errorf("encoding request body: %w", err)
 		}
-		payload = encoded
+		reqBody = bytes.NewReader(encoded)
 	}
 
-	var lastErr error
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		if err := ctx.Err(); err != nil {
-			return fmt.Errorf("calling parspack %s %s: %w", method, path, err)
-		}
-
-		err := c.attempt(ctx, creds, method, path, payload, out)
-		if err == nil {
-			return nil
-		}
-		lastErr = err
-
-		if !retryable(err) || attempt == maxAttempts {
-			return fmt.Errorf("calling parspack %s %s: %w", method, path, err)
-		}
-
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("calling parspack %s %s: %w", method, path, ctx.Err())
-		case <-time.After(backoffFor(attempt)):
-		}
-	}
-	return fmt.Errorf("calling parspack %s %s: %w", method, path, lastErr)
-}
-
-func (c *Client) attempt(
-	ctx context.Context,
-	creds domain.ProviderCredentials,
-	method, path string,
-	payload []byte,
-	out any,
-) error {
-	var reader io.Reader
-	if payload != nil {
-		reader = bytes.NewReader(payload)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, reader)
+	req, err := http.NewRequestWithContext(ctx, method, baseURL+"/"+path, reqBody)
 	if err != nil {
-		return fmt.Errorf("building request: %w", err)
+		return fmt.Errorf("building %s %s request: %w", method, path, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+creds.APIKey)
 	req.Header.Set("Accept", "application/json")
-	if payload != nil {
+	req.Header.Set("Accept-Language", "en")
+	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("%w: %s", domain.ErrProviderUnavailable, err)
+		return fmt.Errorf("calling %s %s: %w: %v", method, path, domain.ErrProviderUnavailable, err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
-		return statusError(resp)
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading %s %s response: %w", method, path, err)
 	}
 
-	if out == nil {
-		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, maxBodyBytes))
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return mapErrorResponse(method, path, resp.StatusCode, data)
+	}
+
+	if out == nil || len(data) == 0 {
 		return nil
 	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxBodyBytes)).Decode(out); err != nil {
-		return fmt.Errorf("decoding response: %w", err)
+	if err := json.Unmarshal(data, out); err != nil {
+		return fmt.Errorf("decoding %s %s response: %w", method, path, err)
 	}
 	return nil
 }
 
-// statusError maps an HTTP status onto a domain sentinel so use cases and the
-// MCP adapter never inspect status codes.
-func statusError(resp *http.Response) error {
-	snippet, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+// statusFailedDependency is the CDN API's "Operation Fail" status (424),
+// used when a request was valid but the underlying operation could not
+// complete (docs/api-specs/parspack-cdn.openapi.yaml). Treated the same as a 5xx: it is
+// the provider's failure, not a bad request.
+const statusFailedDependency = 424
+
+// mapErrorResponse turns a non-2xx HTTP response into one of the sentinel
+// domain errors, per the status codes AGENTS.md 4.5 confirms for the
+// cloud-server API (200/400/401/404/500), plus the 422 and 424 the CDN API
+// additionally confirms (docs/api-specs/parspack-cdn.openapi.yaml).
+//
+// Statuses outside that set (403, 409, ...) carry surface-specific meaning
+// that differs between surfaces — e.g. the SSL API's 403 means "order not in
+// the right state", not "bad credentials" — so they fall through to a plain
+// wrapped error with the provider's message rather than being forced onto a
+// sentinel that would mislead callers checking it with errors.Is.
+func mapErrorResponse(method, path string, status int, body []byte) error {
+	var parsed errorResponse
+	message := ""
+	if len(body) > 0 && json.Unmarshal(body, &parsed) == nil {
+		message = parsed.Message
+	}
+	if message == "" {
+		message = fmt.Sprintf("status %d", status)
+	}
 
 	switch {
-	case resp.StatusCode == http.StatusUnauthorized, resp.StatusCode == http.StatusForbidden:
-		return fmt.Errorf("%w (http %d)", domain.ErrInvalidCredentials, resp.StatusCode)
-	case resp.StatusCode == http.StatusNotFound:
-		return fmt.Errorf("%w (http %d)", domain.ErrNotFound, resp.StatusCode)
-	case resp.StatusCode == http.StatusTooManyRequests, resp.StatusCode >= 500:
-		return fmt.Errorf("%w (http %d): %s", domain.ErrProviderUnavailable, resp.StatusCode, snippet)
+	case status == http.StatusUnauthorized:
+		return fmt.Errorf("%s %s: %s: %w", method, path, message, domain.ErrInvalidCredentials)
+	case status == http.StatusNotFound:
+		return fmt.Errorf("%s %s: %s: %w", method, path, message, domain.ErrNotFound)
+	case status == http.StatusBadRequest || status == http.StatusUnprocessableEntity:
+		return fmt.Errorf("%s %s: %s: %w", method, path, message, domain.ErrInvalidInput)
+	case status == statusFailedDependency || status >= 500:
+		return fmt.Errorf("%s %s: %s: %w", method, path, message, domain.ErrProviderUnavailable)
 	default:
-		return fmt.Errorf("%w (http %d): %s", domain.ErrInvalidInput, resp.StatusCode, snippet)
+		return fmt.Errorf("%s %s: status %d: %s", method, path, status, message)
 	}
-}
-
-// retryable reports whether another attempt could plausibly succeed.
-func retryable(err error) bool {
-	return errors.Is(err, domain.ErrProviderUnavailable)
-}
-
-func backoffFor(attempt int) time.Duration {
-	return baseBackoff * time.Duration(1<<(attempt-1))
 }

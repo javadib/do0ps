@@ -5,6 +5,45 @@ import (
 	"time"
 )
 
+// OperationClass distinguishes the two kinds of provider operation described
+// in AGENTS.md 4.3. Each application use case declares which class it is:
+//   - Fast operations run on a worker while the MCP caller's tool call blocks
+//     on the result (ports.Queue.Dispatch).
+//   - Long operations are persisted as a Job and return an operation ID
+//     immediately; the caller polls GetOperationStatus for progress
+//     (ports.Queue.Submit).
+type OperationClass int
+
+const (
+	OperationClassUnknown OperationClass = iota
+	OperationClassFast
+	OperationClassLong
+)
+
+// String returns the value used in logs and docs.
+func (c OperationClass) String() string {
+	switch c {
+	case OperationClassFast:
+		return "fast"
+	case OperationClassLong:
+		return "long"
+	default:
+		return "unknown"
+	}
+}
+
+// ParseOperationClass converts a class name back into an OperationClass.
+func ParseOperationClass(s string) (OperationClass, error) {
+	switch s {
+	case "fast":
+		return OperationClassFast, nil
+	case "long":
+		return OperationClassLong, nil
+	default:
+		return OperationClassUnknown, ErrInvalidInput
+	}
+}
+
 // OperationStatus is the caller-visible state of a long-running operation.
 // It is a deliberately smaller vocabulary than JobStatus: callers care about
 // progress, not about retry bookkeeping.

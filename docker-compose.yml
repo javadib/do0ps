@@ -1,0 +1,34 @@
+# One-command self-hosted run of the do0ps MCP server.
+#
+#   cp .env.example .env   # fill in at least MCP_AUTH_TOKENS
+#   docker compose up -d --build
+#
+# See .env.example for every supported variable and its default.
+services:
+  do0ps:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    image: do0ps:local
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Pinned to the volume mount below -- do not override DB_PATH in .env
+      # when running via compose, or the job store won't land on the
+      # persisted volume and job history is lost on every restart.
+      DB_PATH: /data/do0ps.db
+    ports:
+      - "${HTTP_PORT:-8080}:${HTTP_PORT:-8080}"
+    volumes:
+      # Persists the SQLite job store (jobs table, recovery state) across
+      # container restarts and image upgrades. Losing this volume loses job
+      # history -- see AGENTS.md §4.4.
+      - do0ps-data:/data
+    # No container-level healthcheck: the runner image is distroless
+    # (no shell, no curl/wget) by design (see Dockerfile). GET /healthz is
+    # exposed on HTTP_PORT for external orchestrators/uptime checks instead.
+
+volumes:
+  do0ps-data:

@@ -1,9 +1,11 @@
 module github.com/javadib/do0ps
 
-go 1.26.6
+go 1.26.2
 
 require (
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/gofiber/fiber/v3 v3.5.0
+	github.com/joho/godotenv v1.5.1
 	modernc.org/sqlite v1.56.0
 )
 

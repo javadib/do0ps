@@ -62,7 +62,7 @@ func (s *StaticStore) Lookup(token string) (domain.Client, bool) {
 }
 
 // ParseTokens reads an allow-list from a "token:client_id[:name]" list,
-// separated by commas — the shape used by the DO0PS_TOKENS environment
+// separated by commas — the shape used by the MCP_AUTH_TOKENS environment
 // variable. client_id is unused today and reserved for a future multi-tenant
 // mode.
 func ParseTokens(spec string) (map[string]domain.Client, error) {

@@ -11,8 +11,12 @@
 # Local env / secrets
 .env
 .env.*
+!.env.example
 
 # Editor / OS
 .DS_Store
 .idea/
 .vscode/
+
+# Claude Code agent worktrees (local harness state, not project source)
+.claude/worktrees/
