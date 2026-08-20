@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -63,7 +64,15 @@ func (r *memJobs) Update(_ context.Context, job *domain.Job) error {
 	return nil
 }
 
-func (r *memJobs) ListUnfinished(context.Context) ([]*domain.Job, error) { return nil, nil }
+func (r *memJobs) ListUnfinished(context.Context) ([]*domain.Job, error) {
+	var unfinished []*domain.Job
+	for _, job := range r.jobs {
+		if !job.IsTerminal() {
+			unfinished = append(unfinished, job)
+		}
+	}
+	return unfinished, nil
+}
 
 func (r *memJobs) ListDue(context.Context, time.Time, int) ([]*domain.Job, error) { return nil, nil }
 
@@ -71,56 +80,147 @@ func (r *memJobs) ListDue(context.Context, time.Time, int) ([]*domain.Job, error
 type fakeProvider struct {
 	ports.ParspackProvider
 
-	zones   []domain.DNSZone
-	created *domain.DNSRecord
+	servers   []domain.Server
+	deletedID string
+	deleteErr error
+
+	snapshots       []domain.VMSnapshot
+	actions         map[string]*domain.VMAction
+	snapshotCalls   int
+	snapshotErr     error
+	deletedSnapshot string
+	deleteSnapErr   error
+	restoreCalls    int
+	restoreErr      error
+
+	keys         []domain.SSHKey
+	createdKey   *domain.SSHKey
+	deletedKeyID string
+	keyDeleteErr error
+
+	vpcs         []domain.VPC
+	createdVPC   *domain.VPC
+	deletedVPCID string
+	vpcDeleteErr error
+
+	cdnZones        []domain.CDNZone
+	createdZone     *domain.CDNZone
+	createZoneErr   error
+	deletedZoneUUID string
+	deleteZoneErr   error
+	cdnZonePlans    []domain.CDNZonePlanPricing
+	nsRecords       *domain.NameserverRecords
+
+	dnsRecords           []domain.DNSRecord
+	createdRecord        *domain.DNSRecord
+	updatedRecord        *domain.DNSRecord
+	deletedRecordHost    string
+	deletedRecordType    domain.DNSRecordType
+	deletedRecordContent string
+	deleteRecordErr      error
+	reserved             []domain.ReservedIP
+	reserveErr           error
+	released             string
+	releaseErr           error
+	assigned             struct {
+		ip       string
+		serverID string
+	}
+	assignErr   error
+	unassigned  string
+	unassignErr error
+
+	sslProducts      []domain.SSLProduct
+	sslOrder         *domain.SSLOrder
+	sslChallengeSet  *domain.SSLChallengeSet
+	sslVerifyResult  *domain.SSLVerifyResult
+	sslCertificate   *domain.SSLCertificate
+	processedContact domain.SSLContact
+	reloadedMethod   string
+	verifiedMethod   string
+	reissuedCSR      string
+
+	loadBalancers []domain.LoadBalancer
+	createdLB     *domain.LoadBalancer
+	updatedLB     *domain.LoadBalancer
+	deletedLBID   string
+	deleteLBErr   error
 }
 
-func (p *fakeProvider) ListDNSZones(context.Context, domain.ProviderCredentials) ([]domain.DNSZone, error) {
-	return p.zones, nil
+func (p *fakeProvider) ListSSLProducts(context.Context, domain.ProviderCredentials) ([]domain.SSLProduct, error) {
+	return p.sslProducts, nil
 }
 
-func (p *fakeProvider) CreateDNSRecord(_ context.Context, _ domain.ProviderCredentials, rec domain.DNSRecord) (*domain.DNSRecord, error) {
-	rec.ID = "rec-1"
-	p.created = &rec
-	return &rec, nil
+func (p *fakeProvider) CreateSSLOrder(_ context.Context, _ domain.ProviderCredentials, spec domain.SSLOrderSpec) (*domain.SSLOrder, error) {
+	return p.sslOrder, nil
 }
 
-func TestSetupDNSResolvesZoneAndCreatesRecord(t *testing.T) {
-	provider := &fakeProvider{zones: []domain.DNSZone{{ID: "zone-1", Name: "example.com"}}}
-	uc := app.NewSetupDNS(&inlineQueue{}, provider)
-
-	rec, err := uc.Execute(context.Background(), app.SetupDNSInput{
-		Credentials: domain.ProviderCredentials{APIKey: "k"},
-		ZoneName:    "example.com",
-		Record: domain.DNSRecord{
-			Name:  "api",
-			Type:  domain.DNSRecordTypeA,
-			Value: "203.0.113.10",
-			TTL:   3600,
-		},
-	})
-	if err != nil {
-		t.Fatalf("Execute: %v", err)
-	}
-	if rec.ID != "rec-1" {
-		t.Errorf("record ID = %q, want %q", rec.ID, "rec-1")
-	}
-	if provider.created.ZoneID != "zone-1" {
-		t.Errorf("zone ID = %q, want %q — the zone name was not resolved", provider.created.ZoneID, "zone-1")
-	}
+func (p *fakeProvider) ProcessSSLOrder(_ context.Context, _ domain.ProviderCredentials, _, _ string, contact domain.SSLContact) (*domain.SSLChallengeSet, error) {
+	p.processedContact = contact
+	return p.sslChallengeSet, nil
 }
 
-func TestSetupDNSUnknownZone(t *testing.T) {
-	uc := app.NewSetupDNS(&inlineQueue{}, &fakeProvider{})
+func (p *fakeProvider) GetSSLChallenge(context.Context, domain.ProviderCredentials, string) (*domain.SSLChallengeSet, error) {
+	return p.sslChallengeSet, nil
+}
 
-	_, err := uc.Execute(context.Background(), app.SetupDNSInput{
-		Credentials: domain.ProviderCredentials{APIKey: "k"},
-		ZoneName:    "missing.example",
-		Record:      domain.DNSRecord{Name: "api", Type: domain.DNSRecordTypeA, Value: "203.0.113.10"},
-	})
-	if !errors.Is(err, domain.ErrNotFound) {
-		t.Fatalf("error = %v, want domain.ErrNotFound", err)
+func (p *fakeProvider) ReloadSSLChallenge(_ context.Context, _ domain.ProviderCredentials, _, method, _ string) (*domain.SSLChallengeSet, error) {
+	p.reloadedMethod = method
+	return p.sslChallengeSet, nil
+}
+
+func (p *fakeProvider) VerifySSLChallenge(_ context.Context, _ domain.ProviderCredentials, _, method string) (*domain.SSLVerifyResult, error) {
+	p.verifiedMethod = method
+	return p.sslVerifyResult, nil
+}
+
+func (p *fakeProvider) GetSSLCertificate(context.Context, domain.ProviderCredentials, string) (*domain.SSLCertificate, error) {
+	return p.sslCertificate, nil
+}
+
+func (p *fakeProvider) ReissueSSLCertificate(_ context.Context, _ domain.ProviderCredentials, _, csr string) (*domain.SSLCertificate, error) {
+	p.reissuedCSR = csr
+	return p.sslCertificate, nil
+}
+
+func (p *fakeProvider) ListServers(context.Context, domain.ProviderCredentials) ([]domain.Server, error) {
+	return p.servers, nil
+}
+
+func (p *fakeProvider) GetServer(_ context.Context, _ domain.ProviderCredentials, id string) (*domain.Server, error) {
+	for i := range p.servers {
+		if p.servers[i].ID == id {
+			return &p.servers[i], nil
+		}
 	}
+	return nil, fmt.Errorf("server %q: %w", id, domain.ErrNotFound)
+}
+
+func (p *fakeProvider) DeleteServer(_ context.Context, _ domain.ProviderCredentials, id string) error {
+	if p.deleteErr != nil {
+		return p.deleteErr
+	}
+	p.deletedID = id
+	return nil
+}
+
+func (p *fakeProvider) CreateSSHKey(_ context.Context, _ domain.ProviderCredentials, key domain.SSHKey) (*domain.SSHKey, error) {
+	key.ID = "key-1"
+	key.Fingerprint = "aa:bb:cc"
+	p.createdKey = &key
+	return &key, nil
+}
+
+func (p *fakeProvider) ListSSHKeys(context.Context, domain.ProviderCredentials) ([]domain.SSHKey, error) {
+	return p.keys, nil
+}
+
+func (p *fakeProvider) DeleteSSHKey(_ context.Context, _ domain.ProviderCredentials, id string) error {
+	if p.keyDeleteErr != nil {
+		return p.keyDeleteErr
+	}
+	p.deletedKeyID = id
+	return nil
 }
 
 func TestProvisionServerReturnsPendingOperation(t *testing.T) {
@@ -176,5 +276,192 @@ func TestProvisionServerRejectsUnderspecifiedRequest(t *testing.T) {
 	})
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+}
+
+func TestListServersReturnsProviderResult(t *testing.T) {
+	provider := &fakeProvider{servers: []domain.Server{{ID: "vm-1", Name: "web-01"}, {ID: "vm-2", Name: "web-02"}}}
+	uc := app.NewListServers(&inlineQueue{}, provider)
+
+	servers, err := uc.Execute(context.Background(), app.ListServersInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if len(servers) != 2 {
+		t.Fatalf("len(servers) = %d, want 2", len(servers))
+	}
+}
+
+func TestListServersRequiresCredentials(t *testing.T) {
+	uc := app.NewListServers(&inlineQueue{}, &fakeProvider{})
+
+	_, err := uc.Execute(context.Background(), app.ListServersInput{})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+}
+
+func TestGetServerReturnsMatchingServer(t *testing.T) {
+	provider := &fakeProvider{servers: []domain.Server{{ID: "vm-1", Name: "web-01"}}}
+	uc := app.NewGetServer(&inlineQueue{}, provider)
+
+	srv, err := uc.Execute(context.Background(), app.GetServerInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ServerID:    "vm-1",
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if srv.Name != "web-01" {
+		t.Errorf("Name = %q, want web-01", srv.Name)
+	}
+}
+
+func TestGetServerUnknownID(t *testing.T) {
+	uc := app.NewGetServer(&inlineQueue{}, &fakeProvider{})
+
+	_, err := uc.Execute(context.Background(), app.GetServerInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ServerID:    "missing",
+	})
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("error = %v, want domain.ErrNotFound", err)
+	}
+}
+
+func TestGetServerRequiresServerID(t *testing.T) {
+	uc := app.NewGetServer(&inlineQueue{}, &fakeProvider{})
+
+	_, err := uc.Execute(context.Background(), app.GetServerInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+}
+
+func TestDeleteServerCallsProvider(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewDeleteServer(&inlineQueue{}, provider)
+
+	err := uc.Execute(context.Background(), app.DeleteServerInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ServerID:    "vm-1",
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if provider.deletedID != "vm-1" {
+		t.Errorf("deletedID = %q, want vm-1", provider.deletedID)
+	}
+}
+
+// TestDeleteServerTreatsAlreadyGoneAsSuccess proves delete_server can be
+// called more than once safely: a not-found response from the provider is
+// not surfaced as an error.
+func TestDeleteServerTreatsAlreadyGoneAsSuccess(t *testing.T) {
+	provider := &fakeProvider{deleteErr: fmt.Errorf("server vm-1: %w", domain.ErrNotFound)}
+	uc := app.NewDeleteServer(&inlineQueue{}, provider)
+
+	err := uc.Execute(context.Background(), app.DeleteServerInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ServerID:    "vm-1",
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v, want nil for an already-deleted server", err)
+	}
+}
+
+func TestRegisterSSHKeyReturnsProviderCopy(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewRegisterSSHKey(&inlineQueue{}, provider)
+
+	key, err := uc.Execute(context.Background(), app.RegisterSSHKeyInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		Key:         domain.SSHKey{Name: "laptop", PublicKey: "ssh-ed25519 AAAAC3..."},
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if key.ID != "key-1" || key.Fingerprint != "aa:bb:cc" {
+		t.Errorf("key = %+v, want id key-1 and fingerprint aa:bb:cc", key)
+	}
+	if provider.createdKey.Name != "laptop" {
+		t.Errorf("createdKey.Name = %q, want laptop", provider.createdKey.Name)
+	}
+}
+
+func TestRegisterSSHKeyRequiresNameAndPublicKey(t *testing.T) {
+	uc := app.NewRegisterSSHKey(&inlineQueue{}, &fakeProvider{})
+
+	for name, in := range map[string]app.RegisterSSHKeyInput{
+		"missing name":  {Credentials: domain.ProviderCredentials{APIKey: "k"}, Key: domain.SSHKey{PublicKey: "ssh-ed25519 AAAA"}},
+		"missing key":   {Credentials: domain.ProviderCredentials{APIKey: "k"}, Key: domain.SSHKey{Name: "laptop"}},
+		"missing creds": {Key: domain.SSHKey{Name: "laptop", PublicKey: "ssh-ed25519 AAAA"}},
+	} {
+		if _, err := uc.Execute(context.Background(), in); !errors.Is(err, domain.ErrInvalidInput) {
+			t.Errorf("%s: error = %v, want domain.ErrInvalidInput", name, err)
+		}
+	}
+}
+
+func TestListSSHKeysReturnsProviderResult(t *testing.T) {
+	provider := &fakeProvider{keys: []domain.SSHKey{{ID: "key-1", Name: "laptop"}, {ID: "key-2", Name: "ci-runner"}}}
+	uc := app.NewListSSHKeys(&inlineQueue{}, provider)
+
+	keys, err := uc.Execute(context.Background(), app.ListSSHKeysInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if len(keys) != 2 {
+		t.Fatalf("len(keys) = %d, want 2", len(keys))
+	}
+}
+
+func TestListSSHKeysRequiresCredentials(t *testing.T) {
+	uc := app.NewListSSHKeys(&inlineQueue{}, &fakeProvider{})
+
+	_, err := uc.Execute(context.Background(), app.ListSSHKeysInput{})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+}
+
+func TestDeleteSSHKeyCallsProvider(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewDeleteSSHKey(&inlineQueue{}, provider)
+
+	err := uc.Execute(context.Background(), app.DeleteSSHKeyInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		KeyID:       "key-1",
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if provider.deletedKeyID != "key-1" {
+		t.Errorf("deletedKeyID = %q, want key-1", provider.deletedKeyID)
+	}
+}
+
+func TestDeleteSSHKeyRequiresKeyID(t *testing.T) {
+	uc := app.NewDeleteSSHKey(&inlineQueue{}, &fakeProvider{})
+
+	err := uc.Execute(context.Background(), app.DeleteSSHKeyInput{Credentials: domain.ProviderCredentials{APIKey: "k"}})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+}
+
+// TestDeleteSSHKeyTreatsAlreadyGoneAsSuccess proves delete_ssh_key can be
+// called more than once safely: a not-found response from the provider is not
+// surfaced as an error.
+func TestDeleteSSHKeyTreatsAlreadyGoneAsSuccess(t *testing.T) {
+	provider := &fakeProvider{keyDeleteErr: fmt.Errorf("SSH key key-1: %w", domain.ErrNotFound)}
+	uc := app.NewDeleteSSHKey(&inlineQueue{}, provider)
+
+	err := uc.Execute(context.Background(), app.DeleteSSHKeyInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		KeyID:       "key-1",
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v, want nil for an already-deleted key", err)
 	}
 }

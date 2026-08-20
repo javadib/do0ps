@@ -1,19 +1,19 @@
 name: Release
 
-# Ported from javadib/sonar_srv's release.yml. Swaps python-semantic-release
-# for go-semantic-release (github.com/go-semantic-release), a Go-native
-# semantic-release implementation with its own GitHub Action -- avoids
-# pulling in a Python or Node toolchain just to cut releases.
 on:
   push:
-    branches: [master]
+    branches: [master, develop]
+
+concurrency:
+  # Per branch: a develop push must not queue behind a master release.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
+  # --- stable releases, master only ------------------------------------
   release:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
-    concurrency:
-      group: release
-      cancel-in-progress: false
     permissions:
       contents: write
       id-token: write
@@ -39,15 +39,126 @@ jobs:
 
       # Outputs `version` (empty string if no release was warranted by the
       # commits since the last tag -- see the `released` job output above).
-      # Check go-semantic-release/action's README for additional optional
-      # inputs (changelog formatting, initial version, etc.) if needed --
-      # kept minimal here rather than guessing at flags.
+      #
+      # allow-initial-development-versions keeps the project in 0.x: starting
+      # from the 0.0.0 baseline the first release is 0.1.0, and a breaking
+      # change bumps the minor rather than jumping to 1.0.0. Reaching 1.0.0 is
+      # then a deliberate act, not something a commit message causes.
+      #
+      # NOTE: go-semantic-release ignores this flag once a release with major
+      # version >= 1 exists. The v1.0.0 release in this repository therefore
+      # has to be deleted for 0.x versioning to take effect; while it is there,
+      # releases continue from 1.x.
       - name: Run semantic release
         id: release
         uses: go-semantic-release/action@v1
         with:
           github-token: ${{ secrets.JIFFY_REPO_PAT }}
+          allow-initial-development-versions: true
 
+  # --- release candidates, develop only --------------------------------
+  prerelease:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.JIFFY_REPO_PAT }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      # The RC version is computed here rather than by the action, because
+      # go-semantic-release cannot produce one on its own: its `prerelease`
+      # input only ticks GitHub's pre-release checkbox, it does not add a
+      # suffix, so develop would emit the same bare version master is about to
+      # publish. Its `--maintained-version` route does take a `-RC` suffix but
+      # recomputes its base from the flag every run, so it returns RC.1
+      # forever and the second push collides with the first tag.
+      #
+      # So: ask semantic-release what the next version would be (--dry
+      # calculates it and creates nothing), then attach the RC counter below.
+      # The version arrives as this step's `version` output -- the action
+      # writes the version file, reads it, and deletes it again, so the file
+      # itself is gone by the time the next step runs. When there is nothing
+      # to release the binary exits 65, the action swallows that and sets no
+      # outputs, which is the empty-version case handled below.
+      #
+      # ci-condition-opt is what makes this run at all. The GitHub CI-condition
+      # plugin refuses any branch that is not the repository's default one, and
+      # it runs before the version is ever calculated:
+      #
+      #   this test run was triggered on the branch develop, while
+      #   semantic-release is configured to only publish from master
+      #
+      # Pointing it at develop is deliberate rather than disabling the check
+      # with "*": this job may only ever run here, and naming the branch keeps
+      # it from doing anything if it is copied somewhere else.
+      - name: Compute the next version
+        id: next
+        uses: go-semantic-release/action@v1
+        with:
+          github-token: ${{ secrets.JIFFY_REPO_PAT }}
+          allow-initial-development-versions: true
+          dry: true
+          # No --allow-no-changes: it turns "nothing to release" from exit 65
+          # into exit 0, and the action then fails trying to read a version
+          # file the binary never wrote. Exit 65 is the graceful path.
+          custom-arguments: --ci-condition-opt defaultBranch=develop
+
+      # The counter is derived from the tags that already exist rather than
+      # kept anywhere, so it stays correct across re-runs and reverts.
+      - name: Pick the release candidate number
+        id: rc
+        env:
+          VERSION: ${{ steps.next.outputs.version }}
+        run: |
+          if [ -z "$VERSION" ]; then
+            echo "No version was computed, so there is nothing to tag."
+            echo "Usually that means no releasable commits since the last release;"
+            echo "the previous step's log says which it was."
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          version="$VERSION"
+          git fetch --tags --quiet
+
+          highest=0
+          while read -r existing; do
+            [ -n "$existing" ] || continue
+            n="${existing##*-RC.}"
+            case "$n" in
+              ''|*[!0-9]*) continue ;;
+            esac
+            if [ "$n" -gt "$highest" ]; then
+              highest="$n"
+            fi
+          done <<< "$(git tag --list "v${version}-RC.*")"
+
+          next=$((highest + 1))
+          echo "Next release candidate for ${version}: RC.${next}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${version}-RC.${next}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the release candidate
+        if: steps.rc.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.JIFFY_REPO_PAT }}
+        run: |
+          gh release create "${{ steps.rc.outputs.tag }}" \
+            --target "${{ github.sha }}" \
+            --title "${{ steps.rc.outputs.tag }}" \
+            --prerelease \
+            --generate-notes
+
+  # --- artifacts, stable releases only ---------------------------------
   docker:
     needs: release
     if: needs.release.outputs.released == 'true'
@@ -55,5 +166,16 @@ jobs:
       contents: read
       packages: write
     uses: ./.github/workflows/docker-publish.yml
+    with:
+      app_version: ${{ needs.release.outputs.version }}
+
+  # The other half of a release: the .mcpb bundles end users install into their
+  # chat client, attached to the release semantic-release just created.
+  mcpb:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/mcpb.yml
     with:
       app_version: ${{ needs.release.outputs.version }}

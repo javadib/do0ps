@@ -24,9 +24,10 @@ community, including non-technical end users who only ever interact with it thro
 
 ## 2. Tech Stack
 
-- **Language:** Go
-- **HTTP framework:** Fiber **v3** (built on fasthttp, not `net/http`). Requires **Go 1.25+** — make sure
-  Docker base images and CI use this version.
+- **Language:** Go **1.26.2** — the version `go.mod` pins and the single source of truth. CI reads it via
+  `go-version-file: go.mod`; the Dockerfile builder stage must name the same version. If you bump it, bump it
+  in `go.mod` and the Dockerfile together, and update this line.
+- **HTTP framework:** Fiber **v3** (built on fasthttp, not `net/http`).
 - **Persistence:** SQLite, using a **pure-Go driver** (`modernc.org/sqlite`) — do NOT use `mattn/go-sqlite3` or
   any other cgo-based driver. This keeps builds fully static and cross-compilation/Docker builds simple.
 - **Queue / background work:** Go channels + an in-process worker pool (goroutines). No Redis, no external
@@ -36,8 +37,8 @@ community, including non-technical end users who only ever interact with it thro
 
 ## 3. Deployment Target (important constraint)
 
-- Phase 1 target is **self-hosted only**: Docker container, VPS, or a single static binary.
-- **Vercel / serverless platforms are explicitly NOT a target** for phase 1. This was a deliberate decision:
+- The deployment target is **self-hosted only**: Docker container, VPS, or a single static binary.
+- **Vercel / serverless platforms are explicitly NOT a target.** This was a deliberate decision:
   serverless platforms (Vercel and similar) don't support persistent processes, in-memory worker pools, or local
   SQLite file persistence across invocations. Do not introduce code that assumes a serverless runtime model
   (e.g. assuming `/tmp` persists, or that a background goroutine can outlive a single request).
@@ -131,11 +132,11 @@ community, including non-technical end users who only ever interact with it thro
 Parspack exposes **three separate API surfaces**, same host, same Bearer-token auth scheme, different path
 prefixes. Do not assume they share a client config beyond auth — base paths differ:
 
-| Surface | Base URL | Spec file | Phase-1 issue |
-| --- | --- | --- | --- |
-| Cloud Server (VM/network, Abrha-based) | `https://my.parspack.com/cserver` | not committed (see #9's references — cross-check against `github.com/abrhacom/go-api-abrha`) | #9, #10, #11, #12, #13, #14, #15 |
-| CDN (zones, **DNS records live here**, +18 other tags out of phase-1 scope) | `https://my.parspack.com/cdnapi` | `docs/api-specs/parspack-cdn.openapi.yaml` | #19 (in scope), #24 (backlog) |
-| SSL (certificate ordering workflow) | `https://my.parspack.com/sslv2` | `docs/api-specs/parspack-ssl.openapi.yaml` | #18 |
+| Surface | Base URL | Spec file |
+| --- | --- | --- |
+| Cloud Server (VM/network, Abrha-based) | `https://my.parspack.com/cserver` | not committed — cross-check against `github.com/abrhacom/go-api-abrha` |
+| CDN (zones, **DNS records live here**) | `https://my.parspack.com/cdnapi` | `docs/api-specs/parspack-cdn.openapi.yaml` |
+| SSL (certificate ordering workflow) | `https://my.parspack.com/sslv2` | `docs/api-specs/parspack-ssl.openapi.yaml` |
 
 The CDN and SSL OpenAPI spec files were provided directly by the project owner and should be treated as
 authoritative — prefer them over re-deriving endpoint shapes from `docs.parspack.com`, which is a JS-rendered
@@ -144,6 +145,15 @@ SPA that tooling generally cannot scrape.
 ## 5. MCP Server Details
 
 - Remote transport: Streamable HTTP, served over Fiber.
+- **Local transport: stdio**, for the MCP Bundle (`.mcpb`) distribution — the chat client spawns the binary
+  itself and talks JSON-RPC over the pipes, so there is no listener and no bearer token in that mode (the OS
+  process boundary is the trust boundary). Both transports go through the same `dispatch` in
+  `internal/adapters/mcp`; never implement a protocol method for only one of them. Under stdio, stdout is the
+  protocol channel — logs go to stderr, and a single stray `fmt.Println` breaks the connection.
+- An installed bundle can also run as a **bridge** (`mcp.Proxy`): the user fills a server URL and token into
+  the extension's settings, and the binary forwards stdio JSON-RPC to a self-hosted server's `/mcp` instead of
+  running the adapters in-process. A bridge builds no job store, queue or provider client — keep it that way,
+  and keep both stdio paths on the shared loop in `stdio.go` so framing and concurrency stay identical.
 - Use Fiber v3's official **`github.com/gofiber/fiber/v3/middleware/sse`** package for the streaming side of
   the transport (`sse.New(sse.Config{Handler: ...})`) rather than hand-rolling `SetBodyStreamWriter` logic.
   Client disconnect is handled via `stream.Context()`, which is canceled when the stream ends or a write fails.
@@ -178,6 +188,11 @@ internal/adapters/
 
 internal/auth/                 Bearer token middleware, sits in front of the mcp primary adapter
 
+cmd/mcpb-build/                build tooling — cross-compiles the server and packs dist/mcpb/*.mcpb, one
+                                bundle per GOOS/GOARCH, with the manifest generated from the mcp adapter's
+                                tool registry so the two cannot drift. Not part of the running server.
+                                See docs/mcp-bundle.md.
+
 docs/api-specs/                OpenAPI specs for external Parspack APIs (see §4.5) — reference material, not
                                 code Claude generates; treat as ground truth for adapter implementation.
 ```
@@ -191,14 +206,19 @@ docs/api-specs/                OpenAPI specs for external Parspack APIs (see §4
 - Wrap errors with context: `fmt.Errorf("doing X: %w", err)`. Avoid panics in library code — return errors.
 - **All comments, log output, and identifiers must be in English**, regardless of the language used in project
   discussions or issue descriptions.
+- **Build and release tooling is written in Go, not shell.** Contributors build on Windows as well as macOS
+  and Linux, and a `.sh` file needs a POSIX shell plus whatever binaries it shells out to (`zip`, `make`) that
+  Windows does not have. A `go run ./cmd/<tool>` command works identically on all three with only the
+  toolchain the project already requires — and it can be tested. Makefile targets are welcome as thin
+  conveniences over those commands, never as the only way to run them.
 - No secrets or credentials committed to the repository, ever — provider credentials only ever flow through
   MCP tool call parameters at runtime (see §4.2).
 
 ## 8. Explicitly Open / Not Yet Decided — do not assume an answer
 
-- **Monolith vs. microservice(s) / module boundaries** for the long term: undecided. Build phase 1 as a single
-  deployable service; do not prematurely split into multiple services or over-engineer module boundaries for a
-  hypothetical microservice future.
+- **Monolith vs. microservice(s) / module boundaries** for the long term: undecided. This is a single
+  deployable service; do not prematurely split it into multiple services or over-engineer module boundaries
+  for a hypothetical microservice future.
 - **Multi-tenant SaaS / dashboard**: a possible future direction, not committed to. Auth and job-store schema
   leave room for it (see `client_id` / `tenant_id` above), but do not build tenant UI, billing, or onboarding
   flows now.
@@ -206,13 +226,26 @@ docs/api-specs/                OpenAPI specs for external Parspack APIs (see §4
   This project should remain a clean, independently usable subsystem exposed via the standard MCP protocol —
   do not add ad hoc coupling to any other system.
 
-## 9. Working from GitHub Issues
+## 9. Branching — read this before creating a branch
 
-Phase-1 work is tracked entirely as GitHub Issues on this repo (`javadib/do0ps`), not as a separate task list
-anywhere else. Every issue carries three kinds of labels:
+**The active development branch is `develop`, not `master`.** Day-to-day work happens on `develop`; `master`
+is what stable releases are cut from and is behind it.
 
-- `phase-1` — always present for phase-1 scope. Issues labeled `backlog` instead (e.g. #24) are explicitly
-  post-phase-1 and should not be picked up under this workflow.
+- **Always branch from `develop`** (`git fetch origin develop && git checkout -b <name> origin/develop`), and
+  open pull requests **against `develop`**.
+- Never branch from, or target, `master` for feature work. A branch cut from `master` is built on a stale tree
+  — it will produce conflicts or duplicate work.
+- If a working copy arrives checked out on `master` (a fresh clone does, since it is the default branch), do
+  not take that as the base to work from — fetch and switch to `develop` first.
+- `develop` publishes `vX.Y.Z-RC.N` pre-releases on every push; `master` publishes the stable version and the
+  release artifacts. See `.github/workflows/release.yml`.
+
+## 10. Working from GitHub Issues
+
+Work is tracked entirely as GitHub Issues on this repo (`javadib/do0ps`), not as a separate task list
+anywhere else. Issues carry two kinds of labels, plus `backlog` for anything deliberately deferred — a
+`backlog` issue should not be picked up under this workflow:
+
 - `area:*` — which part of the system it touches (`area:core`, `area:sqlite`, `area:queue`, `area:auth`,
   `area:mcp`, `area:parspack`, `area:infra`, `area:docs`, `area:research`).
 - `status:*` — current pickup state:

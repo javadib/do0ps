@@ -57,13 +57,68 @@ func (uc *GetOperationStatus) Execute(ctx context.Context, in GetOperationStatus
 // resource exists, rather than replaying a create call that may already have
 // succeeded (AGENTS.md 4.4).
 func (uc *GetOperationStatus) reconcile(ctx context.Context, job *domain.Job, creds domain.ProviderCredentials) error {
-	if job.Type != domain.JobTypeProvisionServer {
-		return nil
-	}
+	var (
+		resourceName string
+		finder       func(context.Context, domain.ProviderCredentials, string) (json.RawMessage, error)
+		failReason   string
+	)
 
-	var payload provisionPayload
-	if err := json.Unmarshal(job.Payload, &payload); err != nil {
-		return fmt.Errorf("decoding payload of operation %s: %w", job.ID, err)
+	switch job.Type {
+	case domain.JobTypeProvisionServer:
+		var payload provisionPayload
+		if err := json.Unmarshal(job.Payload, &payload); err != nil {
+			return fmt.Errorf("decoding payload of operation %s: %w", job.ID, err)
+		}
+		resourceName = payload.Spec.Name
+		failReason = "interrupted by process restart before the server was created; the request can be safely retried"
+		finder = func(ctx context.Context, creds domain.ProviderCredentials, name string) (json.RawMessage, error) {
+			srv, err := uc.provider.FindServerByName(ctx, creds, name)
+			if err != nil {
+				return nil, err
+			}
+			return json.Marshal(srv)
+		}
+
+	case domain.JobTypeProvisionLoadBalancer:
+		var payload provisionLoadBalancerPayload
+		if err := json.Unmarshal(job.Payload, &payload); err != nil {
+			return fmt.Errorf("decoding payload of operation %s: %w", job.ID, err)
+		}
+		resourceName = payload.LoadBalancer.Name
+		failReason = "interrupted by process restart before the load balancer was created; the request can be safely retried"
+		finder = func(ctx context.Context, creds domain.ProviderCredentials, name string) (json.RawMessage, error) {
+			lb, err := uc.provider.FindLoadBalancerByName(ctx, creds, name)
+			if err != nil {
+				return nil, err
+			}
+			return json.Marshal(lb)
+		}
+
+	case domain.JobTypeCreateSnapshot:
+		var payload createSnapshotPayload
+		if err := json.Unmarshal(job.Payload, &payload); err != nil {
+			return fmt.Errorf("decoding payload of operation %s: %w", job.ID, err)
+		}
+		resourceName = payload.Name
+		failReason = "interrupted by process restart before the snapshot was created; the request can be safely retried"
+		finder = func(ctx context.Context, creds domain.ProviderCredentials, name string) (json.RawMessage, error) {
+			// Snapshots are not addressable by name alone — the provider lists
+			// them per account — so the server they belong to disambiguates.
+			snaps, err := uc.provider.ListVMSnapshots(ctx, creds)
+			if err != nil {
+				return nil, err
+			}
+			found, err := findSnapshotByServerAndName(snaps, payload.ServerID, name)
+			if err != nil {
+				return nil, err
+			}
+			return json.Marshal(found)
+		}
+
+	default:
+		// Restore converges on the same state when replayed, so an interrupted
+		// restore needs no reconciliation; nothing else is interrupted here.
+		return nil
 	}
 
 	now := uc.clock.Now()
@@ -71,19 +126,14 @@ func (uc *GetOperationStatus) reconcile(ctx context.Context, job *domain.Job, cr
 		return fmt.Errorf("reconciling operation %s: %w", job.ID, err)
 	}
 
-	srv, err := uc.provider.FindServerByName(ctx, creds, payload.Spec.Name)
+	result, err := finder(ctx, creds, resourceName)
 	switch {
 	case err == nil:
-		result, mErr := json.Marshal(srv)
-		if mErr != nil {
-			return fmt.Errorf("encoding reconciled server: %w", mErr)
-		}
 		if err := job.MarkDone(result, now); err != nil {
 			return fmt.Errorf("reconciling operation %s: %w", job.ID, err)
 		}
 	case isNotFound(err):
-		reason := "interrupted by process restart before the server was created; the request can be safely retried"
-		if err := job.MarkFailed(reason, now); err != nil {
+		if err := job.MarkFailed(failReason, now); err != nil {
 			return fmt.Errorf("reconciling operation %s: %w", job.ID, err)
 		}
 	default:
@@ -95,4 +145,15 @@ func (uc *GetOperationStatus) reconcile(ctx context.Context, job *domain.Job, cr
 		return fmt.Errorf("persisting reconciled operation %s: %w", job.ID, err)
 	}
 	return nil
+}
+
+// findSnapshotByServerAndName returns the snapshot matching both the server it
+// was taken from and its name, or domain.ErrNotFound.
+func findSnapshotByServerAndName(snapshots []domain.VMSnapshot, serverID, name string) (*domain.VMSnapshot, error) {
+	for i := range snapshots {
+		if snapshots[i].ServerID == serverID && snapshots[i].Name == name {
+			return &snapshots[i], nil
+		}
+	}
+	return nil, fmt.Errorf("snapshot %q of server %s: %w", name, serverID, domain.ErrNotFound)
 }

@@ -1,0 +1,33 @@
+version: "2"
+
+# Sane default rule set for a hexagonal Go project. The "standard" default
+# group already covers the mandatory set for this repo (govet, staticcheck,
+# errcheck, unused, ineffassign, ...). Keep exclusions and overrides minimal
+# and revisit rather than silencing linters as the codebase grows.
+
+linters:
+  default: standard
+  settings:
+    errcheck:
+      exclude-functions:
+        # Errors from deferred Close() calls are intentionally ignored; the
+        # database/connection is being torn down regardless.
+        - database/sql.(*DB).Close
+        - database/sql.(*Rows).Close
+        - io.Closer.Close
+        - net/http.(*Response).Body.Close
+  exclusions:
+    presets:
+      - common-false-positives
+      - comments
+      - std-error-handling
+      - legacy
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/javadib/do0ps

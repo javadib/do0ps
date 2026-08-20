@@ -1,0 +1,119 @@
+name: Build and Publish MCP Bundle
+
+# Packs the MCP server into installable .mcpb bundles -- the artifact end users
+# drop into their chat client, as opposed to the Docker image (docker-publish.yml)
+# that self-hosters run.
+#
+# Runs in three situations:
+#   * on pull requests, as a smoke test that the bundle still packs;
+#   * on a release tag, or when release.yml calls it after cutting one, in
+#     which case the bundles are attached to the GitHub release;
+#   * manually, to get bundles out of a branch without tagging.
+on:
+  pull_request:
+    branches: [master, develop]
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      app_version:
+        description: "Version to build the bundles as (no leading v). Omit to derive from the triggering git tag."
+        required: false
+        type: string
+
+concurrency:
+  group: mcpb-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # release.yml passes the version explicitly: at call time GITHUB_REF_NAME
+      # is still the branch, not the tag semantic-release just created. On a
+      # direct tag push the tag itself is the source of truth; otherwise the
+      # build script stamps a dev version from the commit.
+      - name: Resolve bundle version
+        id: version
+        run: |
+          if [ -n "${{ inputs.app_version }}" ]; then
+            version="${{ inputs.app_version }}"
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version=""
+          fi
+          echo "app_version=${version}" >> "$GITHUB_OUTPUT"
+
+      # The builder is a Go program on purpose: no bash, no zip binary, no
+      # make, so this same command is what a contributor runs on Windows.
+      - name: Build bundles
+        run: go run ./cmd/mcpb-build ${{ steps.version.outputs.app_version && format('-version {0}', steps.version.outputs.app_version) || '' }}
+
+      # Every bundle is opened and checked rather than trusted: a bundle whose
+      # manifest is missing or malformed installs as a broken extension, and
+      # that is not something to discover from a user's bug report.
+      - name: Verify bundles
+        run: |
+          shopt -s nullglob
+          bundles=(dist/mcpb/*.mcpb)
+          if [ ${#bundles[@]} -eq 0 ]; then
+            echo "no bundles were produced" >&2
+            exit 1
+          fi
+          for bundle in "${bundles[@]}"; do
+            echo "::group::${bundle}"
+            unzip -l "$bundle"
+            unzip -p "$bundle" manifest.json | jq -e '
+              .manifest_version and .name and .version and .description
+              and .author.name and .server.type == "binary"
+              and (.server.mcp_config.args | index("--stdio"))
+              and (.tools | length > 0)
+            ' > /dev/null
+            echo "::endgroup::"
+          done
+
+      # A bundle that packs but cannot answer a handshake is still broken, so
+      # the native binary is unpacked and driven through a real initialize.
+      - name: Smoke test the linux bundle
+        run: |
+          workdir="$(mktemp -d)"
+          unzip -q dist/mcpb/*-linux-amd64.mcpb -d "$workdir"
+          response="$(printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            | HOME="$workdir" "$workdir/server/do0ps" --stdio 2>"$workdir/stderr.log")"
+          echo "$response"
+          # Matched by content, not by position: the server answers requests
+          # concurrently, so responses may come back in any order.
+          echo "$response" | jq -se '
+            any(.[]; .result.serverInfo.name == "do0ps")
+            and any(.[]; (.result.tools // []) | length > 0)
+          ' > /dev/null || { cat "$workdir/stderr.log"; exit 1; }
+
+      - name: Upload bundles as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcpb-bundles
+          path: dist/mcpb/*.mcpb
+          if-no-files-found: error
+
+      - name: Attach bundles to the GitHub release
+        if: steps.version.outputs.app_version != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "v${{ steps.version.outputs.app_version }}" dist/mcpb/*.mcpb --clobber

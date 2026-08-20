@@ -1,0 +1,3770 @@
+openapi: 3.0.3
+info:
+  title: Object Storage API
+  description: |
+    ## Regions
+    | Code | Region | Zone | Type | Endpoint |
+    |------|--------|------|------|----------|
+    | ir-thr-at1 | ir-central1 | Simin | STANDARD | https://s3.ir-thr-at1.arvanstorage.ir |
+    | ir-pym-hd1 | ir-central1 | Bamdad | HI_OPS | https://hot.ir-central1.arvanstorage.ir |
+    | ir-tbz-sh1 | ir-north-west | Shahriar | STANDARD | https://s3.ir-tbz-sh1.arvanstorage.ir |
+
+    ## Error Codes
+
+    | Code | Description |
+    |------|-------------|
+    | USER_IS_DEBTOR | User has insufficient balance |
+    | VALIDATION_REQUIRED | Field is required |
+    | VALIDATION_REQUIRED_IF | Field is required if another field has a specific value |
+    | VALIDATION_REQUIRED_WITH | Field is required when another field is present |
+    | VALIDATION_REQUIRED_UNLESS | Field is required unless another field has a specific value |
+    | VALIDATION_REQUIRED_WITHOUT | Field is required when another field is not present |
+    | VALIDATION_EXCLUDED_IF | Field must be excluded if another field has a specific value |
+    | VALIDATION_EXCLUDED_WITH | Field must be excluded when another field is present |
+    | VALIDATION_EXCLUDED_UNLESS | Field must be excluded unless another field has a specific value |
+    | VALIDATION_EXCLUDED_WITHOUT | Field must be excluded when another field is not present |
+    | VALIDATION_UNIQUE | Field value must be unique |
+    | VALIDATION_MIN_LENGTH | Field value is shorter than minimum length |
+    | VALIDATION_MAX_LENGTH | Field value exceeds maximum length |
+    | VALIDATION_LENGTH | Field value length is invalid |
+    | VALIDATION_MIN | Field value is less than minimum |
+    | VALIDATION_MAX | Field value exceeds maximum |
+    | VALIDATION_NUMERIC | Field must be numeric |
+    | VALIDATION_STRING | Field must be a string |
+    | VALIDATION_INTEGER | Field must be an integer |
+    | VALIDATION_BOOL | Field must be a boolean |
+    | VALIDATION_GT | Field value must be greater than specified value |
+    | VALIDATION_GTE | Field value must be greater than or equal to specified value |
+    | VALIDATION_LT | Field value must be less than specified value |
+    | VALIDATION_LTE | Field value must be less than or equal to specified value |
+    | VALIDATION_EQ | Field value must equal specified value |
+    | VALIDATION_NEQ | Field value must not equal specified value |
+    | VALIDATION_IN | Field value must be one of the specified values |
+    | VALIDATION_NIN | Field value must not be one of the specified values |
+    | VALIDATION_GT_FIELD | Field value must be greater than another field's value |
+    | VALIDATION_GTE_FIELD | Field value must be greater than or equal to another field's value |
+    | VALIDATION_LT_FIELD | Field value must be less than another field's value |
+    | VALIDATION_LTE_FIELD | Field value must be less than or equal to another field's value |
+    | VALIDATION_EQ_FIELD | Field value must equal another field's value |
+    | VALIDATION_NEQ_FIELD | Field value must not equal another field's value |
+    | VALIDATION_IN_FIELD | Field value must be one of another field's values |
+    | VALIDATION_NIN_FIELD | Field value must not be one of another field's values |
+    | VALIDATION_ALPHA | Field must contain only alphabetic characters |
+    | VALIDATION_ALPHA_UNICODE | Field must contain only unicode alphabetic characters |
+    | VALIDATION_ALPHA_NUM | Field must contain only alphanumeric characters |
+    | VALIDATION_ALPHA_DASH | Field must contain only alphanumeric characters, dashes and underscores |
+    | VALIDATION_ASCII | Field must contain only ASCII characters |
+    | VALIDATION_CONTAINS | Field must contain the specified substring |
+    | VALIDATION_STARTS_WITH | Field must start with the specified prefix |
+    | VALIDATION_ENDS_WITH | Field must end with the specified suffix |
+    | VALIDATION_LOWER_CASE | Field must be lowercase |
+    | VALIDATION_UPPER_CASE | Field must be uppercase |
+    | VALIDATION_SNAKE_CASE | Field must be in snake_case format |
+    | VALIDATION_KEBAB_CASE | Field must be in kebab-case format |
+    | VALIDATION_UUID | Field must be a valid UUID |
+    | VALIDATION_UUID1 | Field must be a valid UUID v1 |
+    | VALIDATION_UUID3 | Field must be a valid UUID v3 |
+    | VALIDATION_UUID4 | Field must be a valid UUID v4 |
+    | VALIDATION_UUID5 | Field must be a valid UUID v5 |
+    | VALIDATION_REGEX | Field must match the specified regular expression |
+    | VALIDATION_CIDR | Field must be a valid CIDR |
+    | VALIDATION_CIDR_V4 | Field must be a valid IPv4 CIDR |
+    | VALIDATION_CIDR_V6 | Field must be a valid IPv6 CIDR |
+    | VALIDATION_IP | Field must be a valid IP address |
+    | VALIDATION_IPV4 | Field must be a valid IPv4 address |
+    | VALIDATION_IPV6 | Field must be a valid IPv6 address |
+    | VALIDATION_EMAIL | Field must be a valid email address |
+    | VALIDATION_TLD | Field must be a valid top-level domain |
+    | VALIDATION_FQDN | Field must be a valid fully qualified domain name |
+    | VALIDATION_HOSTNAME | Field must be a valid hostname |
+    | VALIDATION_URL | Field must be a valid URL |
+    | VALIDATION_URI | Field must be a valid URI |
+    | VALIDATION_FILE | Field must be a valid file path |
+    | VALIDATION_MIME_TYPE | Field must be a valid MIME type |
+    | VALIDATION_FILE_SIZE | Field must be a valid file size |
+    | VALIDATION_RFC_3339 | Field must be a valid RFC3339 date-time |
+    | INVALID_SCHEMA | The request schema is invalid |
+    | ANTIVIRUS_NOT_CONFIGURED | The antivirus service is not configured for the bucket |
+    | NO_ANTIVIRUS_ENGINE_ENABLED | No antivirus engine is enabled for scanning |
+    | TOO_MANY_ANTIVIRUTS_REQUEST | Too many antivirus scan requests have been made |
+    | NO_SCANNABLE_FILES_EXIST | No files exist that can be scanned |
+    | ANTIVIRUS_IS_DISABLE | The antivirus service is currently disabled |
+    | BUCKET_TAGS_LIMIT | Bucket tags limit exceeded |
+    | TOO_MANY_BUCKETS | Bucket quota exceeded |
+    | BUCKET_NOT_EMPTY | The bucket is not empty |
+    | TOO_MANY_OBJECTS | Object quota exceeded |
+    | REPLICATION_RULE_IS_DISABLE | The replication rule is disabled |
+    | REPLICATION_QUOTA_EXCEEDED | Replication maximum capacity reached |
+    | TEMP_USER_INVALID_EXPIRE_TIME | Invalid expiration time for temporary user |
+    | MULTI_ZONE_NOT_AVAILABLE_IN_CLUSTER | Multi-zone is not available in this cluster |
+    | REPLICATION_INCORRECT_STATUS_FOR_DETECT | Detection allowed only on `NEED_DETECT` and `DETECTING_FAILED` status |
+    | REPLICATION_INCORRECT_STATUS_FOR_SYNC | Sync allowed only on `SYNC_FAILED` and `UNSYNC` status |
+    | REPLICATION_SYNC_TOO_MANY_REQUEST | You can send request 2 hours after previous request |
+    | LOCK_DISABLED_FOR_REGION | Object lock feature disable in this region |
+    | LOCK_IS_NOT_ENABLED_FOR_BUCKET | Object lock is not enabled for this bucket |
+    | MAINTENANCE | This service is temporarily unavailable due to scheduled maintenance. |
+    | BUCKET_CATALOG_QUOTA_EXCEEDED | Bucket Catalog Quota Exceeded |
+    | CATALOG_ENGINE_QUOTA_EXCEEDED | Catalog Engine Quota Exceeded |
+    | CATALOG_ENGINE_IP_NOT_FOUND | Catalog Engine IP Not Found |
+    | CATALOG_ENGINE_CREDENTIALS_NOT_FOUND | Catalog Engine Credentials Not Found |
+    | INSUFFICIENT_RESOURCES | Insufficient Resources |
+    | CATALOG_ENGINE_NAMESPACE_QUOTA_EXCEEDED | Catalog Engine Namespace Quota Exceeded |
+    | TOO_MANY_MACHINE_USER | Too Many Machine User |
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: https://storage.arvanapis.ir
+security:
+  - ApiKey: []
+tags:
+  - name: Access Points
+    description: Operations for managing access points to multiple buckets
+  - name: Anti Virus
+    description: Operations related to antivirus scanning and configurations
+  - name: Bucket Catalog
+    description: Operations related to bucket catalog management
+  - name: Query Engine
+    description: Operations related to query engine management
+  - name: Bucket Downloads
+    description: Operations related to bucket downloads
+  - name: Buckets
+    description: Operations related to bucket management
+  - name: Replications
+    description: Operations related to replication configuration
+  - name: Reports
+    description: Show multiple reports about usages
+  - name: Temp Users
+    description: Operations for managing temporary users with limited access
+  - name: Upload
+    description: Operations related to upload
+  - name: Users
+    description: Operations related to user management
+paths:
+  /v1/access-points:
+    get:
+      tags:
+        - Access Points
+      summary: List access points
+      description: Returns a list of all access points owned by the authenticated user
+      parameters:
+        - name: perPage
+          in: query
+          description: Number of items to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+        - name: q
+          in: query
+          description: Search keyword for access point names
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of access points
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedListResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: access points list
+                      data:
+                        $ref: '#/components/schemas/AccessPointList'
+        '401':
+          $ref: '#/components/responses/standard401'
+    post:
+      tags:
+        - Access Points
+      summary: Create an access point
+      description: Creates a new access point with the provided configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccessPointRequest'
+      responses:
+        '201':
+          description: Access point created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: access point created successfully
+                      data:
+                        $ref: '#/components/schemas/CreatedResourceResponse'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Validation failed
+                      errors:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ErrorItem'
+  /v1/access-points/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID of the access point
+        schema:
+          type: string
+    get:
+      tags:
+        - Access Points
+      summary: Get access point details
+      description: Returns details about a specific access point
+      responses:
+        '200':
+          description: Access point details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: access point
+                      data:
+                        $ref: '#/components/schemas/AccessPoint'
+        '401':
+          $ref: '#/components/responses/standard401'
+    delete:
+      tags:
+        - Access Points
+      summary: Delete an access point
+      description: Deletes a specific access point
+      responses:
+        '204':
+          description: Access point deleted successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/av:
+    get:
+      tags:
+        - Anti Virus
+      summary: List antivirus settings
+      description: Returns a list of all antivirus settings owned by the authenticated user
+      parameters:
+        - name: perPage
+          in: query
+          description: Number of items to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: List of antivirus settings
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedListResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AVSettingList'
+                      meta:
+                        type: object
+                        properties:
+                          pagination:
+                            $ref: '#/components/schemas/OffsetPagination'
+        '401':
+          $ref: '#/components/responses/standard401'
+    post:
+      tags:
+        - Anti Virus
+      summary: Create antivirus setting
+      description: Creates a new antivirus setting for a bucket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAVSettingsRequest'
+      responses:
+        '201':
+          description: Antivirus setting created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: av settings created successfully
+                      data:
+                        $ref: '#/components/schemas/CreatedResourceResponse'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/av/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID of the antivirus setting
+        schema:
+          type: string
+    get:
+      tags:
+        - Anti Virus
+      summary: Get antivirus settings
+      description: Returns details about a specific antivirus setting
+      responses:
+        '200':
+          description: Antivirus setting details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AVSetting'
+        '401':
+          $ref: '#/components/responses/standard401'
+    put:
+      tags:
+        - Anti Virus
+      summary: Update antivirus setting
+      description: Updates an existing antivirus setting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAVSettingsRequest'
+      responses:
+        '200':
+          description: Antivirus setting updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: av settings updated successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/av/{id}/scan:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Id of antivirus setting
+        schema:
+          type: string
+    post:
+      tags:
+        - Anti Virus
+      summary: Scan objects
+      description: Initiates an antivirus scan for specific objects in a bucket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AVScanRequest'
+      responses:
+        '200':
+          description: Scan initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/av/{id}/scans-summary:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID of the antivirus setting
+        schema:
+          type: string
+    get:
+      tags:
+        - Anti Virus
+      summary: Get antivirus scan summary
+      description: Returns details about a specific antivirus scan summary
+      responses:
+        '200':
+          description: Antivirus av scan summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BucketAVScanSummary'
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/av/{id}/scans-statistics:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID of the antivirus setting
+        schema:
+          type: string
+    get:
+      tags:
+        - Anti Virus
+      summary: Get antivirus scan statistics
+      description: Returns details about a specific antivirus scan statistics
+      responses:
+        '200':
+          description: Antivirus av scan statistics
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BucketAVScanStatistics'
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/bucket-downloads:
+    get:
+      tags:
+        - Bucket Downloads
+      summary: List bucket downloads
+      description: Returns a list of all bucket downloads for the authenticated user
+      parameters:
+        - name: perPage
+          in: query
+          description: Number of items to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: List of bucket downloads
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BucketDownloadList'
+                      meta:
+                        type: object
+                        properties:
+                          pagination:
+                            $ref: '#/components/schemas/OffsetPagination'
+        '401':
+          $ref: '#/components/responses/standard401'
+    post:
+      tags:
+        - Bucket Downloads
+      summary: Create bucket download
+      description: Creates a new bucket download configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBucketDownloadRequest'
+      responses:
+        '201':
+          description: Bucket download created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: bucket download created successfully
+                      data:
+                        $ref: '#/components/schemas/CreatedResourceResponse'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/bucket-downloads/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID of the bucket download
+        schema:
+          type: string
+    get:
+      tags:
+        - Bucket Downloads
+      summary: Get bucket download
+      description: Returns details of a specific bucket download
+      responses:
+        '200':
+          description: Bucket download details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BucketDownload'
+        '401':
+          $ref: '#/components/responses/standard401'
+    put:
+      tags:
+        - Bucket Downloads
+      summary: Update bucket download
+      description: Updates an existing bucket download configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBucketDownloadRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/success'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Bucket Downloads
+      summary: Delete bucket download
+      description: Deletes a bucket download configuration
+      responses:
+        '204':
+          description: Bucket download deleted successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/buckets:
+    get:
+      tags:
+        - Buckets
+      summary: List buckets
+      description: Returns a list of buckets owned by or shared with the authenticated user
+      parameters:
+        - name: status
+          in: query
+          description: Filter buckets by status
+          schema:
+            type: string
+            enum:
+              - all
+              - shared
+              - owned
+            default: all
+        - name: perPage
+          in: query
+          description: Number of items to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: List of buckets
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BucketSummaryList'
+        '401':
+          $ref: '#/components/responses/standard401'
+    post:
+      tags:
+        - Buckets
+      summary: Create bucket
+      description: Creates a new bucket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBucketRequest'
+      responses:
+        '201':
+          description: Bucket created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BucketInfo'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/buckets/{bucketName}:
+    parameters:
+      - name: bucketName
+        in: path
+        required: true
+        description: Name of the bucket
+        schema:
+          type: string
+    get:
+      tags:
+        - Buckets
+      summary: Get bucket details
+      description: Returns details about a specific bucket
+      parameters:
+        - name: X-AR-View-Type
+          in: query
+          description: Type of view to return
+          schema:
+            type: string
+            enum:
+              - info
+              - metrics
+            default: info
+      responses:
+        '200':
+          description: Bucket details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - $ref: '#/components/schemas/BucketInfo'
+                          - $ref: '#/components/schemas/BucketMetrics'
+        '401':
+          $ref: '#/components/responses/standard401'
+    delete:
+      tags:
+        - Buckets
+      summary: Delete bucket
+      description: Deletes a bucket
+      responses:
+        '204':
+          description: Bucket deleted successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/buckets/{bucketName}/versioning:
+    parameters:
+      - name: bucketName
+        in: path
+        required: true
+        description: Name of the bucket
+        schema:
+          type: string
+    get:
+      tags:
+        - Buckets
+      summary: Get bucket versioning
+      description: Returns the versioning state of a bucket
+      responses:
+        '200':
+          description: Bucket versioning state
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BucketVersioning'
+        '401':
+          $ref: '#/components/responses/standard401'
+    post:
+      tags:
+        - Buckets
+      summary: Update bucket versioning
+      description: Updates the versioning state of a bucket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBucketVersioningRequest'
+      responses:
+        '202':
+          description: Versioning state updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Versioning status updated successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/buckets/{bucketName}/enable-multi-zone:
+    parameters:
+      - name: bucketName
+        in: path
+        required: true
+        description: Name of the bucket
+        schema:
+          type: string
+    post:
+      tags:
+        - Buckets
+      summary: Enable bucket multi-zone
+      description: Enable multi-zone for a bucket
+      responses:
+        '202':
+          description: Multi-zone enabled successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Multi-zone enabled successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/reports/storage:
+    get:
+      tags:
+        - Reports
+      summary: Storage usage
+      description: Returns storage usage reports for account or specific bucket/region
+      parameters:
+        - name: reportDate
+          in: query
+          description: Date for which to get reports
+          schema:
+            type: string
+            format: date-time
+        - name: bucket
+          in: query
+          description: Bucket name to filter reports
+          schema:
+            type: string
+        - name: region
+          in: query
+          description: Region to filter reports
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Storage usage reports
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Storage usage
+                      data:
+                        $ref: '#/components/schemas/StorageUsage'
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/reports/traffic:
+    get:
+      tags:
+        - Reports
+      summary: Traffic usage
+      description: Returns traffic usage reports for account or specific bucket/region
+      parameters:
+        - name: reportDate
+          in: query
+          description: Date range filter (supports gte, lte operators)
+          schema:
+            type: string
+            format: date
+        - name: bucket
+          in: query
+          description: Bucket name to filter reports
+          schema:
+            type: string
+        - name: region
+          in: query
+          description: Region to filter reports
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Traffic usage reports
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Traffic usage
+                      data:
+                        $ref: '#/components/schemas/TrafficUsage'
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/reports/usage-rate:
+    get:
+      tags:
+        - Reports
+      summary: Usage rate
+      description: Returns usage rate reports over time for account or specific bucket/region
+      parameters:
+        - name: reportDate
+          in: query
+          description: Date range filter (supports gte, lte operators)
+          schema:
+            type: string
+            format: date
+        - name: bucket
+          in: query
+          description: Bucket name to filter reports
+          schema:
+            type: string
+        - name: region
+          in: query
+          description: Region to filter reports
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Usage rate reports
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Usage rate
+                      data:
+                        $ref: '#/components/schemas/UsageRateList'
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/reports/operations:
+    get:
+      tags:
+        - Reports
+      summary: Operations
+      description: Returns operations reports for account or specific bucket/region
+      parameters:
+        - name: reportDate
+          in: query
+          description: Date range filter (supports gte, lte operators)
+          schema:
+            type: string
+            format: date
+        - name: bucket
+          in: query
+          description: Bucket name to filter reports
+          schema:
+            type: string
+        - name: region
+          in: query
+          description: Region to filter reports
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Operations reports
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Operations list
+                      data:
+                        $ref: '#/components/schemas/OperationsList'
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/replications:
+    get:
+      tags:
+        - Replications
+      summary: List replications
+      description: Returns a list of replications for a bucket
+      parameters:
+        - name: perPage
+          in: query
+          description: Number of items to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+        - name: source
+          in: query
+          description: source Bucket name
+          schema:
+            type: string
+            default: ''
+        - name: destination
+          in: query
+          description: destination Bucket name
+          schema:
+            type: string
+            default: ''
+      responses:
+        '200':
+          description: List of replications
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ReplicationList'
+        '401':
+          $ref: '#/components/responses/standard401'
+    post:
+      tags:
+        - Replications
+      summary: Create replication
+      description: Creates a new replication configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReplicationRequest'
+      responses:
+        '201':
+          description: Replication created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: replication created successfully
+                      data:
+                        $ref: '#/components/schemas/CreatedResourceResponse'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/replications/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Replication identifier
+        schema:
+          type: string
+    get:
+      tags:
+        - Replications
+      summary: Get replication
+      description: Returns detail of a replication
+      responses:
+        '200':
+          description: Replication detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Replication'
+        '401':
+          $ref: '#/components/responses/standard401'
+    put:
+      tags:
+        - Replications
+      summary: Update replication
+      description: Updates an existing replication configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReplicationRequest'
+      responses:
+        '204':
+          description: Replication updated successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Replications
+      summary: Delete replication
+      description: Deletes a replication configuration
+      responses:
+        '204':
+          description: Replication deleted successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/replications/{id}/sync:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Replication ID
+        schema:
+          type: string
+    post:
+      tags:
+        - Replications
+      summary: Sync replication
+      description: Starts a sync operation for unsynced objects
+      responses:
+        '204':
+          description: Sync started successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/replications/{id}/detect-sync-status:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Replication ID
+        schema:
+          type: string
+    post:
+      tags:
+        - Replications
+      summary: Detect sync status
+      description: Starts an operation for detecting sync status
+      responses:
+        '204':
+          description: Detection started successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/temp-users:
+    get:
+      tags:
+        - Temp Users
+      summary: List all temporary users
+      description: Returns a list of all temporary users for the authenticated account
+      parameters:
+        - name: perPage
+          in: query
+          description: Number of items to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: List of temporary users
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Temp users list
+                      data:
+                        $ref: '#/components/schemas/TempUserList'
+                      meta:
+                        type: object
+                        properties:
+                          pagination:
+                            $ref: '#/components/schemas/OffsetPagination'
+        '401':
+          $ref: '#/components/responses/standard401'
+    post:
+      tags:
+        - Temp Users
+      summary: Create a new temporary user
+      description: Creates a new temporary user with the provided configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTempUserRequest'
+      responses:
+        '201':
+          description: Temporary user created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Temp user created successfully
+                      data:
+                        $ref: '#/components/schemas/CreatedResourceResponse'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/temp-users/{id}:
+    parameters:
+      - name: id
+        required: true
+        in: path
+        description: ID of the temporary user
+        schema:
+          type: string
+    get:
+      tags:
+        - Temp Users
+      summary: Get temporary user details
+      description: Returns details about a specific temporary user
+      responses:
+        '200':
+          description: Temporary user details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Temp user
+                      data:
+                        $ref: '#/components/schemas/TempUser'
+        '401':
+          $ref: '#/components/responses/standard401'
+    put:
+      tags:
+        - Temp Users
+      summary: Update temporary user
+      description: Updates details of a temporary user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTempUserRequest'
+      responses:
+        '204':
+          description: Temporary user updated successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Temp Users
+      summary: Delete a temporary user
+      description: Deletes a specific temporary user
+      responses:
+        '204':
+          description: Temporary user deleted successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/users/refresh-credentials:
+    post:
+      tags:
+        - Users
+      summary: Refresh secret key
+      description: Refreshes the user's secret key and returns new credentials
+      responses:
+        '200':
+          description: Secret key refreshed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Secret key refreshed successfully
+                      data:
+                        $ref: '#/components/schemas/UserCredential'
+        '401':
+          $ref: '#/components/responses/standard401'
+  /v1/upload/link:
+    post:
+      tags:
+        - Upload
+      summary: Upload from link
+      description: Upload object from url into bucket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadLinkRequest'
+      responses:
+        '204':
+          description: Upload initiated successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Validation failed
+                      errors:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ErrorItem'
+  /v1/bucket-catalogs:
+    get:
+      summary: List all bucket catalogs
+      tags:
+        - Bucket Catalog
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            description: Page number
+        - name: perPage
+          in: query
+          schema:
+            type: integer
+            default: 10
+            description: Number of items to return per page
+        - name: q
+          in: query
+          schema:
+            type: string
+            description: Keyword to filter catalogs
+      responses:
+        '200':
+          description: Catalogs retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CatalogList'
+                      meta:
+                        type: object
+                        properties:
+                          pagination:
+                            $ref: '#/components/schemas/OffsetPagination'
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create a new bucket catalog
+      tags:
+        - Bucket Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - bucketName
+              properties:
+                name:
+                  type: string
+                  maxLength: 64
+                  description: Name of the bucket catalog
+                  example: Main Catalog
+                bucketName:
+                  type: string
+                  description: Name of the bucket
+                  example: my-bucket
+      responses:
+        '201':
+          description: Catalog created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CreatedResourceResponse'
+                      message:
+                        type: string
+                        example: bucket catalog created successfully
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/bucket-catalogs/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Unique identifier for the bucket catalog
+          example: 685b3d0342e65d171aff542d
+    get:
+      summary: Get a bucket catalog by id
+      tags:
+        - Bucket Catalog
+      responses:
+        '200':
+          description: Catalog retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Catalog'
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a bucket catalog by id
+      tags:
+        - Bucket Catalog
+      responses:
+        '204':
+          description: Catalog deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: bucket catalog deleted successfully
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Update a bucket catalog by id
+      tags:
+        - Bucket Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - bucketName
+              properties:
+                name:
+                  type: string
+                  maxLength: 64
+                  description: Name of the bucket catalog
+                  example: Main Catalog
+                bucketName:
+                  type: string
+                  description: Name of the bucket
+                  example: my-bucket
+      responses:
+        '204':
+          description: Catalog updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: bucket catalog updated successfully
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/bucket-catalogs/resources:
+    get:
+      summary: Get free resources
+      description: This endpoint returns the available CPU and memory resources for the data catalog namespace.
+      tags:
+        - Bucket Catalog
+      responses:
+        '200':
+          description: Resource information retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FreeResources'
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/engine-clusters:
+    get:
+      summary: Get engine cluster configurations
+      tags:
+        - Query Engine
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            description: Page number
+        - name: perPage
+          in: query
+          schema:
+            type: integer
+            default: 10
+            description: Number of items to return per page
+        - name: q
+          in: query
+          schema:
+            type: string
+            description: Keyword to filter clusters
+      responses:
+        '200':
+          description: Engine cluster configurations retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/EngineClusterWithCount'
+                      meta:
+                        type: object
+                        properties:
+                          pagination:
+                            $ref: '#/components/schemas/OffsetPagination'
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create a new engine cluster
+      tags:
+        - Query Engine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - clusterName
+                - enginePassword
+                - catalogId
+                - cpu
+                - cloudContainerType
+              properties:
+                clusterName:
+                  type: string
+                  description: Name of the engine cluster
+                  example: my-cluster
+                enginePassword:
+                  type: string
+                  description: Password for the engine cluster
+                  example: secure-password
+                catalogId:
+                  type: string
+                  description: ID of the catalog
+                  example: 685b3d0342e65d171aff542d
+                cpu:
+                  type: number
+                  format: float
+                  description: CPU allocation for the cluster
+                  example: 2
+                cloudContainerType:
+                  type: string
+                  enum:
+                    - g2
+                    - g3
+                    - g4
+                  description: Type of cloud container for deployment
+                  example: g2
+      responses:
+        '201':
+          description: Engine cluster created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CreatedResourceResponse'
+                      message:
+                        type: string
+                        example: engine cluster created successfully
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/engine-clusters/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Unique identifier for the engine cluster
+          example: cluster-123456
+    get:
+      summary: Get an engine cluster by id
+      tags:
+        - Query Engine
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            description: Page number
+        - name: perPage
+          in: query
+          schema:
+            type: integer
+            default: 10
+            description: Number of items to return per page
+        - name: q
+          in: query
+          schema:
+            type: string
+            description: Keyword to filter configs
+      responses:
+        '200':
+          description: Engine cluster retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EngineClusterDetailWithConfigs'
+                      meta:
+                        type: object
+                        properties:
+                          pagination:
+                            $ref: '#/components/schemas/OffsetPagination'
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Update an engine cluster
+      tags:
+        - Query Engine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - clusterName
+                - username
+                - password
+                - cpu
+                - cloudContainerType
+              properties:
+                clusterName:
+                  type: string
+                  description: New name for the engine cluster
+                  example: updated-cluster-name
+                username:
+                  type: string
+                  description: Username for the engine cluster
+                  example: admin
+                password:
+                  type: string
+                  description: Password for the engine cluster
+                  example: new-secure-password
+                cpu:
+                  type: number
+                  format: float
+                  description: CPU allocation for the cluster
+                  example: 4
+                cloudContainerType:
+                  type: string
+                  enum:
+                    - g2
+                    - g3
+                    - g4
+                  description: Type of cloud container for deployment
+                  example: g3
+      responses:
+        '200':
+          description: Engine cluster updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UpdateEngineClusterResponse'
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete an engine cluster
+      tags:
+        - Query Engine
+      responses:
+        '204':
+          description: Engine cluster deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: engine cluster deleted successfully
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Attach a catalog to an engine cluster
+      tags:
+        - Query Engine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - catalogId
+              properties:
+                catalogId:
+                  type: string
+                  description: ID of the catalog
+                  example: 685b3d0342e65d171aff542d
+      responses:
+        '204':
+          description: Catalog attached to engine cluster successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: catalog attached to engine cluster successfully
+        '401':
+          $ref: '#/components/responses/standard401'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/engine-clusters/{id}/config/{configId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Unique identifier for the engine cluster
+          example: cluster-123456
+      - name: configId
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Unique identifier for the engine config
+          example: config-789012
+    delete:
+      summary: Drop an engine configuration
+      tags:
+        - Query Engine
+      responses:
+        '204':
+          description: Engine config dropped successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: engine config dropped successfully
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/engine-clusters/{id}/api-key:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Unique identifier for the engine cluster
+          example: cluster-123456
+    post:
+      summary: Create an API key for an engine cluster
+      tags:
+        - Query Engine
+      responses:
+        '201':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          apiKey:
+                            type: string
+                            description: The generated API key
+                            example: ak-1234567890abcdef
+                      message:
+                        type: string
+                        example: API key created successfully
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '401':
+          $ref: '#/components/responses/standard401'
+        '404':
+          $ref: '#/components/responses/notFound'
+        '422':
+          description: Validation Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/buckets/{bucketName}/lock:
+    parameters:
+      - name: bucketName
+        in: path
+        required: true
+        description: Name of the bucket
+        schema:
+          type: string
+    put:
+      tags:
+        - Buckets
+      summary: Update bucket object lock retention
+      description: Update bucket object lock retention
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BucketLockConfigPayload'
+      responses:
+        '200':
+          description: Bucket object lock configurations updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Object lock configurations updated successfully
+        '409':
+          description: Bucket lock is not enabled for this bucket
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        example: Bucket lock is not enabled for this bucket
+    get:
+      tags:
+        - Buckets
+      summary: Get bucket object lock status
+      description: Get bucket object lock status
+      responses:
+        '200':
+          description: Get bucket object lock status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BucketLockConfig'
+  /v1/buckets/{bucketName}/metrics:
+    parameters:
+      - name: bucketName
+        in: path
+        required: true
+        description: Name of the bucket
+        schema:
+          type: string
+    get:
+      tags:
+        - Buckets
+      summary: Get bucket metrics
+      description: Get bucket prometheus metrics
+      responses:
+        '200':
+          description: Metric data in OpenMetrics plain text format
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                example: |
+                # HELP storage_bucket_download_traffic_bytes Cumulative total number of bytes sent from the bucket (e.g., downloads, reads)
+                # TYPE storage_bucket_download_traffic_bytes counter
+                storage_bucket_download_traffic_bytes{bucket="bucketName",instance="instanceId",region="region"} 3.009543644e+09
+                # HELP storage_bucket_objects_total Current total number of objects stored in the bucket
+                # TYPE storage_bucket_objects_total gauge
+                storage_bucket_objects_total{bucket="bucketName",instance="instanceId",region="region"} 574
+                # HELP storage_bucket_operation_duration_milliseconds Duration in milliseconds of bucket operations (get, put, delete, list, etc.) tracked as a histogram
+                # TYPE storage_bucket_operation_duration_milliseconds histogram
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket1",instance="instance1",operation="delete_obj",region="ir-pym-hd1",le="5"} 43
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket2",instance="instance2",operation="delete_obj",region="ir-pym-hd1",le="10"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket3",instance="instance3",operation="delete_obj",region="ir-pym-hd1",le="25"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket4",instance="instance4",operation="delete_obj",region="ir-pym-hd1",le="50"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket5",instance="instance5",operation="delete_obj",region="ir-pym-hd1",le="100"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket6",instance="instance6",operation="delete_obj",region="ir-pym-hd1",le="250"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket7",instance="instance7",operation="delete_obj",region="ir-pym-hd1",le="500"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket8",instance="instance8",operation="delete_obj",region="ir-pym-hd1",le="1000"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket9",instance="instance9",operation="delete_obj",region="ir-pym-hd1",le="2500"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket10",instance="instance10",operation="delete_obj",region="ir-pym-hd1",le="5000"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket11",instance="instance11",operation="delete_obj",region="ir-pym-hd1",le="10000"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket12",instance="instance12",operation="delete_obj",region="ir-pym-hd1",le="30000"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket13",instance="instance13",operation="delete_obj",region="ir-pym-hd1",le="60000"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket14",instance="instance14",operation="delete_obj",region="ir-pym-hd1",le="+Inf"} 55
+                storage_bucket_operation_duration_milliseconds_sum{bucket="bucket15",instance="instance15",operation="delete_obj",region="ir-pym-hd1"} 134
+                storage_bucket_operation_duration_milliseconds_count{bucket="bucket16",instance="instance16",operation="delete_obj",region="ir-pym-hd1"} 55
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket17",instance="instance17",operation="get_obj",region="ir-pym-hd1",le="5"} 488
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket18",instance="instance18",operation="get_obj",region="ir-pym-hd1",le="10"} 494
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket19",instance="instance19",operation="get_obj",region="ir-pym-hd1",le="25"} 706
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket20",instance="instance20",operation="get_obj",region="ir-pym-hd1",le="50"} 775
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket21",instance="instance21",operation="get_obj",region="ir-pym-hd1",le="100"} 775
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket22",instance="instance22",operation="get_obj",region="ir-pym-hd1",le="250"} 775
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket23",instance="instance23",operation="get_obj",region="ir-pym-hd1",le="500"} 775
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket24",instance="instance24",operation="get_obj",region="ir-pym-hd1",le="1000"} 775
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket25",instance="instance25",operation="get_obj",region="ir-pym-hd1",le="2500"} 775
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket26",instance="instance26",operation="get_obj",region="ir-pym-hd1",le="5000"} 775
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket27",instance="instance27",operation="get_obj",region="ir-pym-hd1",le="10000"} 775
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket28",instance="instance28",operation="get_obj",region="ir-pym-hd1",le="30000"} 775
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket29",instance="instance29",operation="get_obj",region="ir-pym-hd1",le="60000"} 775
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket30",instance="instance30",operation="get_obj",region="ir-pym-hd1",le="+Inf"} 775
+                storage_bucket_operation_duration_milliseconds_sum{bucket="bucket31",instance="instance31",operation="get_obj",region="ir-pym-hd1"} 6318
+                storage_bucket_operation_duration_milliseconds_count{bucket="bucket32",instance="instance32",operation="get_obj",region="ir-pym-hd1"} 775
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket33",instance="instance33",operation="put_obj",region="ir-pym-hd1",le="5"} 0
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket34",instance="instance34",operation="put_obj",region="ir-pym-hd1",le="10"} 0
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket35",instance="instance35",operation="put_obj",region="ir-pym-hd1",le="25"} 0
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket36",instance="instance36",operation="put_obj",region="ir-pym-hd1",le="50"} 0
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket37",instance="instance37",operation="put_obj",region="ir-pym-hd1",le="100"} 0
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket38",instance="instance38",operation="put_obj",region="ir-pym-hd1",le="250"} 0
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket39",instance="instance39",operation="put_obj",region="ir-pym-hd1",le="500"} 1
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket40",instance="instance40",operation="put_obj",region="ir-pym-hd1",le="1000"} 1
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket41",instance="instance41",operation="put_obj",region="ir-pym-hd1",le="2500"} 154
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket42",instance="instance42",operation="put_obj",region="ir-pym-hd1",le="5000"} 157
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket43",instance="instance43",operation="put_obj",region="ir-pym-hd1",le="10000"} 158
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket44",instance="instance44",operation="put_obj",region="ir-pym-hd1",le="30000"} 158
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket45",instance="instance45",operation="put_obj",region="ir-pym-hd1",le="60000"} 158
+                storage_bucket_operation_duration_milliseconds_bucket{bucket="bucket46",instance="instance46",operation="put_obj",region="ir-pym-hd1",le="+Inf"} 159
+                storage_bucket_operation_duration_milliseconds_sum{bucket="bucket47",instance="instance47",operation="put_obj",region="ir-pym-hd1"} 287673
+                storage_bucket_operation_duration_milliseconds_count{bucket="bucket48",instance="instance48",operation="put_obj",region="ir-pym-hd1"} 159
+                # HELP storage_bucket_size_bytes Current total size in bytes of all objects stored in the bucket
+                # TYPE storage_bucket_size_bytes gauge
+                storage_bucket_size_bytes{bucket="bucket49",instance="instance49",region="ir-pym-hd1"} 3.953938432e+09
+                # HELP storage_bucket_upload_traffic_bytes Cumulative total number of bytes received by the bucket (e.g., uploads, writes)
+                # TYPE storage_bucket_upload_traffic_bytes counter
+                storage_bucket_upload_traffic_bytes{bucket="bucket50",instance="instance50",region="ir-pym-hd1"} 1.633681408e+09
+        '401':
+          $ref: '#/components/responses/standard401'
+        '403':
+          $ref: '#/components/responses/standard403'
+        '404':
+          $ref: '#/components/responses/standard404'
+        '500':
+          $ref: '#/components/responses/standard500'
+components:
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      name: authorization
+      in: header
+  schemas:
+    OffsetPagination:
+      type: object
+      required:
+        - current
+        - perPage
+        - totalItems
+        - lastPage
+      properties:
+        perPage:
+          type: integer
+          format: int64
+          description: Number of items per page
+          example: 20
+        current:
+          type: integer
+          format: int64
+          description: Current page number
+          example: 1
+        totalItems:
+          type: integer
+          format: int64
+          description: Total number of items
+          example: 100
+        lastPage:
+          type: integer
+          format: int64
+          description: Last page number
+          example: 5
+        next:
+          type: integer
+          format: int64
+          nullable: true
+          description: Next page number if available
+          example: 2
+        previous:
+          type: integer
+          format: int64
+          nullable: true
+          description: Previous page number if available
+          example: null
+    PaginatedListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: A human-readable message about the response
+          example: Operation completed successfully
+        data:
+          type: object
+        meta:
+          type: object
+          required:
+            - pagination
+          properties:
+            pagination:
+              $ref: '#/components/schemas/OffsetPagination'
+    ApSourceForList:
+      type: object
+      required:
+        - bucket
+        - region
+      properties:
+        bucketName:
+          type: string
+          description: Name of the bucket
+          example: my-bucket
+        region:
+          type: string
+          description: Region where the bucket is located
+          enum:
+            - ir-central1
+            - ir-northwest1
+          example: ir-central1
+    AccessPointForList:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the access point
+          example: a7f147d7-474d-53de-8f98-25ceaaaac5d1
+        name:
+          type: string
+          description: Name of the access point
+          example: backend-files
+        domain:
+          type: string
+          description: Domain for accessing the access point
+          example: backend-files.s3.ir-central1.arvanstorage.com
+        createDate:
+          type: string
+          format: date-time
+          description: Creation date of the access point in RFC3339 format
+          example: '2023-01-15T14:30:00Z'
+        buckets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApSourceForList'
+    AccessPointList:
+      type: array
+      items:
+        $ref: '#/components/schemas/AccessPointForList'
+    ErrorMessage:
+      allOf:
+        - type: object
+          properties:
+            message:
+              type: string
+              description: A human-readable message about the response
+              example: Operation Failed
+    CreateAccessPointRequest:
+      type: object
+      required:
+        - name
+        - buckets
+      properties:
+        name:
+          type: string
+          description: Name for the access point
+          example: backend-files
+        buckets:
+          type: array
+          items:
+            type: string
+          description: List of buckets to include in this access point
+    SuccessResponse:
+      allOf:
+        - type: object
+          properties:
+            message:
+              example: Operation completed successfully
+            data:
+              type: object
+              description: Response data content (varies by endpoint)
+    CreatedResourceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the created resource
+          example: a7f147d7-474d-53de-8f98-25ceaaaac5d1
+    ErrorItem:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          description: Error reason code as an enumeration that defined in the error codes section
+          example: VALIDATION_REQUIRED
+        field:
+          type: string
+          description: Field name associated with the error
+          example: bucket
+        params:
+          type: object
+          description: Additional parameters related to the error
+    ErrorResponse:
+      allOf:
+        - type: object
+          properties:
+            message:
+              type: string
+              description: A human-readable message about the response
+              example: Operation Failed
+            errors:
+              type: array
+              description: Array of error objects if any
+              items:
+                $ref: '#/components/schemas/ErrorItem'
+    ApSource:
+      type: object
+      required:
+        - bucket
+        - region
+      properties:
+        weight:
+          type: integer
+          nullable: true
+          description: Weight of this source (for load balancing)
+          example: 10
+        status:
+          type: boolean
+          nullable: true
+          description: Status of this source (active/inactive)
+          example: true
+        bucketName:
+          type: string
+          description: Name of the bucket
+          example: my-bucket
+        region:
+          type: string
+          description: Region where the bucket is located
+          enum:
+            - ir-central1
+            - ir-northwest1
+          example: ir-central1
+    AccessPoint:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the access point
+          example: a7f147d7-474d-53de-8f98-25ceaaaac5d1
+        name:
+          type: string
+          description: Name of the access point
+          example: backend-files
+        domain:
+          type: string
+          description: Domain for accessing the access point
+          example: backend-files.s3.ir-central1.arvanstorage.com
+        createDate:
+          type: string
+          format: date-time
+          description: Creation date of the access point in RFC3339 format
+          example: '2023-01-15T14:30:00Z'
+        buckets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApSource'
+    AVSetting:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the antivirus setting
+          example: a7f147d7-474d-53de-8f98-25ceaaaac5d1
+        createDate:
+          type: string
+          format: date-time
+          description: Creation date of the antivirus setting in RFC3339 format
+          example: '2023-01-15T14:30:00Z'
+        updateDate:
+          type: string
+          format: date-time
+          description: Last update date of the antivirus setting in RFC3339 format
+          example: '2023-01-16T10:15:00Z'
+        bucket:
+          type: string
+          description: Name of the bucket to which this antivirus setting applies
+          example: my-bucket
+        region:
+          type: string
+          description: Region where the bucket is located
+          enum:
+            - ir-central1
+            - ir-northwest1
+          example: ir-central1
+        engines:
+          type: array
+          description: List of antivirus engines enabled for this setting
+          items:
+            type: string
+            enum:
+              - AVAST
+              - PADVISH
+              - QUICKHEAL
+              - DRWEB
+              - AVIRA
+          example:
+            - KASPERSKY
+            - PADVISH
+        enabled:
+          type: boolean
+          description: Whether the antivirus setting is enabled
+          example: true
+        scanOnUpload:
+          type: boolean
+          description: Whether to scan files on upload
+          example: true
+    AVSettingList:
+      type: array
+      items:
+        $ref: '#/components/schemas/AVSetting'
+    CreateAVSettingsRequest:
+      type: object
+      required:
+        - bucket
+        - engines
+      properties:
+        bucket:
+          type: string
+          description: Name of the bucket to which this antivirus setting applies
+          example: my-bucket
+        engines:
+          type: array
+          description: List of antivirus engines to enable
+          minItems: 1
+          items:
+            type: string
+            enum:
+              - AVAST
+              - PADVISH
+              - QUICKHEAL
+              - DRWEB
+              - AVIRA
+          example:
+            - KASPERSKY
+            - PADVISH
+        enabled:
+          type: boolean
+          description: Whether to enable the antivirus setting
+          default: false
+          example: true
+        scanOnUpload:
+          type: boolean
+          description: Whether to scan files on upload
+          default: false
+          example: true
+    UpdateAVSettingsRequest:
+      type: object
+      properties:
+        engines:
+          type: array
+          description: List of antivirus engines to enable
+          minItems: 1
+          items:
+            type: string
+            enum:
+              - AVAST
+              - PADVISH
+              - QUICKHEAL
+              - DRWEB
+              - AVIRA
+          example:
+            - KASPERSKY
+            - PADVISH
+        enabled:
+          type: boolean
+          description: Whether to enable the antivirus setting
+          example: true
+        scanOnUpload:
+          type: boolean
+          description: Whether to scan files on upload
+          example: true
+    ScanNowObj:
+      type: object
+      required:
+        - name
+        - etag
+      properties:
+        name:
+          type: string
+          description: Name of the object to scan
+          example: document.pdf
+        etag:
+          type: string
+          description: ETag of the object to scan
+          example: 686897696a7c876b7e
+    AVScanRequest:
+      type: object
+      required:
+        - objects
+      properties:
+        objects:
+          type: array
+          description: List of objects to scan
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ScanNowObj'
+    BucketAVScanSummary:
+      type: object
+      properties:
+        objectsCount:
+          type: integer
+          format: int64
+          description: Total number of objects in the bucket
+          example: 100
+        size:
+          type: integer
+          format: int64
+          description: Total size of objects in the bucket in bytes
+          example: 1073741824
+        ObjectsNeedScanCount:
+          type: integer
+          description: Number of objects that need scanning
+          example: 20
+        objectsNeedScanBytes:
+          type: integer
+          description: Total size of objects that need scanning in bytes
+          example: 104857600
+        safeObjectsCount:
+          type: integer
+          description: Number of objects marked as safe
+          example: 70
+        unsafeObjectsCount:
+          type: integer
+          description: Number of objects marked as unsafe
+          example: 0
+        objectsInScanCount:
+          type: integer
+          description: Number of objects currently being scanned
+          example: 5
+        unscannableObjectsCount:
+          type: integer
+          description: Number of objects that cannot be scanned
+          example: 5
+        notScannedObjects:
+          type: integer
+          description: Number of objects not yet scanned
+          example: 0
+    BucketAVScanStatistics:
+      type: array
+      items:
+        type: object
+        properties:
+          fileName:
+            type: string
+            description: Name of the file
+          additionalProperties:
+            type: string
+        description: Statistics about scanned files by antivirus engine
+        example:
+          fileName: test.txt
+          kaspersky: clean
+          padvish: scanning
+    BucketDownload:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the bucket download
+          example: a7f147d7-474d-53de-8f98-25ceaaaac5d1
+        name:
+          type: string
+          description: Name of the bucket download
+          example: Project Downloads
+        color:
+          type: string
+          description: Color theme for the download page
+          enum:
+            - YELLOW
+            - WHITE
+            - GREEN
+            - ORANGE
+            - BLUE
+            - BLACK
+            - GREY
+          example: YELLOW
+        bucket:
+          type: string
+          description: Name of the bucket
+          example: my-bucket
+        domain:
+          type: string
+          description: Domain for accessing the download page
+          example: download.example.com
+        subDomain:
+          type: string
+          description: Subdomain for the download page
+          example: files
+        region:
+          type: string
+          enum:
+            - ir-central1
+            - ir-northwest1
+          description: Region where the bucket is located
+          example: ir-central1
+        sortBy:
+          type: string
+          description: Field to sort files by
+          enum:
+            - NAME
+            - DATE
+            - SIZE
+          example: NAME
+        sortOrder:
+          type: string
+          description: Sort direction
+          enum:
+            - ASC
+            - DESC
+          example: ASC
+        createDate:
+          type: string
+          format: date-time
+          description: Creation date in RFC3339 format
+          example: '2023-01-15T14:30:00Z'
+    BucketDownloadList:
+      type: array
+      items:
+        $ref: '#/components/schemas/BucketDownload'
+    CreateBucketDownloadRequest:
+      type: object
+      required:
+        - name
+        - bucket
+        - color
+        - domain
+        - subDomain
+        - sortBy
+        - sortOrder
+      properties:
+        name:
+          type: string
+          description: Name of the bucket download
+          maxLength: 40
+          example: Project Downloads
+        bucket:
+          type: string
+          description: Name of the bucket
+          example: my-bucket
+        color:
+          type: string
+          description: Color theme for the download page
+          enum:
+            - YELLOW
+            - WHITE
+            - GREEN
+            - ORANGE
+            - BLUE
+            - BLACK
+            - GREY
+          example: YELLOW
+        domain:
+          type: string
+          description: Domain for accessing the download page
+          example: download.example.com
+        subDomain:
+          type: string
+          description: Subdomain for the download page
+          example: files
+        sortBy:
+          type: string
+          description: Field to sort files by
+          enum:
+            - NAME
+            - DATE
+            - SIZE
+          example: NAME
+        sortOrder:
+          type: string
+          description: Sort direction
+          enum:
+            - ASC
+            - DESC
+          example: ASC
+        isPublic:
+          type: boolean
+          description: Whether the download page is publicly accessible
+          default: false
+          example: true
+    UpdateBucketDownloadRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreateBucketDownloadRequest'
+    BucketSummary:
+      type: object
+      properties:
+        createDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date in RFC3339 format
+          example: '2023-01-15T14:30:00Z'
+        shareDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Share date in RFC3339 format
+          example: '2023-01-16T10:15:00Z'
+        name:
+          type: string
+          description: Name of the bucket
+          example: my-bucket
+        region:
+          type: string
+          enum:
+            - ir-central1
+            - ir-northwest1
+          description: Region where bucket is located
+          example: ir-central1
+        ownerName:
+          type: string
+          description: Name of the bucket owner
+          example: John Doe
+        isShared:
+          type: boolean
+          description: Whether the bucket is shared
+          example: false
+        multiZoneStatus:
+          type: string
+          description: Multi-zone status
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - NOT_AVAILABLE
+          example: ACTIVE
+        regionType:
+          type: string
+          description: Type of region
+          enum:
+            - STANDARD
+            - HI_OPS
+          example: STANDARD
+    BucketSummaryList:
+      type: array
+      items:
+        $ref: '#/components/schemas/BucketSummary'
+    BucketTag:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+          description: Tag key
+          minLength: 1
+          example: environment
+        value:
+          type: string
+          description: Tag value
+          minLength: 1
+          example: production
+    CreateBucketRequest:
+      type: object
+      required:
+        - name
+        - region
+      properties:
+        name:
+          type: string
+          description: Name of the bucket
+          minLength: 3
+          maxLength: 63
+          pattern: ^[a-z0-9][a-z0-9.-]*[a-z0-9]$
+          example: my-bucket
+        region:
+          type: string
+          description: Region where bucket should be created
+          enum:
+            - ir-central1
+            - ir-northwest1
+          example: ir-central1
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/BucketTag'
+        isPublic:
+          type: boolean
+          description: Whether the bucket should be public
+          default: false
+          example: false
+        versioningEnabled:
+          type: boolean
+          description: Whether versioning should be enabled
+          default: false
+          example: false
+        multiZoneEnabled:
+          type: boolean
+          description: Whether Multi-zone should be enabled
+          default: false
+          example: false
+        lockEnabled:
+          type: boolean
+          description: Whether object-lock should be enabled
+          default: false
+          example: false
+        lockRetention:
+          type: number
+          description: Bucket default lock retention in days
+          default: 30
+          example: 30
+    BucketInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the bucket
+          example: my-bucket
+        region:
+          type: string
+          enum:
+            - ir-central1
+            - ir-northwest1
+          description: Region where bucket is located
+          example: ir-central1
+        createDate:
+          type: string
+          format: date-time
+          description: Creation date in RFC3339 format
+          example: '2023-01-15T14:30:00Z'
+        totalObjects:
+          type: integer
+          format: uint64
+          description: Total number of objects in bucket
+          example: 100
+        sizeKB:
+          type: integer
+          format: uint64
+          description: Total size of bucket in kilobytes
+          example: 1024
+        isPublic:
+          type: boolean
+          description: Whether the bucket is publicly accessible
+          example: false
+        multiZoneStatus:
+          type: string
+          description: Multi-zone status
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - NOT_AVAILABLE
+          example: ACTIVE
+    BucketRequestsByType:
+      type: object
+      properties:
+        putObject:
+          type: integer
+          format: int64
+          description: Number of PUT object operations
+          example: 5
+        getObject:
+          type: integer
+          format: int64
+          description: Number of GET object operations
+          example: 43
+        deleteObject:
+          type: integer
+          format: int64
+          description: Number of DELETE object operations
+          example: 2
+        postObject:
+          type: integer
+          format: int64
+          description: Number of POST object operations
+          example: 1
+        headBucket:
+          type: integer
+          format: int64
+          description: Number of HEAD bucket operations
+          example: 7
+    BucketMetrics:
+      type: object
+      properties:
+        modifiedTime:
+          type: string
+          format: date-time
+          description: Last modification time in UTC
+          example: '2023-11-07T06:18:22Z'
+        totalObjects:
+          type: integer
+          format: int64
+          description: Total number of objects
+          example: 100
+        multiPartObjects:
+          type: integer
+          format: int64
+          description: Number of multipart objects
+          example: 5
+        bucketSize:
+          type: integer
+          format: int64
+          description: Total bucket size in bytes
+          example: 52428800
+        bucketDownload:
+          type: integer
+          format: int64
+          description: Total download size in bytes
+          example: 13687300
+        bucketUpload:
+          type: integer
+          format: int64
+          description: Total upload size in bytes
+          example: 1642400
+        requestsByType:
+          $ref: '#/components/schemas/BucketRequestsByType'
+    BucketVersioning:
+      type: object
+      properties:
+        isActive:
+          type: boolean
+          description: Versioning status of the bucket
+          example: true
+    UpdateBucketVersioningRequest:
+      type: object
+      required:
+        - isActive
+      properties:
+        isActive:
+          type: boolean
+          description: Whether versioning should be enabled
+          example: true
+    StorageUsage:
+      type: object
+      properties:
+        storageBytes:
+          type: number
+          format: float64
+          description: Total storage usage in bytes
+          example: 1073741824
+        objectsCount:
+          type: integer
+          description: Total number of objects
+          example: 1000
+        bucketsCount:
+          type: integer
+          description: Total number of buckets
+          example: 5
+        maxBucketsCount:
+          type: integer
+          description: Maximum allowed buckets
+          example: 100
+    TrafficUsage:
+      type: object
+      properties:
+        fromDate:
+          type: string
+          format: date-time
+          description: Start date of the traffic period
+          example: '2024-01-01T00:00:00Z'
+        toDate:
+          type: string
+          format: date-time
+          description: End date of the traffic period
+          example: '2024-01-31T23:59:59Z'
+        uploadBytes:
+          type: number
+          format: float64
+          description: Total upload traffic in bytes
+          example: 536870912
+        bypassTrafficBytes:
+          type: number
+          format: float64
+          description: Total bypass traffic in bytes
+          example: 268435456
+        cachedTrafficBytes:
+          type: number
+          format: float64
+          description: Total cached traffic in bytes
+          example: 134217728
+    UsageRate:
+      type: object
+      properties:
+        reportDate:
+          type: string
+          format: date-time
+          description: Date of the usage metrics
+          example: '2024-01-15T00:00:00Z'
+        uploadBytes:
+          type: number
+          format: float64
+          description: Upload usage in bytes
+          example: 536870912
+        bypassTrafficBytes:
+          type: number
+          format: float64
+          description: Bypass traffic in bytes
+          example: 268435456
+        cachedTrafficBytes:
+          type: number
+          format: float64
+          description: Cached traffic in bytes
+          example: 134217728
+        storageBytes:
+          type: number
+          format: float64
+          description: Storage usage in bytes
+          example: 1073741824
+    UsageRateList:
+      type: array
+      items:
+        $ref: '#/components/schemas/UsageRate'
+    OperationItem:
+      type: object
+      properties:
+        category:
+          type: string
+          description: Operation category
+          example: putObject
+        successfulOpsCount:
+          type: integer
+          format: uint64
+          description: Number of successful operations
+          example: 100
+        totalOpsCount:
+          type: integer
+          format: uint64
+          description: Total number of operations
+          example: 120
+    OperationsList:
+      type: array
+      items:
+        $ref: '#/components/schemas/OperationItem'
+    ReplicationTag:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+          description: Tag key
+          example: env
+        value:
+          type: string
+          description: Tag value
+          example: prod
+    ReplicationTagList:
+      type: array
+      items:
+        $ref: '#/components/schemas/ReplicationTag'
+    Replication:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the replication
+          example: a7f147d7-474d-53de-8f98-25ceaaaac5d1
+        name:
+          type: string
+          description: Name of the replication
+          example: backup-replication
+        source:
+          type: string
+          description: Name of source bucket
+          example: bucket1
+        destination:
+          type: string
+          description: Name of destination bucket
+          example: bucket2
+        prefix:
+          type: string
+          description: Prefix for objects to replicate
+          example: backups/
+        createDate:
+          type: string
+          format: date-time
+          description: Creation date in RFC3339 format
+          example: '2023-01-15T14:30:00Z'
+        tags:
+          $ref: '#/components/schemas/ReplicationTagList'
+        isEnabled:
+          type: boolean
+          description: Whether replication is enabled
+          example: true
+        status:
+          type: string
+          enum:
+            - NEED_DETECT
+            - DETECTING
+            - DETECTION_FAILED
+            - SYNCED
+            - UNSYNC
+            - SYNCING
+            - SYNC_FAILED
+          description: Status of the replication sync
+          example: SYNCED
+        syncOnDelete:
+          type: boolean
+          description: Remove the replicated object from the destination bucket when it is deleted from the source bucket
+          example: true
+    ReplicationList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Replication'
+    CreateReplicationRequest:
+      type: object
+      required:
+        - name
+        - source
+        - destination
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 64
+          pattern: ^[a-zA-Z0-9]+$
+          description: Name of the replication
+          example: backup-replication
+        source:
+          type: string
+          minLength: 3
+          maxLength: 64
+          pattern: ^[a-zA-Z0-9]+$
+          description: Name of the source bucket
+          example: bucket1
+        destination:
+          type: string
+          minLength: 3
+          maxLength: 64
+          pattern: ^[a-zA-Z0-9]+$
+          description: Name of the destination bucket
+          example: bucket2
+        prefix:
+          type: string
+          maxLength: 64
+          description: Prefix filter for objects
+          example: backups/
+        tags:
+          $ref: '#/components/schemas/ReplicationTagList'
+        isEnabled:
+          type: boolean
+          description: Whether to enable replication
+          default: true
+        syncNow:
+          type: boolean
+          description: Whether to start sync immediately
+          default: false
+        syncOnDelete:
+          type: boolean
+          description: Whether to delete the replicated object in the destination bucket when it is deleted from the source bucket
+          default: false
+    UpdateReplicationRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 64
+          pattern: ^[a-zA-Z0-9]+$
+          description: Name of the replication
+          example: rep1
+        isEnabled:
+          type: boolean
+          description: Whether to enable replication
+          example: true
+    TempUser:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the temporary user
+          example: a7f147d7-474d-53de-8f98-25ceaaaac5d1
+        expireDate:
+          type: string
+          format: date-time
+          description: Expiration date for the temporary user in RFC3339 format
+          example: '2023-12-31T23:59:59Z'
+        createDate:
+          type: string
+          format: date-time
+          description: Creation date of the temporary user in RFC3339 format
+          example: '2023-01-15T14:30:00Z'
+        accountId:
+          type: string
+          description: ID of the account that owns this temporary user
+          example: a7f147d7-474d-53de-8f98-25ceaaaac5d1
+        name:
+          type: string
+          description: Name of the temporary user
+          example: backup-service
+        description:
+          type: string
+          description: Description of the temporary user's purpose
+          example: Temporary access for backup service
+        accessKey:
+          type: string
+          description: Access key for the temporary user
+          example: AKIAIOSFODNN7EXAMPLE
+        secretKey:
+          type: string
+          description: Secret key for the temporary user
+          example: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+        hasExpired:
+          type: boolean
+          description: Indicates whether the temporary user has expired
+          example: false
+    TempUserList:
+      type: array
+      items:
+        $ref: '#/components/schemas/TempUser'
+    CreateTempUserRequest:
+      type: object
+      required:
+        - name
+        - expireDate
+      properties:
+        name:
+          type: string
+          description: Name of the temporary user
+          example: backup-service
+        description:
+          type: string
+          description: Description of the temporary user's purpose
+          example: Temporary access for backup service
+        expireDate:
+          type: string
+          format: date-time
+          description: Expiration date in RFC3339 format (must be in the future)
+          example: '2023-12-31T23:59:59Z'
+    UpdateTempUserRequest:
+      type: object
+      required:
+        - expireDate
+      properties:
+        description:
+          type: string
+          description: Description of the temporary user's purpose
+          example: Updated temporary access for backup service
+        expireDate:
+          type: string
+          format: date-time
+          description: Expiration date in RFC3339 format (must be in the future)
+          example: '2023-12-31T23:59:59Z'
+    UserCredential:
+      type: object
+      properties:
+        accountId:
+          type: string
+          description: Account identifier
+          example: 8438f5f3-5dbe-405d-bf1e-c1cd9823cd31
+        accessKey:
+          type: string
+          description: Access key for authentication
+          example: AKIAIOSFODNN7EXAMPLE
+        secretKey:
+          type: string
+          description: Secret key for authentication
+          example: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+    UploadLinkItem:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: URL to download file from
+          example: https://example.com/file.zip
+        path:
+          type: string
+          description: Target path in bucket
+          example: folder/file.zip
+        isPublic:
+          type: boolean
+          description: Whether the uploaded file should be public
+          default: false
+          example: true
+    UploadLinkRequest:
+      type: object
+      required:
+        - bucket
+        - objects
+      properties:
+        bucket:
+          type: string
+          description: Target bucket name
+          example: my-bucket
+        objects:
+          type: array
+          maxItems: 1
+          description: List of items to upload
+          items:
+            $ref: '#/components/schemas/UploadLinkItem'
+    Catalog:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the bucket catalog
+          example: 685b3d0342e65d171aff542d
+        warehouse:
+          type: string
+          description: Unique identifier for the warehouse
+          example: wh-123456
+        domain:
+          type: string
+          description: Domain associated with the catalog
+          example: catalog.example.com
+        bucketName:
+          type: string
+          description: Name of the bucket
+          example: my-bucket
+        name:
+          type: string
+          description: Name of the bucket catalog
+          example: Main Catalog
+        zonegroupId:
+          type: string
+          description: Identifier for the zone group
+          example: zg-789012
+        createdDate:
+          type: string
+          format: date-time
+          description: Creation timestamp as RFC3339 formatted string
+          example: '2023-01-15T10:30:00Z'
+        updatedDate:
+          type: string
+          format: date-time
+          description: Last update timestamp as RFC3339 formatted string
+          example: '2023-01-15T10:31:00Z'
+        status:
+          type: string
+          enum:
+            - FAILED
+            - CREATING
+            - READY
+            - DELETING
+          description: Status of the bucket catalog
+          example: READY
+    CatalogList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Catalog'
+    CursorPagination:
+      type: object
+      required:
+        - perPage
+      properties:
+        perPage:
+          type: integer
+          description: Number of items per page
+          example: 20
+        nextPageToken:
+          type: string
+          nullable: true
+          description: Token for the next page
+          example: eyJsYXN0SWQiOiJhN2YxNDdkNy00NzRkLTUzZGUtOGY5OC0yNWNlYWFhYWM1ZDEifQ==
+    Meta:
+      type: object
+      description: Additional metadata about the response
+      properties:
+        pagination:
+          oneOf:
+            - $ref: '#/components/schemas/OffsetPagination'
+            - $ref: '#/components/schemas/CursorPagination'
+    StandardResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: A human-readable message about the response
+          example: Operation completed successfully
+        data:
+          type: object
+          description: Response data content (varies by endpoint)
+        errors:
+          type: array
+          description: Array of error objects if any
+          items:
+            $ref: '#/components/schemas/ErrorItem'
+        meta:
+          $ref: '#/components/schemas/Meta'
+    FreeResources:
+      type: object
+      properties:
+        freeCPU:
+          type: number
+          format: float
+          description: Available CPU resources
+          example: 2.5
+        freeMemory:
+          type: number
+          format: float
+          description: Available memory resources in GB
+          example: 4
+        maxCPU:
+          type: number
+          format: float
+          description: Maximum CPU resources
+          example: 8
+        maxMemory:
+          type: number
+          format: float
+          description: Maximum memory resources in GB
+          example: 16
+        usedCPU:
+          type: number
+          format: float
+          description: Currently used CPU resources
+          example: 5.5
+        usedMemory:
+          type: number
+          format: float
+          description: Currently used memory resources in GB
+          example: 12
+        maxFreeCPU:
+          type: number
+          format: float
+          description: Maximum free CPU resources
+          example: 3
+        maxFreeMemory:
+          type: number
+          format: float
+          description: Maximum free memory resources in GB
+          example: 6
+        hasNamespace:
+          type: boolean
+          description: Whether the namespace exists
+          example: true
+    EngineCluster:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the engine cluster
+          example: cluster-123456
+        name:
+          type: string
+          description: Name of the engine cluster
+          example: my-cluster
+        createdDate:
+          type: string
+          format: date-time
+          description: Creation timestamp as RFC3339 formatted string
+          example: '2023-01-15T10:30:00Z'
+        status:
+          type: string
+          enum:
+            - FAILED
+            - CREATING
+            - READY
+            - DELETING
+          description: Status of the engine cluster
+          example: READY
+    EngineClusterWithCount:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/EngineCluster'
+        - type: object
+          properties:
+            configsCount:
+              type: integer
+              description: Number of configurations in the cluster
+              example: 3
+            cpu:
+              type: number
+              format: float
+              description: CPU allocation for the cluster
+              example: 2
+            memory:
+              type: number
+              format: float
+              description: Memory allocation for the cluster
+              example: 4
+    EngineClusterDetail:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/EngineCluster'
+        - type: object
+          properties:
+            username:
+              type: string
+              description: Username for the engine cluster
+              example: admin
+            password:
+              type: string
+              description: Password for the engine cluster
+              example: secure-password
+            ip:
+              type: string
+              description: IP address of the engine cluster
+              example: 192.168.1.100
+            configsCount:
+              type: integer
+              description: Number of configurations in the cluster
+              example: 3
+            apikey:
+              type: string
+              description: API key for the engine cluster
+              example: ak-1234567890abcdef
+            cpu:
+              type: number
+              format: float
+              description: CPU allocation for the cluster
+              example: 2
+            memory:
+              type: number
+              format: float
+              description: Memory allocation for the cluster
+              example: 4
+            cloudContainerType:
+              type: string
+              enum:
+                - g2
+                - g3
+                - g4
+              description: Type of cloud container for deployment
+              example: g2
+    EngineConfig:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the engine config
+          example: config-789012
+        clusterId:
+          type: string
+          description: Cluster ID associated with the config
+          example: cluster-123456
+        createdDate:
+          type: string
+          format: date-time
+          description: Creation timestamp as RFC3339 formatted string
+          example: '2023-01-15T10:30:00Z'
+        catalogId:
+          type: string
+          description: Catalog ID associated with the config
+          example: 685b3d0342e65d171aff542d
+        catalogName:
+          type: string
+          description: Name of the catalog
+          example: Main Catalog
+        warehouse:
+          type: string
+          description: Unique identifier for the warehouse
+          example: wh-123456
+        bucketName:
+          type: string
+          description: Name of the bucket
+          example: my-bucket
+    EngineConfigList:
+      type: array
+      items:
+        $ref: '#/components/schemas/EngineConfig'
+    EngineClusterDetailWithConfigs:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/EngineClusterDetail'
+        - type: object
+          properties:
+            configs:
+              $ref: '#/components/schemas/EngineConfigList'
+    UpdateEngineClusterResponse:
+      type: object
+      properties:
+        clusterId:
+          type: string
+          description: Unique identifier for the engine cluster
+          example: cluster-123456
+        username:
+          type: string
+          description: Username for the engine cluster
+          example: admin
+        password:
+          type: string
+          description: Password for the engine cluster
+          example: secure-password
+        cpu:
+          type: number
+          format: float
+          description: CPU allocation for the cluster
+          example: 4
+        name:
+          type: string
+          description: Name of the engine cluster
+          example: updated-cluster-name
+        cloudContainerType:
+          type: string
+          enum:
+            - g2
+            - g3
+            - g4
+          description: Type of cloud container for deployment
+          example: g3
+    BucketLockConfig:
+      type: object
+      required:
+        - enabled
+        - retention
+      properties:
+        enabled:
+          type: boolean
+          description: Whether Object lock is enabled or not
+          example: true
+        retention:
+          type: integer
+          description: Object lock retention period in days
+          example: 2
+    BucketLockConfigPayload:
+      type: object
+      required:
+        - retention
+      properties:
+        retention:
+          type: integer
+          description: Object lock retention period in days
+          example: 2
+  responses:
+    standard401:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorMessage'
+              - type: object
+                properties:
+                  message:
+                    example: Your token is invalid
+    success:
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SuccessResponse'
+    badRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/StandardResponse'
+              - type: object
+                properties:
+                  message:
+                    example: Bad request
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ErrorItem'
+    notFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/StandardResponse'
+              - type: object
+                properties:
+                  message:
+                    example: Resource not found
+                  errors:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/ErrorItem'
+                        - type: object
+                          properties:
+                            reason:
+                              enum:
+                                - NOT_FOUND
+    conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/StandardResponse'
+              - type: object
+                properties:
+                  message:
+                    example: Resource conflict
+                  errors:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/ErrorItem'
+                        - type: object
+                          properties:
+                            reason:
+                              enum:
+                                - CONFLICT
+                                - RESOURCE_EXISTS
+    standard403:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  message:
+                    example: You do not have permission to access this resource
+                  errors:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/ErrorItem'
+                        - type: object
+                          properties:
+                            reason:
+                              enum:
+                                - FORBIDDEN
+                                - PERMISSION_DENIED
+                                - PLAN_PERMISSION_DENIED
+    standard404:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  message:
+                    example: The resource you are looking for does not exist
+                  errors:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/ErrorItem'
+                        - type: object
+                          properties:
+                            reason:
+                              enum:
+                                - NOT_FOUND
+    standard500:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  message:
+                    example: An internal server error occurred
+                  errors:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/ErrorItem'
+                        - type: object
+                          properties:
+                            reason:
+                              enum:
+                                - INTERNAL

@@ -1,0 +1,102 @@
+name: Close Linked Issues on Non-default-branch Merge
+
+# Why this exists:
+#
+# GitHub's native "Closes #N" / "Fixes #N" auto-close behavior only fires when the PR is merged into the
+# repository's DEFAULT branch. This repo develops on `develop`, a non-default branch (see AGENTS.md §9) — so
+# a PR merged into `develop` with "Closes #6" in its body does NOT close #6, even though the text is there.
+# The issue is left open and stuck on `status:in-progress`, which silently deadlocks every other issue that
+# lists it as a dependency (the orchestrator routine treats "depends on #N" as blocked until #N is closed).
+#
+# This workflow closes that gap: whenever a PR merges into any non-default branch, it re-implements the
+# closing-keyword scan itself and closes the referenced issue(s) directly via the API.
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  close-linked-issues:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Close issues referenced by closing keywords
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+
+            const repoInfo = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const defaultBranch = repoInfo.data.default_branch;
+
+            if (pr.base.ref === defaultBranch) {
+              console.log(
+                `PR #${pr.number} merged into the default branch (${defaultBranch}) — ` +
+                `GitHub's native closing-keyword behavior already applies. Nothing to do.`
+              );
+              return;
+            }
+
+            // Same closing keywords GitHub itself recognizes, applied here by hand since GitHub's own
+            // auto-close only triggers for merges into the default branch.
+            const keywordPattern = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+#(\d+)/gi;
+            const text = `${pr.title || ''}\n${pr.body || ''}`;
+            const issueNumbers = [...new Set(
+              [...text.matchAll(keywordPattern)].map((m) => parseInt(m[1], 10))
+            )];
+
+            if (issueNumbers.length === 0) {
+              console.log(`PR #${pr.number} (base: ${pr.base.ref}) has no closing-keyword references. Nothing to do.`);
+              return;
+            }
+
+            for (const issueNumber of issueNumbers) {
+              let issue;
+              try {
+                issue = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                });
+              } catch (err) {
+                console.log(`Issue #${issueNumber} referenced by PR #${pr.number} could not be fetched: ${err.message}`);
+                continue;
+              }
+
+              if (issue.data.pull_request) {
+                console.log(`#${issueNumber} is a pull request, not an issue — skipping.`);
+                continue;
+              }
+
+              if (issue.data.state === 'closed') {
+                console.log(`#${issueNumber} is already closed — skipping.`);
+                continue;
+              }
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body:
+                  `Closed by #${pr.number}, which merged into \`${pr.base.ref}\` (not the default branch \`${defaultBranch}\`) ` +
+                  `so GitHub's native "Closes #${issueNumber}" auto-close did not fire. Closed automatically by ` +
+                  `the *Close Linked Issues on Non-default-branch Merge* workflow instead.`,
+              });
+
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+
+              console.log(`Closed #${issueNumber} (referenced by PR #${pr.number}).`);
+            }

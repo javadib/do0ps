@@ -11,8 +11,16 @@
 # Local env / secrets
 .env
 .env.*
+!.env.example
 
 # Editor / OS
 .DS_Store
 .idea/
 .vscode/
+/dist/
+
+# Claude Code agent worktrees (local harness state, not project source)
+.claude/worktrees/
+
+# Build output: cross-compiled binaries and packed MCP bundles
+/dist/
