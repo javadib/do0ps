@@ -20,3 +20,6 @@
 
 # Claude Code agent worktrees (local harness state, not project source)
 .claude/worktrees/
+
+# Build output: cross-compiled binaries and packed MCP bundles
+/dist/

@@ -2,8 +2,10 @@
 //
 // This file is the composition root: the only place that knows about every
 // package at once. It builds the adapters, injects them into the core use
-// cases through ports, and starts Fiber. Nothing below this file reaches for a
-// concrete implementation of a port.
+// cases through ports, and serves them over the configured transport --
+// Streamable HTTP over Fiber when self-hosted, stdio when the binary was
+// installed as an MCP bundle. Nothing below this file reaches for a concrete
+// implementation of a port.
 package main
 
 import (
@@ -36,13 +38,25 @@ import (
 var version = "dev"
 
 func main() {
-	cfg, err := config.Load()
+	cfg, err := config.Load(os.Args[1:])
+	if errors.Is(err, config.ErrVersionRequested) {
+		fmt.Println(version)
+		return
+	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "config error:", err)
 		os.Exit(1)
 	}
 
-	logger, err := config.NewLogger(cfg.LogLevel)
+	// Under stdio the protocol owns stdout, so the logs move to stderr.
+	// config.Load resolves the transport before anything else can fail, so
+	// even a startup error is reported on the right stream.
+	sink := os.Stdout
+	if cfg.Transport == config.TransportStdio {
+		sink = os.Stderr
+	}
+
+	logger, err := config.NewLoggerTo(cfg.LogLevel, sink)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "config error:", err)
 		os.Exit(1)
@@ -62,12 +76,38 @@ func main() {
 	}
 }
 
+// runBridge forwards this process's stdio pipe to a self-hosted do0ps server,
+// adding the configured bearer token. The chat client gets the remote server's
+// own tool list, so an installed bundle and a directly connected client see
+// exactly the same thing.
+func runBridge(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
+	proxy, err := mcp.NewProxy(cfg.RemoteURL, cfg.RemoteToken, mcp.WithProxyLogger(logger))
+	if err != nil {
+		return err
+	}
+
+	logger.Info("bridging mcp over stdio to a remote server", "endpoint", proxy.Endpoint(), "version", version)
+
+	if err := proxy.ServeStdio(ctx, os.Stdin, os.Stdout); err != nil {
+		return err
+	}
+	logger.Info("shutdown complete")
+	return nil
+}
+
 // run builds every adapter, wires the use cases behind their ports, and
 // serves the MCP endpoint until ctx is canceled. onListen, if non-nil, is
 // invoked with the address Fiber actually bound to — nil in production,
 // where cfg.Addr is already a fixed host:port; tests use it to discover an
 // ephemeral port.
 func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen func(net.Addr)) error {
+	// A bundle configured with a server URL is a bridge, not a server: it owns
+	// no job store, no worker pool and no provider client, so none of the
+	// adapters below are built at all.
+	if cfg.RemoteURL != "" {
+		return runBridge(ctx, cfg, logger)
+	}
+
 	// --- secondary adapters ---------------------------------------------
 	db, err := sqlite.Open(ctx, cfg.DatabasePath)
 	if err != nil {
@@ -79,7 +119,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	clock := system.Clock{}
 	ids := system.IDGenerator{}
 
-	provider, err := parspack.New()
+	provider, err := parspack.New(parspack.WithLogger(logger))
 	if err != nil {
 		return err
 	}
@@ -470,9 +510,36 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		ListCDNCertificates:       listCDNCertificates,
 		GetCDNHSTS:                getCDNHSTS,
 		UpdateCDNHSTS:             updateCDNHSTS,
-	}), mcp.WithLogger(logger))
+	}), mcp.WithLogger(logger), mcp.WithInfo(mcp.Info{Name: "do0ps", Version: version}))
 	if err != nil {
 		return err
+	}
+
+	// drain runs once the transport has stopped accepting work, before the
+	// deferred db.Close.
+	drain := func() {
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cfg.ShutdownWait)
+		defer cancel()
+
+		if err := pool.Shutdown(shutdownCtx); err != nil {
+			logger.Error("draining worker pool", "error", err)
+		}
+	}
+
+	// An installed MCP bundle runs here: the chat client spawns this process
+	// and talks JSON-RPC over the pipes. There is no listener to guard, so the
+	// bearer allow-list below is not built at all.
+	if cfg.Transport == config.TransportStdio {
+		logger.Info("serving mcp over stdio", "tools", len(mcpServer.Tools()), "version", version, "db", cfg.DatabasePath)
+
+		serveErr := mcpServer.ServeStdio(ctx, os.Stdin, os.Stdout)
+		drain()
+
+		if serveErr != nil {
+			return serveErr
+		}
+		logger.Info("shutdown complete")
+		return nil
 	}
 
 	tokens, err := auth.ParseTokens(cfg.AuthTokens)
@@ -506,14 +573,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		ListenerAddrFunc:      onListen,
 	})
 
-	// Fiber has stopped accepting requests; drain the workers before the
-	// deferred db.Close runs.
-	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cfg.ShutdownWait)
-	defer cancel()
-
-	if err := pool.Shutdown(shutdownCtx); err != nil {
-		logger.Error("draining worker pool", "error", err)
-	}
+	drain()
 
 	if listenErr != nil && !errors.Is(listenErr, context.Canceled) {
 		return listenErr
