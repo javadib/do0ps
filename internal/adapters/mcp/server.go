@@ -143,6 +143,7 @@ func (s *Server) Call(ctx context.Context, name string, args json.RawMessage) (a
 // yet, so it currently just proves the transport round-trip.
 func (s *Server) Register(router fiber.Router) {
 	router.Post("/mcp", s.handleRPC)
+
 	router.Get("/mcp", sse.New(sse.Config{
 		Handler:           s.handleStream,
 		HeartbeatInterval: s.heartbeatInterval,
@@ -260,14 +261,38 @@ func (s *Server) dispatch(ctx context.Context, req rpcRequest) (rpcResponse, boo
 	}
 }
 
-// toolFailure reports a failed tool call. Input problems come back as protocol
-// errors the caller can act on; anything else is logged in full and reported
-// without internal detail.
+// toolFailure reports a failed tool call.
+//
+// The MCP spec splits failures in two, and so does this. A call that never
+// reached a tool — unknown tool, arguments that do not fit the schema — is a
+// *protocol* error: the caller sent something malformed and gets a JSON-RPC
+// error back. A call that ran and failed is a *tool execution* error, which
+// belongs in the result with isError set, because that is the shape a client
+// shows the model. Reporting an upstream refusal as a protocol error hides it:
+// clients surface those to the user as a broken tool, not to the model as an
+// answer it can act on.
+//
+// Anything the provider told us is reported verbatim. "provider unavailable"
+// gives the model nothing to do; "HTTP 403: IP not whitelisted" lets it tell
+// the user what to fix. Provider errors are built from the response body only
+// (see domain.ProviderError), so nothing here can carry the caller's API key.
+//
+// Failures with no provider answer behind them stay generic: they are this
+// server's own internals — a decode bug, a broken job store — and their text
+// is for the operator's log, not for the model.
 func (s *Server) toolFailure(id json.RawMessage, name string, err error) rpcResponse {
+	var provErr *domain.ProviderError
+	if errors.As(err, &provErr) {
+		s.logger.Warn("tool call failed at the provider", "tool", name,
+			"provider", provErr.Provider, "status", provErr.StatusCode, "error", err)
+		return rpcResponse{JSONRPC: "2.0", ID: id, Result: toolError(err.Error())}
+	}
+
 	switch {
 	case errors.Is(err, domain.ErrInvalidInput),
 		errors.Is(err, domain.ErrInvalidCredentials),
 		errors.Is(err, domain.ErrNotFound):
+		s.logger.Warn("tool call rejected", "tool", name, "error", err)
 		return errorResponse(id, codeInvalidParams, err.Error())
 	default:
 		s.logger.Error("tool call failed", "tool", name, "error", err)
@@ -290,5 +315,14 @@ func toolResult(v any) map[string]any {
 	}
 	return map[string]any{
 		"content": []map[string]any{{"type": "text", "text": string(encoded)}},
+	}
+}
+
+// toolError wraps a tool execution failure as MCP tool content. isError tells
+// the client the call failed while still handing the model the text.
+func toolError(msg string) map[string]any {
+	return map[string]any{
+		"content": []map[string]any{{"type": "text", "text": msg}},
+		"isError": true,
 	}
 }

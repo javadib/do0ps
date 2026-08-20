@@ -119,7 +119,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	clock := system.Clock{}
 	ids := system.IDGenerator{}
 
-	provider, err := parspack.New()
+	provider, err := parspack.New(parspack.WithLogger(logger))
 	if err != nil {
 		return err
 	}
