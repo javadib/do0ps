@@ -217,6 +217,26 @@ type UseCases struct {
 	DeleteArvanCloudDynamicField     *app.DeleteArvanCloudDynamicField
 	AddArvanCloudDynamicFieldItems   *app.AddArvanCloudDynamicFieldItems
 	RemoveArvanCloudDynamicFieldItem *app.RemoveArvanCloudDynamicFieldItem
+
+	// ArvanCloud Firewall — domain-level and account-level (issue #65).
+	GetArvanCloudFirewallSettings       *app.GetArvanCloudFirewallSettings
+	UpdateArvanCloudFirewallSettings    *app.UpdateArvanCloudFirewallSettings
+	ListArvanCloudFirewallRules         *app.ListArvanCloudFirewallRules
+	CreateArvanCloudFirewallRule        *app.CreateArvanCloudFirewallRule
+	GetArvanCloudFirewallRule           *app.GetArvanCloudFirewallRule
+	UpdateArvanCloudFirewallRule        *app.UpdateArvanCloudFirewallRule
+	DeleteArvanCloudFirewallRule        *app.DeleteArvanCloudFirewallRule
+	ReprioritizeArvanCloudFirewallRules *app.ReprioritizeArvanCloudFirewallRules
+
+	ListArvanCloudAccountFirewallValidDomains  *app.ListArvanCloudAccountFirewallValidDomains
+	ListArvanCloudAccountFirewallRules         *app.ListArvanCloudAccountFirewallRules
+	CreateArvanCloudAccountFirewallRule        *app.CreateArvanCloudAccountFirewallRule
+	GetArvanCloudAccountFirewallRule           *app.GetArvanCloudAccountFirewallRule
+	UpdateArvanCloudAccountFirewallRule        *app.UpdateArvanCloudAccountFirewallRule
+	DeleteArvanCloudAccountFirewallRule        *app.DeleteArvanCloudAccountFirewallRule
+	AttachArvanCloudAccountFirewallDomains     *app.AttachArvanCloudAccountFirewallDomains
+	DetachArvanCloudAccountFirewallDomains     *app.DetachArvanCloudAccountFirewallDomains
+	ReprioritizeArvanCloudAccountFirewallRules *app.ReprioritizeArvanCloudAccountFirewallRules
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -444,6 +464,25 @@ func Tools(uc UseCases) []Tool {
 		deleteArvanCloudDynamicFieldTool(uc.DeleteArvanCloudDynamicField),
 		addArvanCloudDynamicFieldItemsTool(uc.AddArvanCloudDynamicFieldItems),
 		removeArvanCloudDynamicFieldItemTool(uc.RemoveArvanCloudDynamicFieldItem),
+
+		getArvanCloudFirewallSettingsTool(uc.GetArvanCloudFirewallSettings),
+		updateArvanCloudFirewallSettingsTool(uc.UpdateArvanCloudFirewallSettings),
+		listArvanCloudFirewallRulesTool(uc.ListArvanCloudFirewallRules),
+		createArvanCloudFirewallRuleTool(uc.CreateArvanCloudFirewallRule),
+		getArvanCloudFirewallRuleTool(uc.GetArvanCloudFirewallRule),
+		updateArvanCloudFirewallRuleTool(uc.UpdateArvanCloudFirewallRule),
+		deleteArvanCloudFirewallRuleTool(uc.DeleteArvanCloudFirewallRule),
+		reprioritizeArvanCloudFirewallRulesTool(uc.ReprioritizeArvanCloudFirewallRules),
+
+		listArvanCloudAccountFirewallValidDomainsTool(uc.ListArvanCloudAccountFirewallValidDomains),
+		listArvanCloudAccountFirewallRulesTool(uc.ListArvanCloudAccountFirewallRules),
+		createArvanCloudAccountFirewallRuleTool(uc.CreateArvanCloudAccountFirewallRule),
+		getArvanCloudAccountFirewallRuleTool(uc.GetArvanCloudAccountFirewallRule),
+		updateArvanCloudAccountFirewallRuleTool(uc.UpdateArvanCloudAccountFirewallRule),
+		deleteArvanCloudAccountFirewallRuleTool(uc.DeleteArvanCloudAccountFirewallRule),
+		attachArvanCloudAccountFirewallDomainsTool(uc.AttachArvanCloudAccountFirewallDomains),
+		detachArvanCloudAccountFirewallDomainsTool(uc.DetachArvanCloudAccountFirewallDomains),
+		reprioritizeArvanCloudAccountFirewallRulesTool(uc.ReprioritizeArvanCloudAccountFirewallRules),
 	}
 }
 
