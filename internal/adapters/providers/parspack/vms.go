@@ -135,9 +135,11 @@ func (c *Client) GetServer(ctx context.Context, creds domain.ProviderCredentials
 	if err := c.doJSON(ctx, creds, "GET", vmBasePath+"/"+id, nil, &root); err != nil {
 		return nil, fmt.Errorf("get server %s: %w", id, err)
 	}
+
 	if root.Vm == nil {
 		return nil, fmt.Errorf("get server %s: %w", id, errEmptyResponse)
 	}
+
 	return toDomainServer(root.Vm), nil
 }
 

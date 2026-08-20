@@ -57,3 +57,14 @@ jobs:
     uses: ./.github/workflows/docker-publish.yml
     with:
       app_version: ${{ needs.release.outputs.version }}
+
+  # The other half of a release: the .mcpb bundles end users install into their
+  # chat client, attached to the release semantic-release just created.
+  mcpb:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/mcpb.yml
+    with:
+      app_version: ${{ needs.release.outputs.version }}
