@@ -101,9 +101,9 @@ func Middleware(store Store) fiber.Handler {
 		}
 
 		client, ok := store.Lookup(token)
-		//if !ok {
-		//	return unauthorized(c)
-		//}
+		if !ok {
+			return unauthorized(c)
+		}
 
 		c.Locals(localsKey{}, client)
 		return c.Next()
