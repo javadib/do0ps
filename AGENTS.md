@@ -145,6 +145,11 @@ SPA that tooling generally cannot scrape.
 ## 5. MCP Server Details
 
 - Remote transport: Streamable HTTP, served over Fiber.
+- **Local transport: stdio**, for the MCP Bundle (`.mcpb`) distribution — the chat client spawns the binary
+  itself and talks JSON-RPC over the pipes, so there is no listener and no bearer token in that mode (the OS
+  process boundary is the trust boundary). Both transports go through the same `dispatch` in
+  `internal/adapters/mcp`; never implement a protocol method for only one of them. Under stdio, stdout is the
+  protocol channel — logs go to stderr, and a single stray `fmt.Println` breaks the connection.
 - Use Fiber v3's official **`github.com/gofiber/fiber/v3/middleware/sse`** package for the streaming side of
   the transport (`sse.New(sse.Config{Handler: ...})`) rather than hand-rolling `SetBodyStreamWriter` logic.
   Client disconnect is handled via `stream.Context()`, which is canceled when the stream ends or a write fails.
@@ -179,6 +184,12 @@ internal/adapters/
 
 internal/auth/                 Bearer token middleware, sits in front of the mcp primary adapter
 
+cmd/mcpb-manifest/             build tooling — generates an MCP bundle manifest.json from the mcp adapter's
+                                tool registry, so the two cannot drift. Not part of the running server.
+
+scripts/build-mcpb.sh          cross-compiles the server and packs dist/mcpb/*.mcpb, one bundle per
+                                GOOS/GOARCH. See docs/mcp-bundle.md.
+
 docs/api-specs/                OpenAPI specs for external Parspack APIs (see §4.5) — reference material, not
                                 code Claude generates; treat as ground truth for adapter implementation.
 ```
@@ -207,7 +218,19 @@ docs/api-specs/                OpenAPI specs for external Parspack APIs (see §4
   This project should remain a clean, independently usable subsystem exposed via the standard MCP protocol —
   do not add ad hoc coupling to any other system.
 
-## 9. Working from GitHub Issues
+## 9. Branching — read this before creating a branch
+
+**The active development branch is `step/ph1`, not `master`.** Phase-1 work happens on `step/ph1`; `master`
+is far behind it and is only what releases are cut from.
+
+- **Always branch from `step/ph1`** (`git fetch origin step/ph1 && git checkout -b <name> origin/step/ph1`),
+  and open pull requests **against `step/ph1`**.
+- Never branch from, or target, `master` or `develop` for feature work. A branch cut from `master` is built on
+  a stale tree — it will miss most of the phase-1 code and produce conflicts or duplicate work.
+- If a working copy arrives checked out on `master` (a fresh clone often does), do not take that as the base
+  to work from — fetch and switch to `step/ph1` first.
+
+## 10. Working from GitHub Issues
 
 Phase-1 work is tracked entirely as GitHub Issues on this repo (`javadib/do0ps`), not as a separate task list
 anywhere else. Every issue carries three kinds of labels:

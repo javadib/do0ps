@@ -32,9 +32,20 @@ type Tool struct {
 	Handler func(ctx context.Context, args json.RawMessage) (any, error) `json:"-"`
 }
 
+// ProtocolVersion is the MCP revision this server speaks. It is reported back
+// to the client during the initialize handshake.
+const ProtocolVersion = "2025-06-18"
+
+// Info identifies this server to the connecting client.
+type Info struct {
+	Name    string
+	Version string
+}
+
 // Server holds the tool registry and dispatches calls to it.
 type Server struct {
 	logger *slog.Logger
+	info   Info
 	tools  []Tool
 	index  map[string]int
 
@@ -72,10 +83,24 @@ func WithHeartbeatInterval(d time.Duration) Option {
 	}
 }
 
+// WithInfo sets the name and version reported to the client on initialize.
+// The version is the one stamped into the binary at build time, which is also
+// what an MCP bundle's manifest advertises.
+func WithInfo(info Info) Option {
+	return func(s *Server) error {
+		if info.Name == "" || info.Version == "" {
+			return errors.New("server info needs both a name and a version")
+		}
+		s.info = info
+		return nil
+	}
+}
+
 // NewServer builds the adapter around a set of tools.
 func NewServer(tools []Tool, opts ...Option) (*Server, error) {
 	s := &Server{
 		logger: slog.Default(),
+		info:   Info{Name: "do0ps", Version: "dev"},
 		index:  make(map[string]int, len(tools)),
 	}
 	for _, opt := range opts {
@@ -183,24 +208,55 @@ func (s *Server) handleRPC(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(errorResponse(nil, codeInvalidRequest, "malformed JSON-RPC request"))
 	}
 
+	resp, wantsReply := s.dispatch(c.Context(), req)
+	if !wantsReply {
+		// A JSON-RPC notification carries no id and gets no response body;
+		// Streamable HTTP answers those with 202 and an empty body.
+		return c.SendStatus(fiber.StatusAccepted)
+	}
+	return c.JSON(resp)
+}
+
+// dispatch answers one JSON-RPC message, transport-independently: both the
+// Streamable HTTP endpoint and the stdio loop funnel through here, so a
+// bundled server and a self-hosted one expose exactly the same protocol
+// surface. Never add a method to one transport alone.
+//
+// The second return value is false for notifications (no id), which by
+// JSON-RPC must not be answered at all.
+func (s *Server) dispatch(ctx context.Context, req rpcRequest) (rpcResponse, bool) {
+	if len(req.ID) == 0 {
+		return rpcResponse{}, false
+	}
+
 	switch req.Method {
+	case "initialize":
+		return rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: map[string]any{
+			"protocolVersion": ProtocolVersion,
+			"capabilities":    map[string]any{"tools": map[string]any{"listChanged": false}},
+			"serverInfo":      map[string]any{"name": s.info.Name, "version": s.info.Version},
+		}}, true
+
+	case "ping":
+		return rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: map[string]any{}}, true
+
 	case "tools/list":
-		return c.JSON(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: fiber.Map{"tools": s.tools}})
+		return rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: map[string]any{"tools": s.tools}}, true
 
 	case "tools/call":
 		var params callParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
-			return c.JSON(errorResponse(req.ID, codeInvalidParams, "malformed tool call parameters"))
+			return errorResponse(req.ID, codeInvalidParams, "malformed tool call parameters"), true
 		}
 
-		result, err := s.Call(c.Context(), params.Name, params.Arguments)
+		result, err := s.Call(ctx, params.Name, params.Arguments)
 		if err != nil {
-			return c.JSON(s.toolFailure(req.ID, params.Name, err))
+			return s.toolFailure(req.ID, params.Name, err), true
 		}
-		return c.JSON(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: toolResult(result)})
+		return rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: toolResult(result)}, true
 
 	default:
-		return c.JSON(errorResponse(req.ID, codeMethodNotFound, "unsupported method "+req.Method))
+		return errorResponse(req.ID, codeMethodNotFound, "unsupported method "+req.Method), true
 	}
 }
 
@@ -224,15 +280,15 @@ func errorResponse(id json.RawMessage, code int, msg string) rpcResponse {
 }
 
 // toolResult wraps a use case result in MCP tool content.
-func toolResult(v any) fiber.Map {
+func toolResult(v any) map[string]any {
 	encoded, err := json.Marshal(v)
 	if err != nil {
-		return fiber.Map{
-			"content": []fiber.Map{{"type": "text", "text": fmt.Sprintf("encoding result: %v", err)}},
+		return map[string]any{
+			"content": []map[string]any{{"type": "text", "text": fmt.Sprintf("encoding result: %v", err)}},
 			"isError": true,
 		}
 	}
-	return fiber.Map{
-		"content": []fiber.Map{{"type": "text", "text": string(encoded)}},
+	return map[string]any{
+		"content": []map[string]any{{"type": "text", "text": string(encoded)}},
 	}
 }

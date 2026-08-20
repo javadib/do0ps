@@ -397,8 +397,9 @@ curl -s localhost:8080/mcp \
 
 | متغیر | الزامی | پیش‌فرض | معنا |
 | --- | --- | --- | --- |
-| `MCP_AUTH_TOKENS` | **بله** | — | فهرست مجاز Bearer: `token:client_id[:name]` با جداکنندهٔ کاما. توکن حداقل ۱۶ کاراکتر |
-| `DB_PATH` | خیر | `../data/do0ps.db` | فایل SQLite انبارهٔ job. پوشهٔ والدش خودکار ساخته می‌شود |
+| `MCP_AUTH_TOKENS` | برای `http` **بله** | — | فهرست مجاز Bearer: `token:client_id[:name]` با جداکنندهٔ کاما. توکن حداقل ۱۶ کاراکتر. در حالت `stdio` استفاده نمی‌شود، چون listenerی برای محافظت وجود ندارد |
+| `MCP_TRANSPORT` | خیر | `http` | `http` (‏Streamable HTTP روی Fiber) یا `stdio` (کلاینت چت خودش این باینری را اجرا می‌کند؛ همان چیزی که یک MCP Bundle نصب‌شده با آن کار می‌کند). فلگ `--stdio` هم همین کار را می‌کند |
+| `DB_PATH` | خیر | `../data/do0ps.db` | فایل SQLite انبارهٔ job. پوشهٔ والدش خودکار ساخته می‌شود. در حالت `stdio` پیش‌فرض به پوشهٔ config کاربر منتقل می‌شود |
 | `HTTP_PORT` | خیر | `8080` | پورتی که سرور روی آن گوش می‌دهد |
 | `LOG_LEVEL` | خیر | `info` | یکی از `debug`، `info`، `warn` یا `error` |
 | `DO0PS_QUEUE_WORKERS` | خیر | `8` | تعداد goroutineهای worker |
@@ -518,9 +519,20 @@ curl -s localhost:8080/mcp -H "Authorization: Bearer $TOKEN" \
 
 ## <a id="sec-9"></a>۹. اتصال کلاینت MCP
 
-> **توجه:** دست‌دادنِ اولیهٔ JSON-RPC یعنی `initialize` که بیشتر کلاینت‌های MCP هنگام اتصال انجام می‌دهند
-> **هنوز پیاده‌سازی نشده** است — فقط `tools/list` و `tools/call` پاسخ داده می‌شوند. ممکن است یک کلاینت
-> استاندارد نتواند هندشیک را کامل کند؛ تا آن زمان سرور را با JSON-RPC خام مثل بالا صدا بزنید.
+دو راه برای اتصال وجود دارد و هر دو همان ۱۴۷ ابزار را ارائه می‌دهند، چون هر دو transport از یک dispatcher
+مشترک عبور می‌کنند.
+
+### گزینهٔ الف: نصب MCP Bundle (بدون نیاز به اجرای سرور)
+
+فایل `.mcpb` مربوط به سیستم‌عامل خود را از [Releases](https://github.com/javadib/do0ps/releases) دانلود و در
+کلاینت چت نصب کنید — در Claude Desktop کافی است روی آن دابل‌کلیک کنید یا در **Settings → Extensions** رهایش
+کنید. کلاینت، باینری داخل bundle را روی stdio اجرا و از آن پس خودش مدیریتش می‌کند؛ هیچ host، port یا توکن
+Bearer در کار نیست.
+
+برای کلاینت‌هایی که فایل `.mcpb` نمی‌خوانند، bundle را unzip کنید و کلاینت را به `server/do0ps --stdio` وصل
+کنید. پیکربندی هر کلاینت و دستور build در [docs/mcp-bundle.md](mcp-bundle.md) آمده است.
+
+### گزینهٔ ب: اتصال به سرور self-hosted
 
 کلاینت خود را با یکی از توکن‌های `MCP_AUTH_TOKENS` به مسیر `/mcp` وصل کنید:
 
@@ -717,11 +729,13 @@ go test ./... -race -cover
 | میان‌افزار احراز هویت Bearer (فهرست مجاز هش‌شده، مقایسهٔ زمان‌ثابت) | پیاده‌سازی و تست شده |
 | رجیستری ابزار MCP: ۱۴۷ ابزار، `tools/list` و `tools/call` | پیاده‌سازی و تست شده |
 | Streamable HTTP: هم POST و هم SSE روی `GET /mcp` | پیاده‌سازی و تست شده |
+| ‏transport روی stdio (`--stdio`) برای bundleهای نصب‌شده | پیاده‌سازی و تست شده |
 | آداپتر پارس‌پک روی هر سه سطح API | پیاده‌سازی و در برابر سرورهای ساختگی تست شده |
 | Dockerfile (distroless، nonroot، استاتیک) + docker-compose | کامیت شده |
 | Makefile، `../.golangci.yml`، `.env.example` | کامیت شده |
 | Skill کاربر نهایی (`../skills/parspack-infra`) | هر ۱۴۷ ابزار را پوشش می‌دهد |
-| هندشیک `initialize` در MCP | پیاده نشده |
+| هندشیک `initialize` و `ping` در MCP | روی هر دو transport پیاده شده |
+| ‏transport روی stdio و ساخت bundle با فرمت `.mcpb` | پیاده شده، در CI اسموک‌تست می‌شود |
 | LICENSE | با وجود قصد متن‌باز بودن، هنوز کامیت نشده است |
 
 ### مواردی که به‌تازگی رفع شدند

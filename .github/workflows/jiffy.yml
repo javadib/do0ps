@@ -5,7 +5,7 @@ name: Jiffy Dispatch
 # Issues/comments and forwards the thread to the Jiffy Gateway). This is the
 # "lightweight component living next to the git server" that the
 # jiffy-task-planner skill's dispatch protocol depends on -- without this
-# file, @jiffy mentions in Issues (see AGENTS.md §9) go nowhere.
+# file, @jiffy mentions in Issues (see AGENTS.md §10) go nowhere.
 #
 # One change from the sonar_srv version: removed a debug console.log that
 # printed the raw repo token into the Action log (GitHub's log redaction

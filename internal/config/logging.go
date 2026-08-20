@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
@@ -28,9 +29,19 @@ func parseLevel(s string) (slog.Level, error) {
 // at the given level. Every package that needs to log should receive the
 // logger returned here.
 func NewLogger(level string) (*slog.Logger, error) {
+	return NewLoggerTo(level, os.Stdout)
+}
+
+// NewLoggerTo is NewLogger with an explicit sink.
+//
+// It exists for the stdio transport, where stdout is the JSON-RPC channel: a
+// single log line written there corrupts the stream and the client drops the
+// connection, so those logs go to stderr instead (chat clients capture it into
+// their own log files).
+func NewLoggerTo(level string, out io.Writer) (*slog.Logger, error) {
 	lvl, err := parseLevel(level)
 	if err != nil {
 		return nil, err
 	}
-	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: lvl})), nil
+	return slog.New(slog.NewJSONHandler(out, &slog.HandlerOptions{Level: lvl})), nil
 }

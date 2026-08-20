@@ -367,8 +367,9 @@ All configuration is read from environment variables, with `.env` loaded at star
 
 | Variable | Required | Default | Meaning |
 | --- | --- | --- | --- |
-| `MCP_AUTH_TOKENS` | **yes** | — | Bearer allow-list: `token:client_id[:name]`, comma-separated. Tokens must be ≥16 chars |
-| `DB_PATH` | no | `../data/do0ps.db` | SQLite job-store file. Its parent directory is created automatically |
+| `MCP_AUTH_TOKENS` | **yes** for HTTP | — | Bearer allow-list: `token:client_id[:name]`, comma-separated. Tokens must be ≥16 chars. Not used under `stdio`, which has no listener to guard |
+| `MCP_TRANSPORT` | no | `http` | `http` (Streamable HTTP over Fiber) or `stdio` (the chat client spawns this binary — how an installed MCP bundle runs). The `--stdio` flag does the same |
+| `DB_PATH` | no | `../data/do0ps.db` | SQLite job-store file. Its parent directory is created automatically. Under `stdio` the default moves to the per-user config directory |
 | `HTTP_PORT` | no | `8080` | Port the server listens on |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, or `error` |
 | `DO0PS_QUEUE_WORKERS` | no | `8` | Worker goroutines in the pool |
@@ -480,9 +481,19 @@ curl -s localhost:8080/mcp -H "Authorization: Bearer $TOKEN" \
 
 ## 9. Connecting an MCP client
 
-> **Heads up:** the JSON-RPC `initialize` handshake most MCP clients perform on connect is **not implemented
-> yet** — only `tools/list` and `tools/call` are answered. A standard client may fail to complete its
-> handshake; until then, drive the server with raw JSON-RPC as above.
+There are two ways to connect, and they serve the same 147 tools — the transports share one dispatcher.
+
+### Option A: install the MCP Bundle (no server to run)
+
+Download the `.mcpb` for your platform from
+[Releases](https://github.com/javadib/do0ps/releases) and install it into your chat client — in Claude
+Desktop, double-click it or drop it into **Settings → Extensions**. The client spawns the bundled binary over
+stdio and manages it from then on; there is no host, no port and no bearer token involved.
+
+For clients that do not read `.mcpb` files, unzip the bundle and point them at `server/do0ps --stdio`.
+[docs/mcp-bundle.md](mcp-bundle.md) has the per-client configuration and the build instructions.
+
+### Option B: connect to a self-hosted server
 
 Point your client at the `/mcp` route with a bearer token from `MCP_AUTH_TOKENS`:
 
@@ -669,11 +680,13 @@ adapter tests for each Parspack capability area. **One package currently fails**
 | Bearer auth middleware (hashed allow-list, constant-time compare) | Implemented, tested |
 | MCP tool registry: 147 tools, `tools/list` + `tools/call` | Implemented, tested |
 | Streamable HTTP: POST + SSE `GET /mcp` | Implemented, tested |
+| stdio transport (`--stdio`), for installed MCP bundles | Implemented, tested |
 | Parspack adapter across all three API surfaces | Implemented, tested against fake servers |
 | Dockerfile (distroless, nonroot, static) + docker-compose | Committed |
 | Makefile, `../.golangci.yml`, `.env.example` | Committed |
 | End-user Skill (`../skills/parspack-infra`) | Covers all 147 tools |
-| MCP `initialize` handshake | Not implemented |
+| MCP `initialize` handshake, `ping` | Implemented on both transports |
+| stdio transport + `.mcpb` bundle build | Implemented, smoke-tested in CI |
 | LICENSE | Not committed yet, despite the open-source intent |
 
 ### Recently resolved
