@@ -583,6 +583,39 @@ type ArvanCloudProvider interface {
 	GetArvanCloudSecondaryDNS(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudSecondaryDNSConfig, error)
 	SetArvanCloudSecondaryDNS(ctx context.Context, creds domain.ProviderCredentials, domainName string, config domain.ArvanCloudSecondaryDNSConfig) (*domain.ArvanCloudSecondaryDNSConfig, error)
 	RemoveArvanCloudSecondaryDNS(ctx context.Context, creds domain.ProviderCredentials, domainName string) error
+
+	// Lists ("dynamic-fields", issue #64): a reusable, account-scoped
+	// collection of values that other CDN capabilities (firewall, WAF, DDoS
+	// protection, rate limiting — AC5-AC8) reference by ID from their own
+	// filter/source fields. Unlike every other capability on this port,
+	// Lists are account-scoped, not scoped to a domain by name. All fast
+	// operations.
+	//
+	// ListArvanCloudDynamicFields returns every list visible to the given
+	// credentials, unfiltered — the spec's optional scope/type/name query
+	// parameters are not exposed by this port, matching ListDomains' own
+	// choice to keep listing unfiltered (issue #62).
+	ListArvanCloudDynamicFields(ctx context.Context, creds domain.ProviderCredentials) ([]domain.ArvanCloudDynamicField, error)
+	CreateArvanCloudDynamicField(ctx context.Context, creds domain.ProviderCredentials, field domain.ArvanCloudDynamicField) (*domain.ArvanCloudDynamicField, error)
+	GetArvanCloudDynamicField(ctx context.Context, creds domain.ProviderCredentials, id string) (*domain.ArvanCloudDynamicField, error)
+	// UpdateArvanCloudDynamicField changes a list's description and/or type.
+	// The spec's lists.update operation is marked deprecated but has no
+	// documented replacement, so it is still implemented here (see
+	// docs/api-specs/arvancloud-cdn-4.0.yml's DynamicFieldUpdateRequest).
+	UpdateArvanCloudDynamicField(ctx context.Context, creds domain.ProviderCredentials, id string, description string, fieldType domain.ArvanCloudDynamicFieldType) (*domain.ArvanCloudDynamicField, error)
+	// DeleteArvanCloudDynamicField removes a list by id. As with
+	// DeleteDomain, an already-absent list reports domain.ErrNotFound rather
+	// than succeeding silently.
+	DeleteArvanCloudDynamicField(ctx context.Context, creds domain.ProviderCredentials, id string) error
+	// AddArvanCloudDynamicFieldItems appends items to a list. The endpoint's
+	// response carries no data to translate — only a confirmation message —
+	// so there is nothing for this method to return but the error; a caller
+	// that needs the newly-assigned item IDs calls GetArvanCloudDynamicField
+	// afterward.
+	AddArvanCloudDynamicFieldItems(ctx context.Context, creds domain.ProviderCredentials, id string, values []domain.ArvanCloudDynamicFieldValue) error
+	// RemoveArvanCloudDynamicFieldItem removes one item from a list by the
+	// item's own id (domain.ArvanCloudDynamicFieldValue.ID), not an index.
+	RemoveArvanCloudDynamicFieldItem(ctx context.Context, creds domain.ProviderCredentials, id, itemID string) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
