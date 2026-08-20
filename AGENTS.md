@@ -37,8 +37,8 @@ community, including non-technical end users who only ever interact with it thro
 
 ## 3. Deployment Target (important constraint)
 
-- Phase 1 target is **self-hosted only**: Docker container, VPS, or a single static binary.
-- **Vercel / serverless platforms are explicitly NOT a target** for phase 1. This was a deliberate decision:
+- The deployment target is **self-hosted only**: Docker container, VPS, or a single static binary.
+- **Vercel / serverless platforms are explicitly NOT a target.** This was a deliberate decision:
   serverless platforms (Vercel and similar) don't support persistent processes, in-memory worker pools, or local
   SQLite file persistence across invocations. Do not introduce code that assumes a serverless runtime model
   (e.g. assuming `/tmp` persists, or that a background goroutine can outlive a single request).
@@ -132,11 +132,11 @@ community, including non-technical end users who only ever interact with it thro
 Parspack exposes **three separate API surfaces**, same host, same Bearer-token auth scheme, different path
 prefixes. Do not assume they share a client config beyond auth — base paths differ:
 
-| Surface | Base URL | Spec file | Phase-1 issue |
-| --- | --- | --- | --- |
-| Cloud Server (VM/network, Abrha-based) | `https://my.parspack.com/cserver` | not committed (see #9's references — cross-check against `github.com/abrhacom/go-api-abrha`) | #9, #10, #11, #12, #13, #14, #15 |
-| CDN (zones, **DNS records live here**, +18 other tags out of phase-1 scope) | `https://my.parspack.com/cdnapi` | `docs/api-specs/parspack-cdn.openapi.yaml` | #19 (in scope), #24 (backlog) |
-| SSL (certificate ordering workflow) | `https://my.parspack.com/sslv2` | `docs/api-specs/parspack-ssl.openapi.yaml` | #18 |
+| Surface | Base URL | Spec file |
+| --- | --- | --- |
+| Cloud Server (VM/network, Abrha-based) | `https://my.parspack.com/cserver` | not committed — cross-check against `github.com/abrhacom/go-api-abrha` |
+| CDN (zones, **DNS records live here**) | `https://my.parspack.com/cdnapi` | `docs/api-specs/parspack-cdn.openapi.yaml` |
+| SSL (certificate ordering workflow) | `https://my.parspack.com/sslv2` | `docs/api-specs/parspack-ssl.openapi.yaml` |
 
 The CDN and SSL OpenAPI spec files were provided directly by the project owner and should be treated as
 authoritative — prefer them over re-deriving endpoint shapes from `docs.parspack.com`, which is a JS-rendered
@@ -216,9 +216,9 @@ docs/api-specs/                OpenAPI specs for external Parspack APIs (see §4
 
 ## 8. Explicitly Open / Not Yet Decided — do not assume an answer
 
-- **Monolith vs. microservice(s) / module boundaries** for the long term: undecided. Build phase 1 as a single
-  deployable service; do not prematurely split into multiple services or over-engineer module boundaries for a
-  hypothetical microservice future.
+- **Monolith vs. microservice(s) / module boundaries** for the long term: undecided. This is a single
+  deployable service; do not prematurely split it into multiple services or over-engineer module boundaries
+  for a hypothetical microservice future.
 - **Multi-tenant SaaS / dashboard**: a possible future direction, not committed to. Auth and job-store schema
   leave room for it (see `client_id` / `tenant_id` above), but do not build tenant UI, billing, or onboarding
   flows now.
@@ -228,23 +228,24 @@ docs/api-specs/                OpenAPI specs for external Parspack APIs (see §4
 
 ## 9. Branching — read this before creating a branch
 
-**The active development branch is `step/ph1`, not `master`.** Phase-1 work happens on `step/ph1`; `master`
-is far behind it and is only what releases are cut from.
+**The active development branch is `develop`, not `master`.** Day-to-day work happens on `develop`; `master`
+is what stable releases are cut from and is behind it.
 
-- **Always branch from `step/ph1`** (`git fetch origin step/ph1 && git checkout -b <name> origin/step/ph1`),
-  and open pull requests **against `step/ph1`**.
-- Never branch from, or target, `master` or `develop` for feature work. A branch cut from `master` is built on
-  a stale tree — it will miss most of the phase-1 code and produce conflicts or duplicate work.
-- If a working copy arrives checked out on `master` (a fresh clone often does), do not take that as the base
-  to work from — fetch and switch to `step/ph1` first.
+- **Always branch from `develop`** (`git fetch origin develop && git checkout -b <name> origin/develop`), and
+  open pull requests **against `develop`**.
+- Never branch from, or target, `master` for feature work. A branch cut from `master` is built on a stale tree
+  — it will produce conflicts or duplicate work.
+- If a working copy arrives checked out on `master` (a fresh clone does, since it is the default branch), do
+  not take that as the base to work from — fetch and switch to `develop` first.
+- `develop` publishes `vX.Y.Z-RC.N` pre-releases on every push; `master` publishes the stable version and the
+  release artifacts. See `.github/workflows/release.yml`.
 
 ## 10. Working from GitHub Issues
 
-Phase-1 work is tracked entirely as GitHub Issues on this repo (`javadib/do0ps`), not as a separate task list
-anywhere else. Every issue carries three kinds of labels:
+Work is tracked entirely as GitHub Issues on this repo (`javadib/do0ps`), not as a separate task list
+anywhere else. Issues carry two kinds of labels, plus `backlog` for anything deliberately deferred — a
+`backlog` issue should not be picked up under this workflow:
 
-- `phase-1` — always present for phase-1 scope. Issues labeled `backlog` instead (e.g. #24) are explicitly
-  post-phase-1 and should not be picked up under this workflow.
 - `area:*` — which part of the system it touches (`area:core`, `area:sqlite`, `area:queue`, `area:auth`,
   `area:mcp`, `area:parspack`, `area:infra`, `area:docs`, `area:research`).
 - `status:*` — current pickup state:

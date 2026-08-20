@@ -3,9 +3,9 @@ name: CI
 # Ported from javadib/sonar_srv's ci.yml, adapted from Python/uv to Go.
 on:
   pull_request:
-    branches: [master, step/ph1]
+    branches: [master, develop]
   push:
-    branches: [master, step/ph1]
+    branches: [master, develop]
 
 jobs:
   build-test:

@@ -11,7 +11,7 @@ name: Build and Publish MCP Bundle
 #   * manually, to get bundles out of a branch without tagging.
 on:
   pull_request:
-    branches: [master, step/ph1]
+    branches: [master, develop]
   push:
     tags: ["v*.*.*"]
   workflow_dispatch:

@@ -39,7 +39,7 @@ func buildManifest(version, goos string) manifest {
 		Author:        author{Name: "javadib", URL: repositoryURL},
 		Repository:    &repository{Type: "git", URL: repositoryURL + ".git"},
 		Homepage:      repositoryURL,
-		Documentation: repositoryURL + "/blob/step/ph1/docs/mcp-bundle.md",
+		Documentation: repositoryURL + "/blob/develop/docs/mcp-bundle.md",
 		Support:       repositoryURL + "/issues",
 		Server: server{
 			Type: "binary",

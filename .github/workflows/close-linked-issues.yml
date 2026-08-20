@@ -3,11 +3,10 @@ name: Close Linked Issues on Non-default-branch Merge
 # Why this exists:
 #
 # GitHub's native "Closes #N" / "Fixes #N" auto-close behavior only fires when the PR is merged into the
-# repository's DEFAULT branch. This repo's phase-1 work merges into `step/ph1`, a non-default branch (see
-# AGENTS.md §10 / the phase-1 orchestrator routine) — so a PR merged into `step/ph1` with "Closes #6" in its
-# body does NOT close #6, even though the text is there. The issue is left open and stuck on
-# `status:in-progress`, which silently deadlocks every other issue that lists it as a dependency (the
-# orchestrator routine treats "depends on #N" as blocked until #N is actually closed).
+# repository's DEFAULT branch. This repo develops on `develop`, a non-default branch (see AGENTS.md §9) — so
+# a PR merged into `develop` with "Closes #6" in its body does NOT close #6, even though the text is there.
+# The issue is left open and stuck on `status:in-progress`, which silently deadlocks every other issue that
+# lists it as a dependency (the orchestrator routine treats "depends on #N" as blocked until #N is closed).
 #
 # This workflow closes that gap: whenever a PR merges into any non-default branch, it re-implements the
 # closing-keyword scan itself and closes the referenced issue(s) directly via the API.

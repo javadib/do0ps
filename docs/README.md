@@ -1,6 +1,6 @@
 # do0ps
 
-[![CI](https://github.com/javadib/do0ps/actions/workflows/ci.yml/badge.svg?branch=step/ph1)](https://github.com/javadib/do0ps/actions/workflows/ci.yml)
+[![CI](https://github.com/javadib/do0ps/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/javadib/do0ps/actions/workflows/ci.yml)
 
 > An MCP server that lets a chatbot run your infrastructure.
 
@@ -27,8 +27,8 @@
 15. [Roadmap](#15-roadmap)
 16. [Contributing](#16-contributing)
 
-> **Which branch is this?** Phase-1 development happens on **`step/ph1`**, not on the default branch
-> `master`. This document describes `step/ph1`, which is far ahead of `master`. See
+> **Which branch is this?** Development happens on **`develop`**, not on the default branch `master`. This
+> document describes `develop`, which is ahead of `master`. See
 > [Development workflow](#13-development-workflow).
 
 ---
@@ -54,10 +54,9 @@ Two layers sit on top of the server, and both now exist:
 The project is intended to be open source and usable both by DevOps teams and by non-technical end users who
 only ever touch it through a chatbot.
 
-**Current status:** phase 1 is substantially built — the Parspack adapters, use cases and tools are
-implemented and unit-tested across every package, `go test ./...` is green, and the server runs from a plain
-binary or from Docker. See [Project status and known gaps](#14-project-status-and-known-gaps) for what is
-still missing.
+**Current status:** the Parspack adapters, use cases and tools are implemented and unit-tested across every
+package, `go test ./...` is green, and the server runs from a plain binary, from Docker, or as an installable
+MCP bundle. See [Project status and known gaps](#14-project-status-and-known-gaps) for what is still missing.
 
 ---
 
@@ -289,7 +288,7 @@ openssl rand -hex 32
 ```bash
 git clone https://github.com/javadib/do0ps.git
 cd do0ps
-git checkout step/ph1
+git checkout develop
 
 cp .env.example .env
 # edit .env and set MCP_AUTH_TOKENS, e.g.
@@ -561,9 +560,8 @@ assistant how to behave. It is written for a model talking to a non-technical us
 This is deliberately **not** AGENTS.md: AGENTS.md is for people and agents *building* this project, while the
 Skill governs end-user-facing chatbot behavior.
 
-Note that the Skill documents the phase-1 tool set (roughly 50 tools) and has not been extended to cover the
-CDN capabilities added later under issue #24 — so a chatbot loading it gets guidance for the VM/DNS/SSL core,
-but none for the ~90 CDN edge tools.
+Note that the Skill documents roughly 50 tools — the VM/DNS/SSL core — and has not been extended to cover the
+CDN edge families added later, so a chatbot loading it gets no guidance for the ~90 CDN tools.
 
 ---
 
@@ -623,10 +621,12 @@ Providers planned after Parspack: **ArvanCloud** (ابرآروان) and **Liara*
 
 ### Branching
 
-The repository's default branch is `master`, but **phase-1 work is developed and merged on `step/ph1`**.
+The repository's default branch is `master`, but **work is developed and merged on `develop`**. Branch from
+`develop` and open pull requests against it; `master` is what stable releases are cut from.
+
 That has one consequence worth knowing: GitHub's native "Closes #N" auto-close only fires for the default
-branch, so `../.github/workflows/close-linked-issues.yml` re-implements the closing-keyword scan for merges into
-non-default branches. Without it, an issue merged on `step/ph1` would stay open and `status:in-progress`,
+branch, so `../.github/workflows/close-linked-issues.yml` re-implements the closing-keyword scan for merges
+into non-default branches. Without it, an issue merged on `develop` would stay open and `status:in-progress`,
 silently deadlocking every issue that lists it as a dependency.
 
 ### Conventions
@@ -642,9 +642,9 @@ silently deadlocking every issue that lists it as a dependency.
 
 ### Working from GitHub issues
 
-Phase-1 work is tracked entirely as GitHub issues on `javadib/do0ps`. Each issue carries three label kinds:
+Work is tracked entirely as GitHub issues on `javadib/do0ps`. Each issue carries two label kinds, plus
+`backlog` for anything deliberately deferred:
 
-- `phase-1` — in scope. `backlog` instead means post-phase-1
 - `area:*` — `core`, `sqlite`, `queue`, `auth`, `mcp`, `parspack`, `infra`, `docs`, `research`
 - `status:*` — `ready` (safe to start), `in-progress` (**someone is already on it — do not start**),
   `blocked` (has an unmet dependency stated in the body)
@@ -658,7 +658,7 @@ referenced issue is actually closed rather than assuming the numbering implies i
 
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
-| `ci.yml` | PR / push to `master` or `step/ph1` | `go build`, `go vet`, `go test ./... -race -cover`; golangci-lint v2.12 as a parallel job |
+| `ci.yml` | PR / push to `master` or `develop` | `go build`, `go vet`, `go test ./... -race -cover`; golangci-lint v2.12 as a parallel job |
 | `release.yml` | push to `master` | go-semantic-release cuts `vX.Y.Z`, then calls the docker and mcpb workflows |
 | `release.yml` | push to `develop` | Computes the next version, publishes it as a `vX.Y.Z-RC.N` GitHub pre-release. No image, no bundles |
 | `docker-publish.yml` | `v*.*.*` tag, manual, or called by release | Builds the `runner` target with `APP_VERSION` and pushes to GHCR |
@@ -731,8 +731,8 @@ The following were fixed on this branch and are recorded here so the change is e
   Both now name **1.26.2**, matching `../go.mod`.
 - **`godotenv` was marked indirect** in `../go.mod` despite being imported directly — `go mod tidy` moved it.
 - **The `../Makefile`'s `run` comment** named `DO0PS_TOKENS`; the variable is `MCP_AUTH_TOKENS`.
-- **The end-user Skill covered only the phase-1 tools.** It now documents all 147, with the CDN edge families
-  and a workflow section for them.
+- **The end-user Skill covered only the original ~50 tools.** It now documents all 147, with the CDN edge
+  families and a workflow section for them.
 - **Retries could never authenticate.** Every long-operation handler released the caller's credentials with a
   `defer` on its first attempt, so attempt 2 failed with `ErrInvalidCredentials`, attempts 3-5 did the same,
   and the job ended terminally `failed` — with the provider having been called exactly once, and the
@@ -744,28 +744,24 @@ The following were fixed on this branch and are recorded here so the change is e
 
 ## 15. Roadmap
 
-Phase-1 scope as tracked in the issue tracker:
+Everything the issue tracker scoped for the first release is delivered: the core domain and ports, the SQLite
+job store with recovery, the queue worker pool, bearer auth, the MCP transport, the Parspack adapters across
+all three API surfaces, the composition root, Docker packaging, the MCP bundle, and the end-user Skill.
 
-| Group | Work |
+What is next:
+
+| Area | Work |
 | --- | --- |
-| A — foundations | CI & tooling (#1), config + structured logging (#2), domain types (#3), core ports (#4) |
-| B — adapters | SQLite store & recovery (#5), queue worker pool (#6), bearer auth (#7) |
-| C — transport | MCP bootstrap: Fiber v3 + Streamable HTTP + SSE, tool registry (#8) |
-| D/E — Parspack compute | VM lifecycle (#9), SSH keys (#10), firewall (#11), load balancer (#12), reserved IP (#13), VPC (#14), snapshots (#15) |
-| F — Parspack CDN & SSL | SSL API spike (#16), CDN API spike (#17), SSL ordering workflow (#18), CDN zones + DNS records (#19) |
-| G — shipping | Composition root & graceful shutdown (#20), Dockerfile + compose (#21), README (#22) |
-| H — end-user layer | The Skill / system prompt for the tool set (#23) |
-| Post-phase-1 | CDN capabilities beyond zone/DNS (#24) — since delivered on `step/ph1` |
-
-Beyond phase 1: ArvanCloud and Liara adapters, and — once two or three providers exist and the real overlap is
-visible — a shared provider port replacing the per-provider one. `ports.ParspackProvider` at ~157 methods is
-itself an argument for splitting it by capability area when that refactor happens.
+| More providers | ArvanCloud (ابرآروان) and Liara adapters, each behind its own port |
+| Port unification | Once two or three providers exist and the real overlap is visible, replace the per-provider ports with a shared one. `ports.ParspackProvider` at ~157 methods is itself an argument for splitting it by capability area when that refactor happens |
+| Skill coverage | Extend the end-user Skill past the VM/DNS/SSL core to the ~90 CDN edge tools |
+| LICENSE | Not committed yet, despite the open-source intent |
 
 ### Deliberately undecided
 
 Do not assume an answer to these; they are open by choice:
 
-- **Monolith versus microservices.** Phase 1 is a single deployable service. Do not pre-split it or
+- **Monolith versus microservices.** This is a single deployable service. Do not pre-split it or
   over-engineer module boundaries for a hypothetical future
 - **Multi-tenant SaaS / dashboard.** Possible, not committed. `client_id` and `tenant_id` leave room for it;
   do not build tenant UI, billing, or onboarding now
@@ -779,8 +775,8 @@ Do not assume an answer to these; they are open by choice:
 1. Read [`../AGENTS.md`](../AGENTS.md) first — it is the authoritative guide for both humans and coding agents, and
    this README summarizes it rather than replacing it. (`../CLAUDE.md` is just a pointer to it, so the two cannot
    drift.)
-2. Branch from **`step/ph1`**, not `master`.
-3. Pick an issue labelled `phase-1` + `status:ready`, and flip it to `status:in-progress` before writing code.
+2. Branch from **`develop`**, not `master`, and open the pull request against `develop`.
+3. Pick an issue labelled `status:ready`, and flip it to `status:in-progress` before writing code.
 4. Keep the dependency direction intact, keep `go vet` and golangci-lint clean, and add tests next to what you
    change — every package here has them.
 5. Close the issue when the PR is merged and the acceptance criteria are met. If a PR doesn't fully close it,
