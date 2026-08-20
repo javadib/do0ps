@@ -1,0 +1,4172 @@
+components:
+    schemas:
+        AddFirewallRule:
+            properties:
+                availabilityZone:
+                    example: eu-west1-a
+                    type: string
+                direction:
+                    enum:
+                        - INGRESS
+                        - EGRESS
+                    type: string
+                etherType:
+                    enum:
+                        - IPV4
+                        - IPV6
+                    type: string
+                portMax:
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                portMin:
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                protocol:
+                    enum:
+                        - ANY
+                        - TCP
+                        - UDP
+                        - ICMP
+                        - GRE
+                        - SSH
+                        - HTTP
+                        - HTTPS
+                        - MYSQL
+                        - SMTP
+                        - SMTPS
+                        - IMAP
+                        - POP3
+                        - POP3S
+                    type: string
+                remoteIp:
+                    format: ipv4
+                    type: string
+            required:
+                - availabilityZone
+                - direction
+                - etherType
+                - protocol
+                - remoteIp
+            type: object
+        AttachNetwork:
+            properties:
+                availabilityZone:
+                    description: availability zone of the network
+                    type: string
+                enablePortSecurity:
+                    description: enable port security
+                    type: boolean
+                ip:
+                    description: IP
+                    type: string
+                serverId:
+                    description: server ID
+                    type: string
+                subnetId:
+                    description: subnet id
+                    type: string
+            required:
+                - availabilityZone
+                - serverId
+            type: object
+        AttachSecurityGroup:
+            properties:
+                serverId:
+                    type: string
+            type: object
+        AttachToServer:
+            properties:
+                availabilityZone:
+                    example: ir-central1-a
+                    type: string
+                mountPoint:
+                    example: /dev/vdb
+                    type: string
+                serverId:
+                    format: uuid
+                    type: string
+            type: object
+        CalculateFlavorPrice:
+            properties:
+                volumeSize:
+                    example: 100
+                    type: integer
+            type: object
+        ChangePassword:
+            properties:
+                availabilityZone:
+                    type: string
+            required:
+                - availabilityZone
+            type: object
+        CreateFirewall:
+            properties:
+                availabilityZone:
+                    example: eu-west1-a
+                    type: string
+                createDefaultRules:
+                    type: boolean
+                name:
+                    type: string
+            required:
+                - availabilityZone
+                - name
+            type: object
+        CreateImage:
+            properties:
+                availabilityZone:
+                    type: string
+                enableUefi:
+                    type: boolean
+                name:
+                    type: string
+                url:
+                    type: string
+            required:
+                - availabilityZone
+                - name
+                - url
+            type: object
+        CreateNetwork:
+            properties:
+                availabilityZone:
+                    description: availability zone
+                    type: string
+                cidr:
+                    description: subnet cidr
+                    type: string
+                description:
+                    description: network description
+                    type: string
+                dhcpEnabled:
+                    description: enable dhcp
+                    type: boolean
+                dhcpRange:
+                    description: dhcp range
+                    type: string
+                dnsNameservers:
+                    description: nameservers
+                    type: string
+                gatewayEnabled:
+                    description: enable gateway
+                    type: boolean
+                gatewayIp:
+                    description: gateway address
+                    type: string
+                name:
+                    description: name of the network
+                    type: string
+            required:
+                - availabilityZone
+                - cidr
+                - name
+            type: object
+        CreateServer:
+            properties:
+                availabilityZone:
+                    description: availability zone, the zone where the server will be created
+                    type: string
+                backupId:
+                    description: Create server from a backup, given its ID, if set, the ImageId field will be ignored
+                    format: uuid
+                    type: string
+                backupName:
+                    description: The name of the schedulded backup if enabled
+                    type: string
+                enableBackup:
+                    description: Enable schedulded backup for the created server, if true, enableBackup should contain a valid name for the backup schedule
+                    type: boolean
+                enableFailOver:
+                    description: enable failover, if true, the server will be created in a high availability cluster, meaning that in a hardware failure, the server will be migrated to another node
+                    type: boolean
+                enableIpv4:
+                    description: enable IPv4 on the server, this is required to assign IPv6 addresses to the server
+                    type: boolean
+                enableIpv6:
+                    description: enable IPv6 on the server, IPv6 addresses can only be assigned if the IPv4 is enabled.
+                    type: boolean
+                firewallNames:
+                    description: firewalls to attach to the server to
+                    items:
+                        type: string
+                    type: array
+                flavorId:
+                    description: flavor id, can be found in the flavor list endpoint
+                    example: g2-2-2-0
+                    type: string
+                imageId:
+                    description: server os id, can be found in the image list endpoint
+                    format: uuid
+                    type: string
+                initScript:
+                    description: |-
+                        initialization script for server, in bash format
+                        this script will be run in, this feature is only available for linux based images
+                    type: string
+                name:
+                    description: name of server
+                    type: string
+                networkIds:
+                    description: list of networks to attach server to
+                    items:
+                        format: uuid
+                        type: string
+                    type: array
+                rootVolumeSizeGigaBytes:
+                    description: server root volume size, in gigabytes
+                    type: integer
+                secondaryVolumes:
+                    description: server secondary volumes to be created and attached to the server
+                    items:
+                        properties:
+                            description:
+                                description: description of the volume
+                                type: string
+                            name:
+                                description: name of volume
+                                type: string
+                            sizeGigaBytes:
+                                description: size of the volume
+                                maximum: 10000
+                                minimum: 1
+                                type: integer
+                        required:
+                            - name
+                            - sizeGigaBytes
+                        type: object
+                    type: array
+                sshKeyName:
+                    description: name of ssh key
+                    type: string
+            required:
+                - availabilityZone
+                - flavorId
+                - imageId
+                - name
+                - rootVolumeSizeGigaBytes
+            type: object
+        CreateVolume:
+            properties:
+                availabilityZone:
+                    example: ir-west1-a
+                    type: string
+                name:
+                    type: string
+                serverId:
+                    format: uuid
+                    type: string
+                sizeGigaBytes:
+                    minimum: 1
+                    type: integer
+                type:
+                    enum:
+                        - SSD_G1
+                        - HDD_G1
+                    type: string
+            required:
+                - availabilityZone
+                - name
+                - sizeGigaBytes
+            type: object
+        DeleteFirewallRules:
+            properties:
+                availabilityZone:
+                    example: eu-west1-a
+                    type: string
+                ruleIds:
+                    description: 'required: true'
+                    items:
+                        format: uuid
+                        type: string
+                    type: array
+            type: object
+        DeleteFirewalls:
+            properties:
+                availabilityZone:
+                    example: eu-west1-a
+                    type: string
+                firewallIds:
+                    items:
+                        format: uuid
+                        type: string
+                    type: array
+            type: object
+        DeleteImages:
+            properties:
+                availabilityZone:
+                    type: string
+                imageIds:
+                    items:
+                        type: string
+                    type: array
+            type: object
+        DeleteNetwork:
+            properties:
+                availabilityZone:
+                    description: availability zone of the network
+                    type: string
+            required:
+                - availabilityZone
+            type: object
+        DeleteServers:
+            properties:
+                availabilityZone:
+                    example: eu-west1-a
+                    type: string
+                serverIds:
+                    description: list of server IDs to delete
+                    items:
+                        format: uuid
+                        type: string
+                    type: array
+            type: object
+        DeleteVolumes:
+            properties:
+                availabilityZone:
+                    type: string
+                volumeIds:
+                    items:
+                        type: string
+                    type: array
+            type: object
+        DetachFromServer:
+            properties:
+                availabilityZone:
+                    type: string
+            type: object
+        DetachNetwork:
+            properties:
+                availabilityZone:
+                    description: availability zone of the network
+                    type: string
+                serverId:
+                    description: Server ID
+                    type: string
+            required:
+                - availabilityZone
+                - serverId
+            type: object
+        DetachSecurityGroup:
+            properties:
+                serverId:
+                    type: string
+            type: object
+        Detail:
+            properties:
+                availabilityZone:
+                    description: availability zone, the zone where the server is created
+                    example: eu-west1-a
+                    type: string
+                backupEnabled:
+                    description: backup enabled, if true, the server will be backed up every periodically
+                    type: boolean
+                createDate:
+                    description: creation date
+                    format: date-time
+                    type: string
+                dedicatedServerClusterId:
+                    description: cluster id, if the server is created in a dedicated server cluster, this will be the id of the dedicated server's cluster
+                    format: uuid
+                    type: string
+                dedicatedServerId:
+                    description: dedicated server id, if the server is created in a dedicated server cluster, this will be the id of the dedicated server
+                    format: uuid
+                    type: string
+                failoverEnabled:
+                    description: failover is enabled, if true, the server is in a high availability cluster, meaning that in a hardware failure, the server will be migrated to another node
+                    type: boolean
+                flavor:
+                    description: flavor details
+                    properties:
+                        cpuCores:
+                            example: 2
+                            type: integer
+                        id:
+                            description: unique identifier of flavor, which can be retrieved via flavors API
+                            example: g2-2-2-0
+                            type: string
+                        name:
+                            example: g2-medium1
+                            type: string
+                        ramMegaBytes:
+                            example: 2048
+                            type: number
+                        rootDiskGigaBytes:
+                            example: 75
+                            type: integer
+                    type: object
+                id:
+                    description: unique identifier for server
+                    format: uuid
+                    type: string
+                image:
+                    description: image details
+                    properties:
+                        id:
+                            description: unique identifier
+                            format: uuid
+                            type: string
+                        name:
+                            description: name
+                            type: string
+                        os:
+                            description: operating system
+                            type: string
+                        version:
+                            description: operating system version
+                            type: string
+                    type: object
+                ipAddresses:
+                    description: ip addresses of server
+                    items:
+                        properties:
+                            ipAddress:
+                                description: address
+                                format: ipv4
+                                type: string
+                            isPublic:
+                                description: is public
+                                type: boolean
+                            macAddress:
+                                description: mac address
+                                type: string
+                            networkName:
+                                description: network name
+                                type: string
+                            version:
+                                description: ip version
+                                enum:
+                                    - "4"
+                                    - "6"
+                                format: int32
+                                type: string
+                        type: object
+                    type: array
+                name:
+                    description: name of server
+                    type: string
+                sshKeyName:
+                    description: server keyname
+                    type: string
+                state:
+                    description: server's current state
+                    enum:
+                        - ACTIVE
+                        - SHUTOFF
+                        - SHELVED_OFFLOADED
+                        - DELETING
+                    type: string
+                taskId:
+                    description: server's task id
+                    format: uuid
+                    type: string
+                taskState:
+                    description: server task state
+                    enum:
+                        - VOLUME_CREATING
+                        - CREATING
+                        - BUILD
+                    type: string
+            type: object
+        DiscardServerTask:
+            properties:
+                availabilityZone:
+                    type: string
+            required:
+                - availabilityZone
+            type: object
+        Error:
+            properties:
+                errors:
+                    items:
+                        properties:
+                            field:
+                                type: string
+                            params:
+                                type: object
+                            reason:
+                                type: string
+                        type: object
+                    type: array
+                message:
+                    type: string
+            type: object
+        Meta:
+            properties:
+                pagination:
+                    properties:
+                        current:
+                            description: Current page number
+                            type: integer
+                        perPage:
+                            type: integer
+                        totalItems:
+                            type: integer
+                    type: object
+            type: object
+        Pagination:
+            properties:
+                current:
+                    description: Current page number
+                    type: integer
+                perPage:
+                    type: integer
+                totalItems:
+                    type: integer
+            type: object
+        PowerOff:
+            properties:
+                availabilityZone:
+                    type: string
+            required:
+                - availabilityZone
+            type: object
+        PowerOn:
+            properties:
+                availabilityZone:
+                    type: string
+            required:
+                - availabilityZone
+            type: object
+        Reboot:
+            properties:
+                availabilityZone:
+                    type: string
+            required:
+                - availabilityZone
+            type: object
+        RenameServer:
+            properties:
+                availabilityZone:
+                    description: availability zone of the server
+                    type: string
+                name:
+                    description: new server name
+                    type: string
+            required:
+                - availabilityZone
+            type: object
+        Rescue:
+            properties:
+                availabilityZone:
+                    description: availability zone of the server
+                    type: string
+                name:
+                    description: The name of the rescue image
+                    type: string
+            required:
+                - availabilityZone
+            type: object
+        ResizeRootDisk:
+            properties:
+                availabilityZone:
+                    description: availability zone of the server
+                    type: string
+                newSizeGigaBytes:
+                    description: new size in gigabytes
+                    type: integer
+            required:
+                - availabilityZone
+            type: object
+        ResizeServer:
+            properties:
+                availabilityZone:
+                    description: availability zone of the server
+                    type: string
+                flavorId:
+                    description: new flavor id
+                    type: string
+            required:
+                - availabilityZone
+            type: object
+        Response-Detail:
+            properties:
+                data:
+                    properties:
+                        availabilityZone:
+                            description: availability zone, the zone where the server is created
+                            example: eu-west1-a
+                            type: string
+                        backupEnabled:
+                            description: backup enabled, if true, the server will be backed up every periodically
+                            type: boolean
+                        createDate:
+                            description: creation date
+                            format: date-time
+                            type: string
+                        dedicatedServerClusterId:
+                            description: cluster id, if the server is created in a dedicated server cluster, this will be the id of the dedicated server's cluster
+                            format: uuid
+                            type: string
+                        dedicatedServerId:
+                            description: dedicated server id, if the server is created in a dedicated server cluster, this will be the id of the dedicated server
+                            format: uuid
+                            type: string
+                        failoverEnabled:
+                            description: failover is enabled, if true, the server is in a high availability cluster, meaning that in a hardware failure, the server will be migrated to another node
+                            type: boolean
+                        flavor:
+                            description: flavor details
+                            properties:
+                                cpuCores:
+                                    example: 2
+                                    type: integer
+                                id:
+                                    description: unique identifier of flavor, which can be retrieved via flavors API
+                                    example: g2-2-2-0
+                                    type: string
+                                name:
+                                    example: g2-medium1
+                                    type: string
+                                ramMegaBytes:
+                                    example: 2048
+                                    type: number
+                                rootDiskGigaBytes:
+                                    example: 75
+                                    type: integer
+                            type: object
+                        id:
+                            description: unique identifier for server
+                            format: uuid
+                            type: string
+                        image:
+                            description: image details
+                            properties:
+                                id:
+                                    description: unique identifier
+                                    format: uuid
+                                    type: string
+                                name:
+                                    description: name
+                                    type: string
+                                os:
+                                    description: operating system
+                                    type: string
+                                version:
+                                    description: operating system version
+                                    type: string
+                            type: object
+                        ipAddresses:
+                            description: ip addresses of server
+                            items:
+                                properties:
+                                    ipAddress:
+                                        description: address
+                                        format: ipv4
+                                        type: string
+                                    isPublic:
+                                        description: is public
+                                        type: boolean
+                                    macAddress:
+                                        description: mac address
+                                        type: string
+                                    networkName:
+                                        description: network name
+                                        type: string
+                                    version:
+                                        description: ip version
+                                        enum:
+                                            - "4"
+                                            - "6"
+                                        format: int32
+                                        type: string
+                                type: object
+                            type: array
+                        name:
+                            description: name of server
+                            type: string
+                        sshKeyName:
+                            description: server keyname
+                            type: string
+                        state:
+                            description: server's current state
+                            enum:
+                                - ACTIVE
+                                - SHUTOFF
+                                - SHELVED_OFFLOADED
+                                - DELETING
+                            type: string
+                        taskId:
+                            description: server's task id
+                            format: uuid
+                            type: string
+                        taskState:
+                            description: server task state
+                            enum:
+                                - VOLUME_CREATING
+                                - CREATING
+                                - BUILD
+                            type: string
+                    type: object
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-array_Detail:
+            properties:
+                data:
+                    items:
+                        properties:
+                            availabilityZone:
+                                description: availability zone, the zone where the server is created
+                                example: eu-west1-a
+                                type: string
+                            backupEnabled:
+                                description: backup enabled, if true, the server will be backed up every periodically
+                                type: boolean
+                            createDate:
+                                description: creation date
+                                format: date-time
+                                type: string
+                            dedicatedServerClusterId:
+                                description: cluster id, if the server is created in a dedicated server cluster, this will be the id of the dedicated server's cluster
+                                format: uuid
+                                type: string
+                            dedicatedServerId:
+                                description: dedicated server id, if the server is created in a dedicated server cluster, this will be the id of the dedicated server
+                                format: uuid
+                                type: string
+                            failoverEnabled:
+                                description: failover is enabled, if true, the server is in a high availability cluster, meaning that in a hardware failure, the server will be migrated to another node
+                                type: boolean
+                            flavor:
+                                description: flavor details
+                                properties:
+                                    cpuCores:
+                                        example: 2
+                                        type: integer
+                                    id:
+                                        description: unique identifier of flavor, which can be retrieved via flavors API
+                                        example: g2-2-2-0
+                                        type: string
+                                    name:
+                                        example: g2-medium1
+                                        type: string
+                                    ramMegaBytes:
+                                        example: 2048
+                                        type: number
+                                    rootDiskGigaBytes:
+                                        example: 75
+                                        type: integer
+                                type: object
+                            id:
+                                description: unique identifier for server
+                                format: uuid
+                                type: string
+                            image:
+                                description: image details
+                                properties:
+                                    id:
+                                        description: unique identifier
+                                        format: uuid
+                                        type: string
+                                    name:
+                                        description: name
+                                        type: string
+                                    os:
+                                        description: operating system
+                                        type: string
+                                    version:
+                                        description: operating system version
+                                        type: string
+                                type: object
+                            ipAddresses:
+                                description: ip addresses of server
+                                items:
+                                    properties:
+                                        ipAddress:
+                                            description: address
+                                            format: ipv4
+                                            type: string
+                                        isPublic:
+                                            description: is public
+                                            type: boolean
+                                        macAddress:
+                                            description: mac address
+                                            type: string
+                                        networkName:
+                                            description: network name
+                                            type: string
+                                        version:
+                                            description: ip version
+                                            enum:
+                                                - "4"
+                                                - "6"
+                                            format: int32
+                                            type: string
+                                    type: object
+                                type: array
+                            name:
+                                description: name of server
+                                type: string
+                            sshKeyName:
+                                description: server keyname
+                                type: string
+                            state:
+                                description: server's current state
+                                enum:
+                                    - ACTIVE
+                                    - SHUTOFF
+                                    - SHELVED_OFFLOADED
+                                    - DELETING
+                                type: string
+                            taskId:
+                                description: server's task id
+                                format: uuid
+                                type: string
+                            taskState:
+                                description: server task state
+                                enum:
+                                    - VOLUME_CREATING
+                                    - CREATING
+                                    - BUILD
+                                type: string
+                        type: object
+                    type: array
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-array_firewallstandard_SecurityGroup:
+            properties:
+                data:
+                    items:
+                        properties:
+                            description:
+                                description: description of firewall
+                                type: string
+                            id:
+                                description: unique identifier of firewall
+                                type: string
+                            isDefault:
+                                description: is security default
+                                type: boolean
+                            isReadOnly:
+                                description: readonly firewall
+                                type: boolean
+                            name:
+                                description: name of firewall
+                                type: string
+                            rules:
+                                description: rules of firewall
+                                items:
+                                    properties:
+                                        createDate:
+                                            description: date of creation
+                                            type: string
+                                        description:
+                                            description: description of rule
+                                            type: string
+                                        direction:
+                                            description: direction
+                                            type: string
+                                        etherType:
+                                            description: ether type
+                                            type: string
+                                        id:
+                                            description: rule unique identifier
+                                            type: string
+                                        ip:
+                                            description: ip of rule
+                                            type: string
+                                        portEnd:
+                                            description: port end
+                                            type: integer
+                                        portStart:
+                                            description: port start
+                                            type: integer
+                                        protocol:
+                                            description: protocol
+                                            type: string
+                                        updateDate:
+                                            description: date of update
+                                            type: string
+                                    type: object
+                                type: array
+                        type: object
+                    type: array
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-array_response_PublicAPIListData:
+            properties:
+                data:
+                    items:
+                        properties:
+                            availabilityZone:
+                                example: ir-central1-a
+                                type: string
+                            default:
+                                type: boolean
+                            id:
+                                format: uuid
+                                type: string
+                            labels:
+                                items:
+                                    type: string
+                                type: array
+                            name:
+                                type: string
+                            readOnly:
+                                type: boolean
+                            rulesCount:
+                                format: int64
+                                type: integer
+                        type: object
+                    type: array
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-array_response_PublicAPIListImagesData:
+            properties:
+                data:
+                    items:
+                        properties:
+                            arVisibility:
+                                type: boolean
+                            availabilityZone:
+                                example: us-west-1a
+                                type: string
+                            defaultUsername:
+                                type: string
+                            id:
+                                format: uuid
+                                type: string
+                            labels:
+                                items:
+                                    type: string
+                                type: array
+                            minDiskGigaBytes:
+                                type: integer
+                            minRamMegaBytes:
+                                type: integer
+                            name:
+                                type: string
+                            osType:
+                                enum:
+                                    - LINUX
+                                    - WINDOWS
+                                type: string
+                            osVersion:
+                                type: string
+                            panelName:
+                                type: string
+                            sizeBytes:
+                                type: integer
+                            status:
+                                enum:
+                                    - ACTIVE
+                                    - QUEUED
+                                    - UPLOADING
+                                type: string
+                            type:
+                                enum:
+                                    - PERSONAL
+                                    - PUBLIC
+                                type: string
+                            uploadDate:
+                                format: date-time
+                                type: string
+                        type: object
+                    type: array
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-array_standardflavor_Plan:
+            properties:
+                data:
+                    items:
+                        properties:
+                            availabilityZone:
+                                description: availability zone
+                                example: us-west1-a
+                                type: string
+                            cpuCores:
+                                description: cpu count
+                                example: 2
+                                type: integer
+                            diskGigaBytes:
+                                description: disk size in bytes
+                                example: 25
+                                type: integer
+                            generation:
+                                description: plan generation
+                                example: G2
+                                type: string
+                            gpuManufacturer:
+                                description: gpu manufacturer
+                                example: NVIDIA
+                                type: string
+                            gpuMemory:
+                                description: gpu memory
+                                example: 10240
+                                type: integer
+                            gpuName:
+                                description: gpu name
+                                example: RTX 3080
+                                type: string
+                            gpuProcessor:
+                                description: gpu processor
+                                example: GA102
+                                type: string
+                            id:
+                                description: Unique identifier
+                                example: g2-2-2-0
+                                type: string
+                            memoryMegaBytes:
+                                description: memory size in bytes
+                                example: 2048
+                                type: integer
+                            name:
+                                description: Name
+                                example: g2-medium1
+                                type: string
+                            offPercent:
+                                description: discount percent
+                                example: 10
+                                type: integer
+                            portSpeedGigaBitsPerSecond:
+                                description: port speed
+                                example: 1
+                                type: number
+                            pricePerHour:
+                                description: price per hour of plan
+                                example: 6250
+                                type: number
+                            pricePerMonth:
+                                description: price per month of plan
+                                example: 180000
+                                type: integer
+                            type:
+                                description: plan type
+                                example: STANDARD
+                                type: string
+                        type: object
+                    type: array
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-array_standardnetwork_NetworkResponse:
+            properties:
+                data:
+                    items:
+                        properties:
+                            createDate:
+                                description: creation date
+                                type: string
+                            description:
+                                description: description
+                                type: string
+                            dhcpIp:
+                                description: dhcp ip
+                                type: string
+                            id:
+                                description: unique identifier
+                                type: string
+                            ipv4AddressScope:
+                                description: ipv4 address scope
+                                type: string
+                            ipv6AddressScope:
+                                description: ipv6 address scope
+                                type: string
+                            isReadOnly:
+                                description: readonly
+                                type: boolean
+                            mtu:
+                                description: mtu
+                                type: integer
+                            name:
+                                description: name
+                                type: string
+                            portSecurityEnabled:
+                                description: port security enabled
+                                type: boolean
+                            qosPolicyId:
+                                description: qos policy id
+                                type: string
+                            status:
+                                description: status
+                                type: string
+                            subnets:
+                                description: list of subnets
+                                items:
+                                    properties:
+                                        allocationPools:
+                                            description: Sub-ranges of CIDR available for dynamic allocation to ports.
+                                            items:
+                                                properties:
+                                                    end:
+                                                        description: end range
+                                                        type: string
+                                                    start:
+                                                        description: start range
+                                                        type: string
+                                                type: object
+                                            type: array
+                                        cidr:
+                                            description: CIDR representing IP range for this subnet, based on IP version.
+                                            type: string
+                                        description:
+                                            description: Description for the subnet.
+                                            type: string
+                                        dhcpEnabled:
+                                            description: Specifies whether DHCP is enabled for this subnet or not.
+                                            type: boolean
+                                        dnsNameservers:
+                                            description: DNS name servers used by hosts in this subnet.
+                                            items:
+                                                type: string
+                                            type: array
+                                        gatewayIp:
+                                            description: Default gateway used by devices in this subnet.
+                                            type: string
+                                        id:
+                                            description: unique identifier
+                                            type: string
+                                        ipVersion:
+                                            description: IP version, either `4' or `6'.
+                                            type: string
+                                        ipv6AddressMode:
+                                            description: The IPv6 address modes specifies mechanisms for assigning IPv6 IP addresses.
+                                            type: string
+                                        ipv6RaMode:
+                                            description: The IPv6 router advertisement specifies whether the networking service
+                                            type: string
+                                        isReadOnly:
+                                            description: readonly network
+                                            type: boolean
+                                        name:
+                                            description: Human-readable name for the subnet. Might not be unique.
+                                            type: string
+                                        networkId:
+                                            description: UUID of the parent network.
+                                            type: string
+                                        revisionNumber:
+                                            description: revision number
+                                            type: integer
+                                        serviceTypes:
+                                            description: service types
+                                            items:
+                                                type: string
+                                            type: array
+                                        subnetpoolId:
+                                            description: SubnetPoolID is the id of the subnet pool associated with the subnet.
+                                            type: string
+                                    type: object
+                                type: array
+                            updateDate:
+                                description: update date
+                                type: string
+                        type: object
+                    type: array
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-response_Create:
+            properties:
+                data:
+                    properties:
+                        code:
+                            type: integer
+                        imageId:
+                            type: string
+                        message:
+                            type: string
+                    type: object
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-response_PublicAPICreate:
+            properties:
+                data:
+                    properties:
+                        id:
+                            format: uuid
+                            type: string
+                    type: object
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-response_PublicAPICreateRule:
+            properties:
+                data:
+                    properties:
+                        id:
+                            format: uuid
+                            type: string
+                    type: object
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-response_PublicAPIDetails:
+            properties:
+                data:
+                    properties:
+                        createDate:
+                            format: date-time
+                            type: string
+                        default:
+                            type: boolean
+                        id:
+                            type: string
+                        labels:
+                            items:
+                                type: string
+                            type: array
+                        name:
+                            type: string
+                        readOnly:
+                            type: boolean
+                        rules:
+                            items:
+                                properties:
+                                    createDate:
+                                        format: date-time
+                                        type: string
+                                    id:
+                                        type: string
+                                    portEnd:
+                                        type: integer
+                                    portStart:
+                                        type: integer
+                                    protocol:
+                                        enum:
+                                            - TCP
+                                            - UDP
+                                        type: string
+                                    srcDest:
+                                        format: ipv4
+                                        type: string
+                                    type:
+                                        enum:
+                                            - INGRESS
+                                            - EGRESS
+                                        type: string
+                                    version:
+                                        enum:
+                                            - IPv4
+                                            - IPv6
+                                        type: string
+                                type: object
+                            type: array
+                    type: object
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-response_PublicAPIDetailsData:
+            properties:
+                data:
+                    properties:
+                        availabilityZone:
+                            type: string
+                        createDate:
+                            format: date-time
+                            type: string
+                        id:
+                            type: string
+                        iops:
+                            type: integer
+                        labels:
+                            items:
+                                type: string
+                            type: array
+                        name:
+                            type: string
+                        path:
+                            type: string
+                        serverId:
+                            type: string
+                        serverName:
+                            type: string
+                        sizeGigaBytes:
+                            type: integer
+                        status:
+                            type: string
+                        type:
+                            type: string
+                    type: object
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-response_PublicAPIListImagesData:
+            properties:
+                data:
+                    properties:
+                        arVisibility:
+                            type: boolean
+                        availabilityZone:
+                            example: us-west-1a
+                            type: string
+                        defaultUsername:
+                            type: string
+                        id:
+                            format: uuid
+                            type: string
+                        labels:
+                            items:
+                                type: string
+                            type: array
+                        minDiskGigaBytes:
+                            type: integer
+                        minRamMegaBytes:
+                            type: integer
+                        name:
+                            type: string
+                        osType:
+                            enum:
+                                - LINUX
+                                - WINDOWS
+                            type: string
+                        osVersion:
+                            type: string
+                        panelName:
+                            type: string
+                        sizeBytes:
+                            type: integer
+                        status:
+                            enum:
+                                - ACTIVE
+                                - QUEUED
+                                - UPLOADING
+                            type: string
+                        type:
+                            enum:
+                                - PERSONAL
+                                - PUBLIC
+                            type: string
+                        uploadDate:
+                            format: date-time
+                            type: string
+                    type: object
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-standardflavor_SinglePlan:
+            properties:
+                data:
+                    properties:
+                        cpuCount:
+                            description: cpu count
+                            example: 2
+                            type: integer
+                        diskGigaBytes:
+                            description: Disk size
+                            example: 75
+                            type: integer
+                        generation:
+                            description: plan generation
+                            example: G2
+                            type: string
+                        id:
+                            description: Unique identifier
+                            example: g2-2-2-0
+                            type: string
+                        memoryMegaBytes:
+                            description: memory size
+                            example: 2048
+                            type: number
+                        name:
+                            description: Name
+                            example: g2-medium1
+                            type: string
+                        offPercent:
+                            description: discount percent
+                            example: 10
+                            type: integer
+                        portSpeedGigaBitsPerSecond:
+                            description: port speed
+                            example: 1
+                            type: number
+                        pricePerHour:
+                            description: price per hour of plan
+                            example: 625
+                            type: number
+                        pricePerMonth:
+                            description: price per month of plan
+                            example: 180000
+                            type: integer
+                        type:
+                            description: plan type
+                            example: STANDARD
+                            type: string
+                    type: object
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-standardnetwork_NetworkResponse:
+            properties:
+                data:
+                    properties:
+                        createDate:
+                            description: creation date
+                            type: string
+                        description:
+                            description: description
+                            type: string
+                        dhcpIp:
+                            description: dhcp ip
+                            type: string
+                        id:
+                            description: unique identifier
+                            type: string
+                        ipv4AddressScope:
+                            description: ipv4 address scope
+                            type: string
+                        ipv6AddressScope:
+                            description: ipv6 address scope
+                            type: string
+                        isReadOnly:
+                            description: readonly
+                            type: boolean
+                        mtu:
+                            description: mtu
+                            type: integer
+                        name:
+                            description: name
+                            type: string
+                        portSecurityEnabled:
+                            description: port security enabled
+                            type: boolean
+                        qosPolicyId:
+                            description: qos policy id
+                            type: string
+                        status:
+                            description: status
+                            type: string
+                        subnets:
+                            description: list of subnets
+                            items:
+                                properties:
+                                    allocationPools:
+                                        description: Sub-ranges of CIDR available for dynamic allocation to ports.
+                                        items:
+                                            properties:
+                                                end:
+                                                    description: end range
+                                                    type: string
+                                                start:
+                                                    description: start range
+                                                    type: string
+                                            type: object
+                                        type: array
+                                    cidr:
+                                        description: CIDR representing IP range for this subnet, based on IP version.
+                                        type: string
+                                    description:
+                                        description: Description for the subnet.
+                                        type: string
+                                    dhcpEnabled:
+                                        description: Specifies whether DHCP is enabled for this subnet or not.
+                                        type: boolean
+                                    dnsNameservers:
+                                        description: DNS name servers used by hosts in this subnet.
+                                        items:
+                                            type: string
+                                        type: array
+                                    gatewayIp:
+                                        description: Default gateway used by devices in this subnet.
+                                        type: string
+                                    id:
+                                        description: unique identifier
+                                        type: string
+                                    ipVersion:
+                                        description: IP version, either `4' or `6'.
+                                        type: string
+                                    ipv6AddressMode:
+                                        description: The IPv6 address modes specifies mechanisms for assigning IPv6 IP addresses.
+                                        type: string
+                                    ipv6RaMode:
+                                        description: The IPv6 router advertisement specifies whether the networking service
+                                        type: string
+                                    isReadOnly:
+                                        description: readonly network
+                                        type: boolean
+                                    name:
+                                        description: Human-readable name for the subnet. Might not be unique.
+                                        type: string
+                                    networkId:
+                                        description: UUID of the parent network.
+                                        type: string
+                                    revisionNumber:
+                                        description: revision number
+                                        type: integer
+                                    serviceTypes:
+                                        description: service types
+                                        items:
+                                            type: string
+                                        type: array
+                                    subnetpoolId:
+                                        description: SubnetPoolID is the id of the subnet pool associated with the subnet.
+                                        type: string
+                                type: object
+                            type: array
+                        updateDate:
+                            description: update date
+                            type: string
+                    type: object
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        Response-standardnetwork_Subnet:
+            properties:
+                data:
+                    properties:
+                        allocationPools:
+                            description: Sub-ranges of CIDR available for dynamic allocation to ports.
+                            items:
+                                properties:
+                                    end:
+                                        description: end range
+                                        type: string
+                                    start:
+                                        description: start range
+                                        type: string
+                                type: object
+                            type: array
+                        cidr:
+                            description: CIDR representing IP range for this subnet, based on IP version.
+                            type: string
+                        description:
+                            description: Description for the subnet.
+                            type: string
+                        dhcpEnabled:
+                            description: Specifies whether DHCP is enabled for this subnet or not.
+                            type: boolean
+                        dnsNameservers:
+                            description: DNS name servers used by hosts in this subnet.
+                            items:
+                                type: string
+                            type: array
+                        gatewayIp:
+                            description: Default gateway used by devices in this subnet.
+                            type: string
+                        id:
+                            description: unique identifier
+                            type: string
+                        ipVersion:
+                            description: IP version, either `4' or `6'.
+                            type: string
+                        ipv6AddressMode:
+                            description: The IPv6 address modes specifies mechanisms for assigning IPv6 IP addresses.
+                            type: string
+                        ipv6RaMode:
+                            description: The IPv6 router advertisement specifies whether the networking service
+                            type: string
+                        isReadOnly:
+                            description: readonly network
+                            type: boolean
+                        name:
+                            description: Human-readable name for the subnet. Might not be unique.
+                            type: string
+                        networkId:
+                            description: UUID of the parent network.
+                            type: string
+                        revisionNumber:
+                            description: revision number
+                            type: integer
+                        serviceTypes:
+                            description: service types
+                            items:
+                                type: string
+                            type: array
+                        subnetpoolId:
+                            description: SubnetPoolID is the id of the subnet pool associated with the subnet.
+                            type: string
+                    type: object
+                message:
+                    type: string
+                meta:
+                    properties:
+                        pagination:
+                            properties:
+                                current:
+                                    description: Current page number
+                                    type: integer
+                                perPage:
+                                    type: integer
+                                totalItems:
+                                    type: integer
+                            type: object
+                    type: object
+            type: object
+        TerminateServer:
+            properties:
+                availabilityZone:
+                    type: string
+            required:
+                - availabilityZone
+            type: object
+        Unrescue:
+            properties:
+                availabilityZone:
+                    type: string
+            required:
+                - availabilityZone
+            type: object
+        abrakstandard.ServerVolume:
+            properties:
+                description:
+                    description: description of the volume
+                    type: string
+                name:
+                    description: name of volume
+                    type: string
+                sizeGigaBytes:
+                    description: size of the volume
+                    maximum: 10000
+                    minimum: 1
+                    type: integer
+            required:
+                - name
+                - sizeGigaBytes
+            type: object
+        firewallstandard.SecurityGroup:
+            properties:
+                description:
+                    description: description of firewall
+                    type: string
+                id:
+                    description: unique identifier of firewall
+                    type: string
+                isDefault:
+                    description: is security default
+                    type: boolean
+                isReadOnly:
+                    description: readonly firewall
+                    type: boolean
+                name:
+                    description: name of firewall
+                    type: string
+                rules:
+                    description: rules of firewall
+                    items:
+                        properties:
+                            createDate:
+                                description: date of creation
+                                type: string
+                            description:
+                                description: description of rule
+                                type: string
+                            direction:
+                                description: direction
+                                type: string
+                            etherType:
+                                description: ether type
+                                type: string
+                            id:
+                                description: rule unique identifier
+                                type: string
+                            ip:
+                                description: ip of rule
+                                type: string
+                            portEnd:
+                                description: port end
+                                type: integer
+                            portStart:
+                                description: port start
+                                type: integer
+                            protocol:
+                                description: protocol
+                                type: string
+                            updateDate:
+                                description: date of update
+                                type: string
+                        type: object
+                    type: array
+            type: object
+        firewallstandard.SecurityGroupRule:
+            properties:
+                createDate:
+                    description: date of creation
+                    type: string
+                description:
+                    description: description of rule
+                    type: string
+                direction:
+                    description: direction
+                    type: string
+                etherType:
+                    description: ether type
+                    type: string
+                id:
+                    description: rule unique identifier
+                    type: string
+                ip:
+                    description: ip of rule
+                    type: string
+                portEnd:
+                    description: port end
+                    type: integer
+                portStart:
+                    description: port start
+                    type: integer
+                protocol:
+                    description: protocol
+                    type: string
+                updateDate:
+                    description: date of update
+                    type: string
+            type: object
+        response.Create:
+            properties:
+                code:
+                    type: integer
+                imageId:
+                    type: string
+                message:
+                    type: string
+            type: object
+        response.KitError:
+            properties:
+                errors:
+                    items:
+                        properties:
+                            field:
+                                type: string
+                            params:
+                                type: object
+                            reason:
+                                type: string
+                        type: object
+                    type: array
+                message:
+                    type: string
+            type: object
+        response.KitErrorItem:
+            properties:
+                field:
+                    type: string
+                params:
+                    type: object
+                reason:
+                    type: string
+            type: object
+        response.KitResponse-array_response_StandardDataCenter:
+            properties:
+                data:
+                    items:
+                        properties:
+                            city:
+                                example: Tehran
+                                type: string
+                            code:
+                                example: ir-thr-ba1
+                                type: string
+                            country:
+                                example: Iran
+                                type: string
+                            isVolumeBacked:
+                                type: boolean
+                            name:
+                                example: Bamdad
+                                type: string
+                            region:
+                                example: ir-central1
+                                type: string
+                            state:
+                                enum:
+                                    - UP
+                                    - PROHIBITED
+                                    - READ_ONLY
+                                    - DOWN
+                                type: string
+                            zone:
+                                example: ir-thr-ba1
+                                type: string
+                        type: object
+                    type: array
+                message:
+                    type: string
+                meta:
+                    type: object
+            type: object
+        response.PublicAPICreate:
+            properties:
+                id:
+                    format: uuid
+                    type: string
+            type: object
+        response.PublicAPICreateRule:
+            properties:
+                id:
+                    format: uuid
+                    type: string
+            type: object
+        response.PublicAPIDetails:
+            properties:
+                createDate:
+                    format: date-time
+                    type: string
+                default:
+                    type: boolean
+                id:
+                    type: string
+                labels:
+                    items:
+                        type: string
+                    type: array
+                name:
+                    type: string
+                readOnly:
+                    type: boolean
+                rules:
+                    items:
+                        properties:
+                            createDate:
+                                format: date-time
+                                type: string
+                            id:
+                                type: string
+                            portEnd:
+                                type: integer
+                            portStart:
+                                type: integer
+                            protocol:
+                                enum:
+                                    - TCP
+                                    - UDP
+                                type: string
+                            srcDest:
+                                format: ipv4
+                                type: string
+                            type:
+                                enum:
+                                    - INGRESS
+                                    - EGRESS
+                                type: string
+                            version:
+                                enum:
+                                    - IPv4
+                                    - IPv6
+                                type: string
+                        type: object
+                    type: array
+            type: object
+        response.PublicAPIDetailsData:
+            properties:
+                availabilityZone:
+                    type: string
+                createDate:
+                    format: date-time
+                    type: string
+                id:
+                    type: string
+                iops:
+                    type: integer
+                labels:
+                    items:
+                        type: string
+                    type: array
+                name:
+                    type: string
+                path:
+                    type: string
+                serverId:
+                    type: string
+                serverName:
+                    type: string
+                sizeGigaBytes:
+                    type: integer
+                status:
+                    type: string
+                type:
+                    type: string
+            type: object
+        response.PublicAPIListData:
+            properties:
+                availabilityZone:
+                    example: ir-central1-a
+                    type: string
+                default:
+                    type: boolean
+                id:
+                    format: uuid
+                    type: string
+                labels:
+                    items:
+                        type: string
+                    type: array
+                name:
+                    type: string
+                readOnly:
+                    type: boolean
+                rulesCount:
+                    format: int64
+                    type: integer
+            type: object
+        response.PublicAPIListImagesData:
+            properties:
+                arVisibility:
+                    type: boolean
+                availabilityZone:
+                    example: us-west-1a
+                    type: string
+                defaultUsername:
+                    type: string
+                id:
+                    format: uuid
+                    type: string
+                labels:
+                    items:
+                        type: string
+                    type: array
+                minDiskGigaBytes:
+                    type: integer
+                minRamMegaBytes:
+                    type: integer
+                name:
+                    type: string
+                osType:
+                    enum:
+                        - LINUX
+                        - WINDOWS
+                    type: string
+                osVersion:
+                    type: string
+                panelName:
+                    type: string
+                sizeBytes:
+                    type: integer
+                status:
+                    enum:
+                        - ACTIVE
+                        - QUEUED
+                        - UPLOADING
+                    type: string
+                type:
+                    enum:
+                        - PERSONAL
+                        - PUBLIC
+                    type: string
+                uploadDate:
+                    format: date-time
+                    type: string
+            type: object
+        response.PublicAPIRules:
+            properties:
+                createDate:
+                    format: date-time
+                    type: string
+                id:
+                    type: string
+                portEnd:
+                    type: integer
+                portStart:
+                    type: integer
+                protocol:
+                    enum:
+                        - TCP
+                        - UDP
+                    type: string
+                srcDest:
+                    format: ipv4
+                    type: string
+                type:
+                    enum:
+                        - INGRESS
+                        - EGRESS
+                    type: string
+                version:
+                    enum:
+                        - IPv4
+                        - IPv6
+                    type: string
+            type: object
+        response.StandardDataCenter:
+            properties:
+                city:
+                    example: Tehran
+                    type: string
+                code:
+                    example: ir-thr-ba1
+                    type: string
+                country:
+                    example: Iran
+                    type: string
+                isVolumeBacked:
+                    type: boolean
+                name:
+                    example: Bamdad
+                    type: string
+                region:
+                    example: ir-central1
+                    type: string
+                state:
+                    enum:
+                        - UP
+                        - PROHIBITED
+                        - READ_ONLY
+                        - DOWN
+                    type: string
+                zone:
+                    example: ir-thr-ba1
+                    type: string
+            type: object
+        responses.Error:
+            properties:
+                field:
+                    type: string
+                params:
+                    type: object
+                reason:
+                    type: string
+            type: object
+        standardflavor.Plan:
+            properties:
+                availabilityZone:
+                    description: availability zone
+                    example: us-west1-a
+                    type: string
+                cpuCores:
+                    description: cpu count
+                    example: 2
+                    type: integer
+                diskGigaBytes:
+                    description: disk size in bytes
+                    example: 25
+                    type: integer
+                generation:
+                    description: plan generation
+                    example: G2
+                    type: string
+                gpuManufacturer:
+                    description: gpu manufacturer
+                    example: NVIDIA
+                    type: string
+                gpuMemory:
+                    description: gpu memory
+                    example: 10240
+                    type: integer
+                gpuName:
+                    description: gpu name
+                    example: RTX 3080
+                    type: string
+                gpuProcessor:
+                    description: gpu processor
+                    example: GA102
+                    type: string
+                id:
+                    description: Unique identifier
+                    example: g2-2-2-0
+                    type: string
+                memoryMegaBytes:
+                    description: memory size in bytes
+                    example: 2048
+                    type: integer
+                name:
+                    description: Name
+                    example: g2-medium1
+                    type: string
+                offPercent:
+                    description: discount percent
+                    example: 10
+                    type: integer
+                portSpeedGigaBitsPerSecond:
+                    description: port speed
+                    example: 1
+                    type: number
+                pricePerHour:
+                    description: price per hour of plan
+                    example: 6250
+                    type: number
+                pricePerMonth:
+                    description: price per month of plan
+                    example: 180000
+                    type: integer
+                type:
+                    description: plan type
+                    example: STANDARD
+                    type: string
+            type: object
+        standardflavor.ServerFlavor:
+            description: flavor details
+            properties:
+                cpuCores:
+                    example: 2
+                    type: integer
+                id:
+                    description: unique identifier of flavor, which can be retrieved via flavors API
+                    example: g2-2-2-0
+                    type: string
+                name:
+                    example: g2-medium1
+                    type: string
+                ramMegaBytes:
+                    example: 2048
+                    type: number
+                rootDiskGigaBytes:
+                    example: 75
+                    type: integer
+            type: object
+        standardflavor.SinglePlan:
+            properties:
+                cpuCount:
+                    description: cpu count
+                    example: 2
+                    type: integer
+                diskGigaBytes:
+                    description: Disk size
+                    example: 75
+                    type: integer
+                generation:
+                    description: plan generation
+                    example: G2
+                    type: string
+                id:
+                    description: Unique identifier
+                    example: g2-2-2-0
+                    type: string
+                memoryMegaBytes:
+                    description: memory size
+                    example: 2048
+                    type: number
+                name:
+                    description: Name
+                    example: g2-medium1
+                    type: string
+                offPercent:
+                    description: discount percent
+                    example: 10
+                    type: integer
+                portSpeedGigaBitsPerSecond:
+                    description: port speed
+                    example: 1
+                    type: number
+                pricePerHour:
+                    description: price per hour of plan
+                    example: 625
+                    type: number
+                pricePerMonth:
+                    description: price per month of plan
+                    example: 180000
+                    type: integer
+                type:
+                    description: plan type
+                    example: STANDARD
+                    type: string
+            type: object
+        standardimage.ServerImage:
+            description: image details
+            properties:
+                id:
+                    description: unique identifier
+                    format: uuid
+                    type: string
+                name:
+                    description: name
+                    type: string
+                os:
+                    description: operating system
+                    type: string
+                version:
+                    description: operating system version
+                    type: string
+            type: object
+        standardnetwork.AllocationPool:
+            properties:
+                end:
+                    description: end range
+                    type: string
+                start:
+                    description: start range
+                    type: string
+            type: object
+        standardnetwork.NetworkResponse:
+            properties:
+                createDate:
+                    description: creation date
+                    type: string
+                description:
+                    description: description
+                    type: string
+                dhcpIp:
+                    description: dhcp ip
+                    type: string
+                id:
+                    description: unique identifier
+                    type: string
+                ipv4AddressScope:
+                    description: ipv4 address scope
+                    type: string
+                ipv6AddressScope:
+                    description: ipv6 address scope
+                    type: string
+                isReadOnly:
+                    description: readonly
+                    type: boolean
+                mtu:
+                    description: mtu
+                    type: integer
+                name:
+                    description: name
+                    type: string
+                portSecurityEnabled:
+                    description: port security enabled
+                    type: boolean
+                qosPolicyId:
+                    description: qos policy id
+                    type: string
+                status:
+                    description: status
+                    type: string
+                subnets:
+                    description: list of subnets
+                    items:
+                        properties:
+                            allocationPools:
+                                description: Sub-ranges of CIDR available for dynamic allocation to ports.
+                                items:
+                                    properties:
+                                        end:
+                                            description: end range
+                                            type: string
+                                        start:
+                                            description: start range
+                                            type: string
+                                    type: object
+                                type: array
+                            cidr:
+                                description: CIDR representing IP range for this subnet, based on IP version.
+                                type: string
+                            description:
+                                description: Description for the subnet.
+                                type: string
+                            dhcpEnabled:
+                                description: Specifies whether DHCP is enabled for this subnet or not.
+                                type: boolean
+                            dnsNameservers:
+                                description: DNS name servers used by hosts in this subnet.
+                                items:
+                                    type: string
+                                type: array
+                            gatewayIp:
+                                description: Default gateway used by devices in this subnet.
+                                type: string
+                            id:
+                                description: unique identifier
+                                type: string
+                            ipVersion:
+                                description: IP version, either `4' or `6'.
+                                type: string
+                            ipv6AddressMode:
+                                description: The IPv6 address modes specifies mechanisms for assigning IPv6 IP addresses.
+                                type: string
+                            ipv6RaMode:
+                                description: The IPv6 router advertisement specifies whether the networking service
+                                type: string
+                            isReadOnly:
+                                description: readonly network
+                                type: boolean
+                            name:
+                                description: Human-readable name for the subnet. Might not be unique.
+                                type: string
+                            networkId:
+                                description: UUID of the parent network.
+                                type: string
+                            revisionNumber:
+                                description: revision number
+                                type: integer
+                            serviceTypes:
+                                description: service types
+                                items:
+                                    type: string
+                                type: array
+                            subnetpoolId:
+                                description: SubnetPoolID is the id of the subnet pool associated with the subnet.
+                                type: string
+                        type: object
+                    type: array
+                updateDate:
+                    description: update date
+                    type: string
+            type: object
+        standardnetwork.Subnet:
+            properties:
+                allocationPools:
+                    description: Sub-ranges of CIDR available for dynamic allocation to ports.
+                    items:
+                        properties:
+                            end:
+                                description: end range
+                                type: string
+                            start:
+                                description: start range
+                                type: string
+                        type: object
+                    type: array
+                cidr:
+                    description: CIDR representing IP range for this subnet, based on IP version.
+                    type: string
+                description:
+                    description: Description for the subnet.
+                    type: string
+                dhcpEnabled:
+                    description: Specifies whether DHCP is enabled for this subnet or not.
+                    type: boolean
+                dnsNameservers:
+                    description: DNS name servers used by hosts in this subnet.
+                    items:
+                        type: string
+                    type: array
+                gatewayIp:
+                    description: Default gateway used by devices in this subnet.
+                    type: string
+                id:
+                    description: unique identifier
+                    type: string
+                ipVersion:
+                    description: IP version, either `4' or `6'.
+                    type: string
+                ipv6AddressMode:
+                    description: The IPv6 address modes specifies mechanisms for assigning IPv6 IP addresses.
+                    type: string
+                ipv6RaMode:
+                    description: The IPv6 router advertisement specifies whether the networking service
+                    type: string
+                isReadOnly:
+                    description: readonly network
+                    type: boolean
+                name:
+                    description: Human-readable name for the subnet. Might not be unique.
+                    type: string
+                networkId:
+                    description: UUID of the parent network.
+                    type: string
+                revisionNumber:
+                    description: revision number
+                    type: integer
+                serviceTypes:
+                    description: service types
+                    items:
+                        type: string
+                    type: array
+                subnetpoolId:
+                    description: SubnetPoolID is the id of the subnet pool associated with the subnet.
+                    type: string
+            type: object
+        standardserver.ServerAddress:
+            properties:
+                ipAddress:
+                    description: address
+                    format: ipv4
+                    type: string
+                isPublic:
+                    description: is public
+                    type: boolean
+                macAddress:
+                    description: mac address
+                    type: string
+                networkName:
+                    description: network name
+                    type: string
+                version:
+                    description: ip version
+                    enum:
+                        - "4"
+                        - "6"
+                    format: int32
+                    type: string
+            type: object
+info:
+    contact:
+        email: callcenter@arvancloud.ir
+        name: API Support
+    description: |
+        Welcome to the official documentation for the Arvancloud Infrastructure as a Service (IaaS) API.
+
+        This API allows you to interact programmatically with Arvancloud’s IaaS platform. You can manage compute resources such as virtual machines (VMs), storage, networking, and security groups, as well as perform various administrative tasks.
+
+        The documentation provides all the details you need to authenticate, interact with, and utilize the API effectively. Whether you're building automation tools, integrating Arvancloud into your existing workflows, or managing resources through a third-party platform, this API offers everything you need to get started.
+
+        This documentation covers the **latest version** of the Arvancloud IaaS API, with all the latest features, improvements, and bug fixes.
+
+        For any questions or assistance, please refer to our support team or community forums.
+    title: Arvancloud IaaS API Documentation
+    version: v3.0.1
+openapi: 3.0.0
+paths:
+    /availability-zones:
+        get:
+            description: List availability zones in a region
+            operationId: ListAvailabilityZones
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitResponse-array_response_StandardDataCenter'
+                    description: OK
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unprocessable Entity
+                default:
+                    description: ""
+            summary: List availability zones in a region
+            tags:
+                - Availability Zones
+    /firewalls:
+        get:
+            description: List all firewalls of the tenant within the region
+            operationId: ListFirewalls
+            parameters:
+                - description: Page number
+                  in: query
+                  name: page
+                  schema:
+                    type: integer
+                - description: Items per page
+                  in: query
+                  name: perPage
+                  schema:
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-array_response_PublicAPIListData'
+                    description: OK
+                default:
+                    description: ""
+            summary: List Firewalls
+            tags:
+                - Firewalls
+        post:
+            description: Create a new firewall in a specific availabilityZone
+            operationId: CreateFirewall
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateFirewall'
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-response_PublicAPICreate'
+                    description: Created
+                "402":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Payment Required
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unprocessable Entity
+                default:
+                    description: ""
+            summary: Create New Firewall
+            tags:
+                - Firewalls
+    /firewalls/{firewallId}:
+        get:
+            description: Get the details of the given firewall
+            operationId: GetFirewallDetails
+            parameters:
+                - description: Firewall ID
+                  in: path
+                  name: firewallId
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-response_PublicAPIDetails'
+                    description: OK
+                default:
+                    description: ""
+            summary: Get Firewall Details
+            tags:
+                - Firewalls
+    /firewalls/{firewallId}/rules:
+        post:
+            description: Create a new firewall rule in the given firewall
+            operationId: AddFirewallRule
+            parameters:
+                - description: Firewall ID
+                  in: path
+                  name: firewallId
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AddFirewallRule'
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-response_PublicAPICreateRule'
+                    description: Created
+                "402":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Payment Required
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unprocessable Entity
+                default:
+                    description: ""
+            summary: Create New Firewall Rule
+            tags:
+                - Firewalls
+    /firewalls/{firewallId}/rules/batch-delete:
+        post:
+            description: Delete one or many firewall rules by IDs of the given firewall
+            operationId: DeleteFirewallRules
+            parameters:
+                - description: Firewall ID
+                  in: path
+                  name: firewallId
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DeleteFirewallRules'
+            responses:
+                "204":
+                    description: No Content
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Not Found
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unprocessable Entity
+                default:
+                    description: ""
+            summary: Delete Firewall Rules
+            tags:
+                - Firewalls
+    /firewalls/batch-delete:
+        post:
+            description: Delete one or many firewalls by their IDs
+            operationId: DeleteFirewalls
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DeleteFirewalls'
+            responses:
+                "204":
+                    description: No Content
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Not Found
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unprocessable Entity
+                default:
+                    description: ""
+            summary: Delete Firewalls
+            tags:
+                - Firewalls
+    /flavors:
+        get:
+            description: List all available server flavors of the region
+            operationId: ListFlavors
+            parameters:
+                - description: Page number
+                  in: query
+                  name: page
+                  schema:
+                    type: integer
+                - description: Items per page
+                  in: query
+                  name: perPage
+                  schema:
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-array_standardflavor_Plan'
+                    description: OK
+                default:
+                    description: ""
+            summary: List Flavors
+            tags:
+                - Flavors
+    /flavors/{id}:
+        get:
+            description: Get details of a specific server flavor by its ID
+            operationId: GetFlavorDetails
+            parameters:
+                - description: Plan/Flavor ID
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-standardflavor_SinglePlan'
+                    description: OK
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Plan not found
+                default:
+                    description: ""
+            summary: Get Flavor Details
+            tags:
+                - Flavors
+    /flavors/{id}/calculate:
+        post:
+            description: Calculate the price of the given flavor with additional volume size
+            operationId: CalculateFlavorPrice
+            parameters:
+                - description: Plan/Flavor ID
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CalculateFlavorPrice'
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-standardflavor_SinglePlan'
+                    description: OK
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Plan not found
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Invalid input
+                default:
+                    description: ""
+            summary: Calculate Flavor Pricing
+            tags:
+                - Flavors
+    /images:
+        get:
+            description: List images of the tanant within the region
+            operationId: ListImages
+            parameters:
+                - description: Page number
+                  in: query
+                  name: page
+                  schema:
+                    type: integer
+                - description: Items per page
+                  in: query
+                  name: perPage
+                  schema:
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-array_response_PublicAPIListImagesData'
+                    description: OK
+                default:
+                    description: ""
+            summary: List Images
+            tags:
+                - Images
+        post:
+            description: Create a new image from a URL within the given availability zone
+            operationId: CreateImage
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateImage'
+            responses:
+                "202":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-response_Create'
+                    description: Accepted
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unauthorized
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unprocessable Entity
+                default:
+                    description: ""
+            summary: Create Image
+            tags:
+                - Images
+    /images/{id}:
+        get:
+            description: Get details of an image by its ID
+            operationId: GetImageDetails
+            parameters:
+                - description: Image ID
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-response_PublicAPIListImagesData'
+                    description: OK
+                default:
+                    description: ""
+            summary: Get Image Details
+            tags:
+                - Images
+    /images/batch-delete:
+        post:
+            description: Delete one or many images within the given region of the tenant by their IDs
+            operationId: DeleteImages
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DeleteImages'
+            responses:
+                "204":
+                    description: No Content
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Not Found
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unprocessable Entity
+                default:
+                    description: ""
+            summary: Delete Images
+            tags:
+                - Images
+    /networks:
+        get:
+            description: List all networks of the tenant within the region
+            operationId: ListNetworks
+            parameters:
+                - description: Page number
+                  in: query
+                  name: page
+                  schema:
+                    type: integer
+                - description: Items per page
+                  in: query
+                  name: perPage
+                  schema:
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-array_standardnetwork_NetworkResponse'
+                    description: OK
+                default:
+                    description: ""
+            summary: List Networks
+            tags:
+                - Networks
+        post:
+            description: Create a new private network
+            operationId: CreateNetwork
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateNetwork'
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-standardnetwork_Subnet'
+                    description: Created
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: invalid input
+                default:
+                    description: ""
+            summary: Create Network
+            tags:
+                - Networks
+    /networks/{id}:
+        delete:
+            description: Delete the given network
+            operationId: DeleteNetwork
+            parameters:
+                - description: The ID of the network
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DeleteNetwork'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Network does not exist
+                default:
+                    description: ""
+            summary: Delete Network
+            tags:
+                - Networks
+        get:
+            description: Get the details of the given network
+            operationId: GetNetworkDetails
+            parameters:
+                - description: The ID of the network
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-standardnetwork_NetworkResponse'
+                    description: OK
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Network does not exist
+                default:
+                    description: ""
+            summary: Get Network Details
+            tags:
+                - Networks
+    /networks/{id}/attach:
+        post:
+            description: Attach a network to a server
+            operationId: AttachNetwork
+            parameters:
+                - description: Network ID
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AttachNetwork'
+            responses:
+                "202":
+                    description: Accepted
+                default:
+                    description: ""
+            summary: Attach Network
+            tags:
+                - Networks
+    /networks/{id}/detach:
+        post:
+            description: Detach a network from a server
+            operationId: DetachNetwork
+            parameters:
+                - description: Network ID
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DetachNetwork'
+            responses:
+                "202":
+                    description: Accepted
+                default:
+                    description: ""
+            summary: Detach Network
+            tags:
+                - Networks
+    /security-groups:
+        get:
+            description: List all security groups of the tenant within the region
+            operationId: ListSecurityGroups
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-array_firewallstandard_SecurityGroup'
+                    description: OK
+                default:
+                    description: ""
+            summary: List Security Groups
+            tags:
+                - SecurityGroups
+    /security-groups/{id}/attach:
+        post:
+            description: Attach a security group to a server
+            operationId: AttachSecurityGroup
+            parameters:
+                - description: Security Group ID
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AttachSecurityGroup'
+            responses:
+                "202":
+                    description: Accepted
+                default:
+                    description: ""
+            summary: Attach Security Group
+            tags:
+                - SecurityGroups
+    /security-groups/{id}/detach:
+        post:
+            description: Detach a security group from a server
+            operationId: DetachSecurityGroup
+            parameters:
+                - description: Security Group ID
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DetachSecurityGroup'
+            responses:
+                "202":
+                    description: Accepted
+                default:
+                    description: ""
+            summary: Detach Security Group
+            tags:
+                - SecurityGroups
+    /servers:
+        get:
+            description: List all servers of the tenant within the region
+            operationId: ListServers
+            parameters:
+                - description: Page number
+                  in: query
+                  name: page
+                  schema:
+                    type: integer
+                - description: Items per page
+                  in: query
+                  name: perPage
+                  schema:
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-array_Detail'
+                    description: OK
+                default:
+                    description: ""
+            summary: List Servers
+            tags:
+                - Servers
+        post:
+            description: Create a new server within the regions
+            operationId: CreateServer
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateServer'
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-Detail'
+                    description: Created
+                "400":
+                    description: Bad Request
+                "402":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Payment required
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: access forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: one or more resources do not exist
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: invalid input
+                default:
+                    description: ""
+            summary: Create New Server
+            tags:
+                - Servers
+    /servers/{id}:
+        get:
+            description: Get the details of the given server
+            operationId: GetServerDetails
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-Detail'
+                    description: OK
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Get Server Details
+            tags:
+                - Servers
+    /servers/{id}/discard:
+        post:
+            description: Discard the running task of the given server ID
+            operationId: DiscardServerTask
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DiscardServerTask'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Discard Server Task
+            tags:
+                - Servers
+    /servers/{id}/power-off:
+        post:
+            description: PowerOFFs the given server ID
+            operationId: PowerOff
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/PowerOff'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Power OFF Server
+            tags:
+                - Servers
+    /servers/{id}/power-on:
+        post:
+            description: Power ON the given server ID
+            operationId: PowerOn
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/PowerOn'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Power ON Server
+            tags:
+                - Servers
+    /servers/{id}/reboot:
+        post:
+            description: Reboots the given server ID
+            operationId: Reboot
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Reboot'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Reboot Server
+            tags:
+                - Servers
+    /servers/{id}/rename:
+        post:
+            description: Renames the name of server
+            operationId: RenameServer
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RenameServer'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Rename Server
+            tags:
+                - Servers
+    /servers/{id}/rescue:
+        post:
+            description: Put the given server ID to the rescue mode
+            operationId: Rescue
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Rescue'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Rescue Server
+            tags:
+                - Servers
+    /servers/{id}/reset-root-password:
+        post:
+            description: Resets the password of the given server ID
+            operationId: ChangePassword
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ChangePassword'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Change Server Password
+            tags:
+                - Servers
+    /servers/{id}/resize:
+        post:
+            description: Resize the given server ID
+            operationId: ResizeServer
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ResizeServer'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Resize Server
+            tags:
+                - Servers
+    /servers/{id}/resize-root-disk:
+        post:
+            description: Resize the root disk of the given server ID
+            operationId: ResizeRootDisk
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ResizeRootDisk'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Resize Root Disk
+            tags:
+                - Servers
+    /servers/{id}/terminate:
+        post:
+            description: Terminate/Delete the given server ID
+            operationId: TerminateServer
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TerminateServer'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Terminate Server
+            tags:
+                - Servers
+    /servers/{id}/unrescue:
+        post:
+            description: Revokes the given server ID from the rescue mode
+            operationId: Unrescue
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Unrescue'
+            responses:
+                "202":
+                    description: Accepted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Unrescue Server
+            tags:
+                - Servers
+    /servers/batch-delete:
+        post:
+            description: Delete one or more servers by their IDs
+            operationId: DeleteServers
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DeleteServers'
+            responses:
+                "202":
+                    description: all server deletion requests have been submitted
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server or region does not exist
+                default:
+                    description: ""
+            summary: Delete Servers
+            tags:
+                - Servers
+    /servers/inquiry/{id}:
+        get:
+            description: Inquiry server task status
+            operationId: InquiryServer
+            parameters:
+                - description: The ID of the server
+                  in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-Detail'
+                    description: OK
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Server does not exist
+                default:
+                    description: ""
+            summary: Inquiry Server
+            tags:
+                - Servers
+    /volumes:
+        get:
+            description: List volumes from a region
+            operationId: ListVolumes
+            parameters:
+                - description: Page number
+                  in: query
+                  name: page
+                  schema:
+                    type: integer
+                - description: Items per page
+                  in: query
+                  name: perPage
+                  schema:
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-array_response_PublicAPIListData'
+                    description: OK
+                default:
+                    description: ""
+            summary: List volumes from a region
+            tags:
+                - Volumes
+        post:
+            description: Create a volume in a specific availability zone
+            operationId: CreateVolume
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateVolume'
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-response_PublicAPICreate'
+                    description: Created
+                "402":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Payment Required
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unprocessable Entity
+                default:
+                    description: ""
+            summary: Create a volume in a specific availability zone
+            tags:
+                - Volumes
+    /volumes/{volumeId}:
+        get:
+            description: Get a volume details
+            operationId: GetVolumeDetails
+            parameters:
+                - description: Volume ID
+                  in: path
+                  name: volumeId
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Response-response_PublicAPIDetailsData'
+                    description: OK
+                default:
+                    description: ""
+            summary: Get a volume details
+            tags:
+                - Volumes
+    /volumes/{volumeId}/attach:
+        post:
+            description: Attach a volume to a server
+            operationId: AttachToServer
+            parameters:
+                - description: Volume ID
+                  in: path
+                  name: volumeId
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AttachToServer'
+            responses:
+                "204":
+                    description: No Content
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unprocessable Entity
+                default:
+                    description: ""
+            summary: Attach a volume to a server
+            tags:
+                - Volumes
+    /volumes/{volumeId}/detach:
+        post:
+            description: Detach a volume from a server
+            operationId: DetachFromServer
+            parameters:
+                - description: Volume ID
+                  in: path
+                  name: volumeId
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DetachFromServer'
+            responses:
+                "204":
+                    description: No Content
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unprocessable Entity
+                default:
+                    description: ""
+            summary: Detach a volume from a server
+            tags:
+                - Volumes
+    /volumes/batch-delete:
+        post:
+            description: Bulk delete volumes
+            operationId: DeleteVolumes
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DeleteVolumes'
+            responses:
+                "204":
+                    description: No Content
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/response.KitError'
+                    description: Unprocessable Entity
+                default:
+                    description: ""
+            summary: Bulk delete volumes
+            tags:
+                - Volumes
+security:
+    - ApiKeyAuth: []
+    - BearerTokenAuth: []
+servers:
+    - description: Cloud Server APIs
+      url: https://ecc.[region].arvanapis.ir/v3
+tags:
+    - description: |
+        Welcome to the API documentation! This section provides an overview of how to use the API, including details on filtering, sorting, and pagination.
+
+        ## Filtering
+
+        The API allows you to filter results based on specific fields and conditions. Filtering helps you narrow down results to match your criteria.
+
+        ### How to Filter Data
+
+        Filters are applied in the URL query string using the following format:
+
+        ```
+        /path/to/resources?{field}={operator}:{value}
+        ```
+
+        - `{field}`: The field you want to filter by (e.g., `status`, `createDate`).
+        - `{operator}`: The comparison operator (e.g., `eq`, `gt`, `lte`).
+        - `{value}`: The value to compare against.
+
+        ### Supported Operators
+
+        Here are the available operators for filtering:
+
+        - **`eq`**: Equals to (e.g., `field=eq:value`)
+        - **`neq`**: Not equals to (e.g., `field=neq:value`)
+        - **`gt`**: Greater than (e.g., `field=gt:value`)
+        - **`gte`**: Greater than or equal to (e.g., `field=gte:value`)
+        - **`lt`**: Less than (e.g., `field=lt:value`)
+        - **`lte`**: Less than or equal to (e.g., `field=lte:value`)
+        - **`in`**: Matches any value in a list (e.g., `field=in:value1,value2,value3`)
+        - **`nin`**: Does not match any value in a list (e.g., `field=nin:value1,value2,value3`)
+
+        > **Note:** When using `in` or `nin`, provide a **comma-separated list** of values.
+
+        ### Example Requests
+
+        - To find items where `field1` equals "VALUE" and `field2` is greater than 10:
+          ```
+          GET /path/to/resources?field1=eq:VALUE&field2=gt:10
+          ```
+
+        - To get servers with specific `id` values:
+          ```
+          GET /v3/servers?id=in:a7f147d7-474d-53de-8f98-25ceaaaac5d1,eda8c2c0-9bc1-5d0d-953f-80122114261f
+          ```
+
+        ## Sorting
+
+        Sorting allows you to order the results based on one or more fields, in either ascending or descending order.
+
+        ### How to Sort Data
+
+        To apply sorting, use the `sortBy` parameter in the query string. Specify fields to sort by, followed by the order (`asc` or `desc`).
+
+        - **`asc`**: Ascending order (lowest to highest).
+        - **`desc`**: Descending order (highest to lowest).
+
+        You can sort by multiple fields. For example, sorting by `userId` in ascending order and `registerDate` in descending order:
+
+        ### Example Request:
+        ```
+        GET /v1/users?sortBy=asc:userId,desc:registerDate
+        ```
+
+        ## Status Codes
+
+        The HTTP status code in the response indicates the result of your request. Here’s a list of common status codes and their meanings:
+
+        | Status Code | Meaning |
+        | ------------ | ------- |
+        | **200**      | The request was successful and the resource was returned (usually for `GET` requests). |
+        | **201**      | A resource was successfully created (usually after a `POST` request). |
+        | **202**      | The request to change a resource was accepted (for `PUT` or `PATCH` requests). |
+        | **204**      | The request was successful, but there is no content in the response (e.g., after a `DELETE` request). |
+        | **400**      | There was an error in your request, but it's not a specific error defined in the status codes. |
+        | **401**      | Authentication failed. You need to provide valid credentials. |
+        | **402**      | Payment is required (rarely used). |
+        | **403**      | You don't have permission to access this resource. |
+        | **404**      | The resource you requested was not found. |
+        | **405**      | The method you're using (e.g., `GET`, `POST`) is not allowed for the given URL. |
+        | **409**      | There was a conflict while trying to modify the resource. |
+        | **410**      | The resource is no longer available or has been permanently removed. |
+        | **415**      | There’s a conflict with an existing resource that prevents the action. |
+        | **422**      | There was a validation error with your input. |
+        | **429**      | You have exceeded the rate limit and need to wait before making more requests. |
+        | **500**      | There was an internal error on the server. |
+
+        ## Response
+
+        ### Headers
+
+        The headers in the response contain additional information about the request and response. Some of the headers are **required**, while others are **optional**. Here are a few important ones:
+
+        | Header Name | Description | Example |
+        | ----------- | ----------- | ------- |
+        | **`Sunset`** | Indicates if the API or resource is deprecated, with a date of removal. | `2024-01-01T00:00:00Z` |
+        | **`X-AR-Request-Id`** | A unique identifier for your request, used for tracking and ensuring idempotency. | `4da5d7c1-9f87-5975-8f2d-d6f3c939e513` |
+
+        ### Body Format
+
+        The response body is typically in JSON format and contains the data you're looking for, along with any additional information like errors or metadata.
+
+        Here’s the general structure of a JSON response:
+
+        ```json
+        {
+          "message": "A human-readable message about the response",
+          "data": "The actual data (an array, object, etc.) representing the resource(s)",
+          "errors": [
+            {
+              "reason": "The error reason",
+              "field": "The field that caused the error (optional)",
+              "params": "Additional details about the error (optional)"
+            }
+          ],
+          "meta": "Additional metadata about the response (optional)"
+        }
+        ```
+
+        - The `message` provides a summary of the response.
+        - The `data` contains the requested resource(s).
+        - If there was an error with your request, the `errors` field will provide details.
+        - The `meta` field contains any extra information about the response, such as pagination details.
+
+        #### Error Format
+
+        When there’s an error, it will be returned in the following format:
+
+        ```json
+        "errors": [
+          {
+            "reason": "The error reason",
+            "field": "The field that caused the error (if applicable)",
+            "params": "Additional details about the error (if applicable)"
+          }
+        ]
+        ```
+
+        - **Reason**: A description of the error (e.g., `INVALID_INPUT`, `MISSING_FIELD`).
+        - **Field**: The specific field causing the error, if applicable (e.g., `username`).
+        - **Params**: Extra details about the error, such as validation constraints.
+
+        > **Note:** Error reasons will be listed in the API documentation, so you can easily look up and understand the meaning of any error.
+
+        ## Pagination
+
+        When requesting a list of resources, the response may include pagination information to help you retrieve the data in smaller chunks.
+
+        There are two types of pagination available: **offset-based** and **cursor-based**.
+
+        ### Offset-based Pagination
+
+        This is a common pagination method where you specify the page number and the number of items per page.
+
+        - **`perPage`**: Specifies the number of items per page.
+        - **`page`**: Specifies which page to retrieve.
+
+        Here’s an example response with offset-based pagination:
+
+        ```json
+        {
+          "message": "Resources found",
+          "data": [{}, {}, ...],
+          "meta": {
+            "pagination": {
+              "perPage": 10,
+              "current": 1,
+              "totalItems": 100,
+              "lastPage": 10,
+              "next": 2,
+              "previous": null
+            }
+          }
+        }
+        ```
+
+        - **`perPage`**: Number of items per page (e.g., 10).
+        - **`current`**: The current page number.
+        - **`totalItems`**: The total number of items available.
+        - **`lastPage`**: The last page number.
+        - **`next`**: The next page number (if applicable).
+        - **`previous`**: The previous page number (if applicable).
+
+        ### Cursor-based Pagination
+
+        This pagination method is preferred when dealing with large datasets. It uses a unique token to track pagination, rather than using page numbers.
+
+        - **`perPage`**: Specifies the number of items per page.
+        - **`nextPageToken`**: A unique token to fetch the next page of results.
+
+        Here’s an example response with cursor-based pagination:
+
+        ```json
+        {
+          "message": "Resources found",
+          "data": [{}, {}, ...],
+          "meta": {
+            "pagination": {
+              "perPage": 10,
+              "nextPageToken": "<Random Token>|null"
+            }
+          }
+        }
+        ```
+
+        - **`nextPageToken`**: The unique token used to retrieve the next set of results. If there are no more results, this token will be `null`.
+
+        > **Example Request**: `/v1/users?perPage=10&nextPageToken=TLJgsnhcmUh`
+
+        The `nextPageToken` refers to a unique, sequential key in your database that helps keep track of the pages.
+      name: Introduction
+    - description: |
+        This section explains how to authenticate API requests. The API supports two methods of authentication: **API Key** and **Bearer Token**. These methods must be included in the `Authorization` header of your requests.
+
+        ## API Key
+
+        To authenticate using an API key, include the API key in the `Authorization` header in the following format:
+
+        ```
+        Authorization: apikey {uuid}
+        ```
+
+        - **`{uuid}`**: Your unique API key. You can obtain this key from the API provider's dashboard or management interface.
+
+        **Example Request**:
+        ```
+        GET /v1/resources
+        Authorization: apikey 123e4567-e89b-12d3-a456-426614174000
+        ```
+
+        ## Bearer Token
+
+        Alternatively, you can authenticate using a Bearer token. To do so, include the token in the `Authorization` header in the following format:
+
+        ```
+        Authorization: Bearer {token}
+        ```
+
+        - **`{token}`**: The Bearer token you receive after successfully authenticating via the login or token endpoint. This token is typically short-lived, and you may need to refresh it periodically.
+
+        **Example Request**:
+        ```
+        GET /v1/resources
+        Authorization: Bearer abcdef1234567890
+        ```
+
+        Make sure that your API key or Bearer token is kept secure, as it grants access to sensitive data and actions on the API.
+      name: Authentication
+    - description: |
+        Endpoints for managing compute instances (servers) in the application. Allows you to create, update, delete, and retrieve details about virtual machines (VMs), including their status, configuration, and metadata. Features include server creation from backups, managing server volumes, resizing, renaming, and performing rescue operations. You can also manage SSH keys, security groups, and network interfaces for servers.
+      name: Servers
+    - description: |
+        Endpoints for managing network resources in the application. Includes functionality for creating and managing networks, subnets, and routing, as well as configuring network interfaces for virtual machines. You can attach and detach servers to/from networks, enable port security, and manage IP configurations and network routing for cloud resources.
+      name: Networks
+    - description: |
+        Endpoints for managing resource plans or flavors in the application. Allows you to define and manage specifications for compute instances, such as CPU, RAM, and storage capacity, as well as pricing and performance tiers. Includes endpoints for retrieving available plans (flavors) and selecting the appropriate plan for instance creation or resizing.
+      name: Plans
+    - description: |
+        Endpoints for managing firewall and security group settings in the application. Provides functionality to define, configure, and manage security policies, controlling access to compute instances and networks through rules-based firewalls. Includes managing security group rules, defining allowed protocols, ports, and IP addresses, as well as associating security groups with servers.
+      name: SecurityGroups
+    - description: |
+        Endpoints for listing OS and application images in the application. Allows you retrieve images, enabling the creation of new virtual machines or server instances with predefined configurations, operating systems, and application stacks. Features include listing marketplace images, personal images, and snapshots for server backup and recovery purposes.
+      name: Images
+    - description: Endpoints for retrieving quotas and limits for each user.
+      name: Quota
+    - description: |
+        Endpoints for managing SSH key settings in the application. Provides functionality to define, configure, and manage SSH keys.
+      name: SSHKeys
+    - description: |
+        Endpoints for managing backups and backup schedules. The backups are currently  made only from instance root volumes. So backing up secondary volumes  is not supported. A Backup schedule is a feature which enables backups from instances to be created in a specific interval.
+      name: Backups
+    - description: |
+        Endpoints for managing instance & volume snapshots. A snapshot is a point-in-time recovery method which only stores changes in data rather than all of the volume's data. Also creating and restoring a snapshot is faster than regular backups.
+      name: Snapshots
+    - description: "Endpoints for listing Availability Zones data and status. \n"
+      name: AvailabilityZones
+x-tagGroups:
+    - name: Introduction
+      tags:
+        - Introduction
+    - name: Authentication
+      tags:
+        - Authentication
+    - name: Core Features
+      tags:
+        - AvailabilityZones
+        - Servers
+        - Plans
+        - Networks
+        - SecurityGroups
+        - Images
+        - SSHKeys
+        - Quota
+        - Backups
+        - Snapshots
