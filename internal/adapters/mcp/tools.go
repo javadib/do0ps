@@ -208,6 +208,15 @@ type UseCases struct {
 	GetArvanCloudSecondaryDNS      *app.GetArvanCloudSecondaryDNS
 	SetArvanCloudSecondaryDNS      *app.SetArvanCloudSecondaryDNS
 	RemoveArvanCloudSecondaryDNS   *app.RemoveArvanCloudSecondaryDNS
+
+	// ArvanCloud Lists / "dynamic-fields" (issue #64).
+	ListArvanCloudDynamicFields      *app.ListArvanCloudDynamicFields
+	CreateArvanCloudDynamicField     *app.CreateArvanCloudDynamicField
+	GetArvanCloudDynamicField        *app.GetArvanCloudDynamicField
+	UpdateArvanCloudDynamicField     *app.UpdateArvanCloudDynamicField
+	DeleteArvanCloudDynamicField     *app.DeleteArvanCloudDynamicField
+	AddArvanCloudDynamicFieldItems   *app.AddArvanCloudDynamicFieldItems
+	RemoveArvanCloudDynamicFieldItem *app.RemoveArvanCloudDynamicFieldItem
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -427,6 +436,14 @@ func Tools(uc UseCases) []Tool {
 		getArvanCloudSecondaryDNSTool(uc.GetArvanCloudSecondaryDNS),
 		setArvanCloudSecondaryDNSTool(uc.SetArvanCloudSecondaryDNS),
 		removeArvanCloudSecondaryDNSTool(uc.RemoveArvanCloudSecondaryDNS),
+
+		listArvanCloudDynamicFieldsTool(uc.ListArvanCloudDynamicFields),
+		createArvanCloudDynamicFieldTool(uc.CreateArvanCloudDynamicField),
+		getArvanCloudDynamicFieldTool(uc.GetArvanCloudDynamicField),
+		updateArvanCloudDynamicFieldTool(uc.UpdateArvanCloudDynamicField),
+		deleteArvanCloudDynamicFieldTool(uc.DeleteArvanCloudDynamicField),
+		addArvanCloudDynamicFieldItemsTool(uc.AddArvanCloudDynamicFieldItems),
+		removeArvanCloudDynamicFieldItemTool(uc.RemoveArvanCloudDynamicFieldItem),
 	}
 }
 
