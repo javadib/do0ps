@@ -541,6 +541,48 @@ type ArvanCloudProvider interface {
 	// HoldDomain pauses CDN service for the domain; UnholdDomain resumes it.
 	HoldDomain(ctx context.Context, creds domain.ProviderCredentials, domainName string) error
 	UnholdDomain(ctx context.Context, creds domain.ProviderCredentials, domainName string) error
+
+	// DNS records, scoped to a domain by name — same DNS-inside-domain model
+	// as the methods above (AGENTS.md 4.1), with one addressing difference
+	// from Parspack: a record here is identified by a per-record UUID, not
+	// by host+type (issue #63). All fast operations.
+	ListArvanCloudDNSRecords(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudDNSRecord, error)
+	CreateArvanCloudDNSRecord(ctx context.Context, creds domain.ProviderCredentials, domainName string, rec domain.ArvanCloudDNSRecord) (*domain.ArvanCloudDNSRecord, error)
+	GetArvanCloudDNSRecord(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudDNSRecord, error)
+	UpdateArvanCloudDNSRecord(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, rec domain.ArvanCloudDNSRecord) (*domain.ArvanCloudDNSRecord, error)
+	// DeleteArvanCloudDNSRecord removes a record by id. As with DeleteDomain,
+	// an already-absent record reports domain.ErrNotFound rather than
+	// succeeding silently. A record the provider refuses to delete (a
+	// protected record, or one still referenced elsewhere — BaseDnsRecord's
+	// is_protected/usage) is not pre-checked client-side; whatever error the
+	// provider returns is propagated as-is (issue #63's scope note).
+	DeleteArvanCloudDNSRecord(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+	// ToggleArvanCloudDNSRecordCloud flips the CDN-proxy ("cloud") status of
+	// one record without changing anything else about it.
+	ToggleArvanCloudDNSRecordCloud(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, cloud bool) (*domain.ArvanCloudDNSRecord, error)
+	// ImportArvanCloudDNSRecords bulk-creates records from a BIND zone file.
+	// Unlike every other method on this port, the request body is not JSON
+	// (the spec declares dns-records.import as multipart/form-data).
+	ImportArvanCloudDNSRecords(ctx context.Context, creds domain.ProviderCredentials, domainName string, zoneFile []byte) error
+	// ExportArvanCloudDNSRecords returns the domain's records as a BIND zone
+	// file. Unlike every other method on this port, the response body is not
+	// JSON (the spec declares dns-records.export's 200 response as
+	// text/plain).
+	ExportArvanCloudDNSRecords(ctx context.Context, creds domain.ProviderCredentials, domainName string) (string, error)
+
+	// DNSSEC, scoped to a domain by name (issue #63). Both fast operations.
+	GetArvanCloudDNSSecStatus(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudDNSSecStatus, error)
+	UpdateArvanCloudDNSSecStatus(ctx context.Context, creds domain.ProviderCredentials, domainName string, enable, rotate bool) (*domain.ArvanCloudDNSSecStatus, error)
+
+	// Secondary DNS, scoped to a domain by name (issue #63): ArvanCloud
+	// transfers zone data from another primary nameserver via AXFR/IXFR. All
+	// fast operations. RemoveArvanCloudSecondaryDNS tolerates a domain that
+	// no longer has a Secondary DNS config the same way DeleteDomain
+	// tolerates an already-absent domain: an already-absent config reports
+	// domain.ErrNotFound rather than succeeding silently.
+	GetArvanCloudSecondaryDNS(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudSecondaryDNSConfig, error)
+	SetArvanCloudSecondaryDNS(ctx context.Context, creds domain.ProviderCredentials, domainName string, config domain.ArvanCloudSecondaryDNSConfig) (*domain.ArvanCloudSecondaryDNSConfig, error)
+	RemoveArvanCloudSecondaryDNS(ctx context.Context, creds domain.ProviderCredentials, domainName string) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
