@@ -455,6 +455,38 @@ type ParspackProvider interface {
 	UpdateCDNHSTS(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, settings domain.CDNHSTSSettings) error
 }
 
+// ArvanCloudProvider is the port for the ArvanCloud CDN API
+// (docs/api-specs/arvancloud-cdn-4.0.yml). It is a second dedicated
+// per-provider port, not a shared interface with ParspackProvider: AGENTS.md
+// 4.1 defers that unification until two or three providers make the real
+// overlap visible, and the two APIs' field-level shapes are not close enough
+// to force it from two.
+//
+// The same call conventions as ParspackProvider apply:
+//
+//   - Credentials are passed per call. They belong to the chatbot session and
+//     are never held by this server (AGENTS.md 4.2).
+//   - Every method's doc comment states whether it is a fast or a long
+//     operation (AGENTS.md 4.3), so the use case above it knows whether to
+//     block on the queue or hand back an operation ID.
+//   - Create-style methods are not assumed idempotent. A caller that must not
+//     duplicate a resource on retry (crash recovery, AGENTS.md 4.4) checks
+//     first, e.g. by listing.
+//
+// One convention differs, and it is the reason this port cannot simply mirror
+// the Parspack one: ArvanCloud addresses sub-resources by the domain NAME, so
+// methods take a `domain string` (e.g. "example.com") where the Parspack port
+// takes a zoneUUID.
+//
+// The interface is deliberately empty at this point. It is declared here so
+// the capability issues that follow each have a stable place to add their
+// methods to, and so the adapter can assert against it from its first commit.
+type ArvanCloudProvider interface {
+	// Intentionally no methods yet: the CDN capabilities (domain lifecycle,
+	// DNS records, firewall, WAF, load balancing, ...) each land in their own
+	// issue and extend this interface then.
+}
+
 // Clock reports the current time. Injected so use cases stay deterministic
 // under test.
 type Clock interface {
