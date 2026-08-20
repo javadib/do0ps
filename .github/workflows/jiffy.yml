@@ -16,7 +16,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
-
+  
 on:
   issues:
     types: [opened]
@@ -33,13 +33,59 @@ jobs:
       - name: Collect thread and dispatch to Jiffy Gateway
         uses: actions/github-script@v9
         env:
-          JIFFY_URL: ${{ secrets.JIFFY_GATEWAY_URL }}
-          JIFFY_INGEST_TOKEN: ${{ secrets.JIFFY_GITHUB_INGEST_TOKEN }}
+          JIFFY_URL: ${{ vars.JIFFY_GATEWAY_URL }}
+          JIFFY_BOT_LOGIN: ${{ vars.JIFFY_BOT_LOGIN }}
+          JIFFY_USER_WHITELIST: ${{ vars.JIFFY_USER_WHITELIST }}
           REPO_TOKEN: ${{ secrets.JIFFY_REPO_PAT }}
+          JIFFY_INGEST_TOKEN: ${{ secrets.JIFFY_GITHUB_INGEST_TOKEN }}
           ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
         with:
           script: |
+            const crypto = require('crypto');
             const issueNumber = context.payload.issue.number;
+
+            const whitelist = (process.env.JIFFY_USER_WHITELIST || '')
+              .split(/[\s,]+/)
+              .map((login) => login.trim().toLowerCase())
+              .filter(Boolean);
+            const mentionerLogin = String(context.actor || '').toLowerCase();
+            const whitelistNoticeMarker = 'no `user_whitelist` is configured';
+
+            if (whitelist.length === 0) {
+              const existingComments = await github.paginate(github.rest.issues.listComments, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber
+              });
+              const alreadyNotified = existingComments.some((comment) =>
+                (comment.body || '').includes(whitelistNoticeMarker)
+              );
+              if (!alreadyNotified) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: [
+                    'Jiffy can\'t run in this repository yet — no `user_whitelist` is configured.',
+                    '',
+                    'To enable Jiffy, set the `user_whitelist` option in the Jiffy workflow config (the `jiffy.ci` GitHub Action):',
+                    '',
+                    '1. Open **Settings → Secrets and variables → Actions → Variables** in this repository.',
+                    '2. Add a repository variable named `JIFFY_USER_WHITELIST`.',
+                    '3. Set it to a comma-separated list of GitHub usernames allowed to trigger Jiffy, e.g. `octocat, jane-doe`.',
+                    '',
+                    'Only listed usernames can trigger tasks. Once configured, mention the bot again on this issue to try.'
+                  ].join('\n')
+                });
+              }
+              console.log('user_whitelist is empty or unset; skipping dispatch to the Jiffy Gateway.');
+              return;
+            }
+
+            if (!whitelist.includes(mentionerLogin)) {
+              console.log(`@${context.actor} is not in user_whitelist; skipping dispatch to the Jiffy Gateway.`);
+              return;
+            }
 
             const issue = await github.rest.issues.get({
               owner: context.repo.owner,
@@ -53,7 +99,29 @@ jobs:
               issue_number: issueNumber
             });
 
-            const fullText = [issue.data.body || '', ...comments.map(c => c.body || '')].join(' --- ');
+            const botLogin = process.env.JIFFY_BOT_LOGIN || '';
+
+            const turns = [
+              {
+                role: 'user',
+                author: issue.data.user.login,
+                body: issue.data.body || '',
+                created_at: issue.data.created_at,
+              },
+              ...comments.map(c => ({
+                role: c.user.login === botLogin ? 'agent' : 'user',
+                author: c.user.login,
+                body: c.body || '',
+                created_at: c.created_at,
+              })),
+            ];
+
+            if (botLogin) {
+              const authorInstruction =
+                `\n\n[Jiffy instruction] Use \`${botLogin}\` as the git commit author and committer name ` +
+                `for all commits and pushes made for this task.`;
+              turns[0].body = `${turns[0].body || ''}${authorInstruction}`;
+            }
 
             const repoToken = process.env.REPO_TOKEN;
             const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}.git`;
@@ -62,7 +130,7 @@ jobs:
 
             const payload = {
               repo: { url: repoUrl, token: repoToken, username: context.actor },
-              issue: { text: fullText, external_issue_id: String(issueNumber) },
+              issue: { turns:  turns, external_issue_id: String(issueNumber) },
               callback: { url: callbackUrl, secret: callbackSecret }
             };
 
