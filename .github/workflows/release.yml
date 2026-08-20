@@ -82,11 +82,13 @@ jobs:
       # recomputes its base from the flag every run, so it returns RC.1
       # forever and the second push collides with the first tag.
       #
-      # So: ask semantic-release what the next version would be (--dry writes
-      # it to .version-unreleased and creates nothing), then attach the RC
-      # counter below. --allow-no-changes leaves the file absent when there is
-      # nothing to release, which is not a failure on a branch that takes
-      # every merge.
+      # So: ask semantic-release what the next version would be (--dry
+      # calculates it and creates nothing), then attach the RC counter below.
+      # The version arrives as this step's `version` output -- the action
+      # writes the version file, reads it, and deletes it again, so the file
+      # itself is gone by the time the next step runs. When there is nothing
+      # to release the binary exits 65, the action swallows that and sets no
+      # outputs, which is the empty-version case handled below.
       #
       # ci-condition-opt is what makes this run at all. The GitHub CI-condition
       # plugin refuses any branch that is not the repository's default one, and
@@ -99,28 +101,33 @@ jobs:
       # with "*": this job may only ever run here, and naming the branch keeps
       # it from doing anything if it is copied somewhere else.
       - name: Compute the next version
+        id: next
         uses: go-semantic-release/action@v1
         with:
           github-token: ${{ secrets.JIFFY_REPO_PAT }}
           allow-initial-development-versions: true
           dry: true
-          custom-arguments: --version-file --allow-no-changes --ci-condition-opt defaultBranch=develop
+          # No --allow-no-changes: it turns "nothing to release" from exit 65
+          # into exit 0, and the action then fails trying to read a version
+          # file the binary never wrote. Exit 65 is the graceful path.
+          custom-arguments: --ci-condition-opt defaultBranch=develop
 
       # The counter is derived from the tags that already exist rather than
       # kept anywhere, so it stays correct across re-runs and reverts.
       - name: Pick the release candidate number
         id: rc
+        env:
+          VERSION: ${{ steps.next.outputs.version }}
         run: |
-          if [ ! -f .version-unreleased ]; then
+          if [ -z "$VERSION" ]; then
             echo "No version was computed, so there is nothing to tag."
-            echo "Usually that means no releasable commits since the last release."
-            echo "If that is not it, read the previous step: semantic-release also"
-            echo "writes no file when it declines to run at all."
+            echo "Usually that means no releasable commits since the last release;"
+            echo "the previous step's log says which it was."
             echo "tag=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          version="$(cat .version-unreleased)"
+          version="$VERSION"
           git fetch --tags --quiet
 
           highest=0

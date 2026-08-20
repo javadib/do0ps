@@ -680,8 +680,10 @@ queued up next, and nothing else publishes.
 
 Versions stay in 0.x while the project is pre-1.0: from the 0.0.0 baseline the first release is `v0.1.0`, and
 a breaking change bumps the minor rather than jumping to `v1.0.0`. That is
-`allow-initial-development-versions`, and go-semantic-release **ignores it once a release with major version
-≥ 1 exists** — so the existing `v1.0.0` release has to be deleted for 0.x numbering to take effect.
+`allow-initial-development-versions`, which go-semantic-release ignores once a *release* with major version
+≥ 1 exists. The repository has a `v1.0.0` **tag** but no release of that name, and the provider reads
+releases rather than tags — so the baseline really is 0.0.0 and the next version really is `0.1.0`, as the
+workflow log confirms.
 
 The `-RC.N` suffix is computed in the workflow rather than by go-semantic-release, which cannot produce one:
 its `prerelease` input only ticks GitHub's pre-release checkbox without changing the version, and its
