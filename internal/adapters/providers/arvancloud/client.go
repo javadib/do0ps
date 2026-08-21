@@ -616,6 +616,57 @@ func (c *Client) doRawGET(ctx context.Context, creds domain.ProviderCredentials,
 	return result, nil
 }
 
+// doRawJSON sends a request exactly like doJSON, but decodes the response
+// body directly into out instead of unwrapping a {"data": ...} envelope
+// first — used for account_certificate.install (issue #74/AC14), whose
+// response puts success/message as SIBLINGS of data rather than nesting the
+// whole payload under "data" the way every other endpoint in this adapter
+// does. Retries/error-mapping behave identically to doJSON, via the shared
+// roundTrip.
+func (c *Client) doRawJSON(ctx context.Context, creds domain.ProviderCredentials, method, path string, body, out any) error {
+	var encoded []byte
+	if body != nil {
+		var err error
+		encoded, err = json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("encoding request body: %w", err)
+		}
+	}
+
+	authorization, err := authorizationHeader(creds.APIKey)
+	if err != nil {
+		return fmt.Errorf("building %s %s request: %w", method, path, err)
+	}
+
+	var data []byte
+	attempt := 0
+	operation := func() error {
+		if attempt > 0 && c.nowRetrying != nil {
+			c.nowRetrying()
+		}
+		attempt++
+		result, err := c.roundTrip(ctx, authorization, method, path, "application/json", "application/json", encoded)
+		if err != nil {
+			return err
+		}
+		data = result
+		return nil
+	}
+
+	sequence := backoff.WithContext(backoff.WithMaxRetries(c.newBackOff(), c.maxRetries), ctx)
+	if err := backoff.Retry(operation, sequence); err != nil {
+		return err
+	}
+
+	if out == nil || len(data) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(data, out); err != nil {
+		return fmt.Errorf("decoding %s %s response: %w", method, path, err)
+	}
+	return nil
+}
+
 // retryableStatus reports whether a status is worth another attempt: a
 // throttle or a server-side failure may well answer differently in a second.
 // A 4xx will not — retrying a rejected credential or an invalid field only

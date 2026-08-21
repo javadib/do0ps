@@ -383,6 +383,16 @@ type UseCases struct {
 	ListArvanCloudSslOrders           *app.ListArvanCloudSslOrders
 	IssueArvanCloudManagedCertificate *app.IssueArvanCloudManagedCertificate
 	RetryArvanCloudSslOrder           *app.RetryArvanCloudSslOrder
+
+	// ArvanCloud account-level Certum certificate ordering (issue #74/AC14).
+	// IssueArvanCloudAccountCertificate is the one long operation.
+	ListArvanCloudCertificateProducts      *app.ListArvanCloudCertificateProducts
+	IssueArvanCloudAccountCertificate      *app.IssueArvanCloudAccountCertificate
+	ListArvanCloudAccountCertificateOrders *app.ListArvanCloudAccountCertificateOrders
+	GetArvanCloudAccountCertificateOrder   *app.GetArvanCloudAccountCertificateOrder
+	RevokeArvanCloudAccountCertificate     *app.RevokeArvanCloudAccountCertificate
+	ReissueArvanCloudAccountCertificate    *app.ReissueArvanCloudAccountCertificate
+	InstallArvanCloudAccountCertificate    *app.InstallArvanCloudAccountCertificate
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -754,6 +764,14 @@ func Tools(uc UseCases) []Tool {
 		listArvanCloudSslOrdersTool(uc.ListArvanCloudSslOrders),
 		issueArvanCloudManagedCertificateTool(uc.IssueArvanCloudManagedCertificate),
 		retryArvanCloudSslOrderTool(uc.RetryArvanCloudSslOrder),
+
+		listArvanCloudCertificateProductsTool(uc.ListArvanCloudCertificateProducts),
+		issueArvanCloudAccountCertificateTool(uc.IssueArvanCloudAccountCertificate),
+		listArvanCloudAccountCertificateOrdersTool(uc.ListArvanCloudAccountCertificateOrders),
+		getArvanCloudAccountCertificateOrderTool(uc.GetArvanCloudAccountCertificateOrder),
+		revokeArvanCloudAccountCertificateTool(uc.RevokeArvanCloudAccountCertificate),
+		reissueArvanCloudAccountCertificateTool(uc.ReissueArvanCloudAccountCertificate),
+		installArvanCloudAccountCertificateTool(uc.InstallArvanCloudAccountCertificate),
 	}
 }
 

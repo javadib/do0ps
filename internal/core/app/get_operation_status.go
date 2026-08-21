@@ -68,6 +68,13 @@ func (uc *GetOperationStatus) reconcile(ctx context.Context, job *domain.Job, cr
 	if job.Type == domain.JobTypeIssueArvanCloudManagedCertificate {
 		return uc.reconcileArvanCloudSslOrder(ctx, job, creds)
 	}
+	// ArvanCloud's account-level Certum certificate ordering (issue #74)
+	// shares the same "an order existing is not automatically success" shape
+	// as the case above, so it gets its own method too rather than a
+	// finder/resourceName/failReason triple.
+	if job.Type == domain.JobTypeIssueArvanCloudAccountCertificate {
+		return uc.reconcileArvanCloudAccountCertificateOrder(ctx, job, creds)
+	}
 
 	var (
 		resourceName string
@@ -207,6 +214,70 @@ func (uc *GetOperationStatus) reconcileArvanCloudSslOrder(ctx context.Context, j
 		// Still in flight (unprocessed/pending/processing/ready/invalid/
 		// terminated/canceled): leave the job Running with no result — see
 		// this method's own doc comment.
+	case isNotFound(err):
+		if err := job.MarkFailed(
+			"interrupted by process restart before the certificate order was placed; the request can be safely retried",
+			now,
+		); err != nil {
+			return fmt.Errorf("reconciling operation %s: %w", job.ID, err)
+		}
+	default:
+		// Leave the job interrupted so a later call can try again.
+		return fmt.Errorf("reconciling operation %s against provider: %w", job.ID, err)
+	}
+
+	if err := uc.jobs.Update(ctx, job); err != nil {
+		return fmt.Errorf("persisting reconciled operation %s: %w", job.ID, err)
+	}
+	return nil
+}
+
+// reconcileArvanCloudAccountCertificateOrder resolves an interrupted
+// account-level Certum certificate issuance job (issue #74). Unlike
+// reconcileArvanCloudSslOrder, this cannot look the order up by domain
+// (there is no per-domain filter on the account-level list endpoint — see
+// findLatestArvanCloudAccountCertificateOrder's own doc comment), so it
+// matches on the exact set of domain names the original request covered. As
+// with reconcileArvanCloudSslOrder, an order existing is not automatically
+// success: a still-in-flight order (not
+// domain.ArvanCloudAccountCertificateOrderTerminal) leaves the job Running
+// with no result yet.
+func (uc *GetOperationStatus) reconcileArvanCloudAccountCertificateOrder(ctx context.Context, job *domain.Job, creds domain.ProviderCredentials) error {
+	var payload issueArvanCloudAccountCertificatePayload
+	if err := json.Unmarshal(job.Payload, &payload); err != nil {
+		return fmt.Errorf("decoding payload of operation %s: %w", job.ID, err)
+	}
+
+	now := uc.clock.Now()
+	if err := job.MarkRunning(now); err != nil {
+		return fmt.Errorf("reconciling operation %s: %w", job.ID, err)
+	}
+	// Running is no longer "interrupted" — MarkRunning does not clear Error
+	// on its own (unlike MarkDone/MarkFailed below), and this call may well
+	// leave the job genuinely Running rather than falling through to one of
+	// those two.
+	job.Error = ""
+
+	order, err := findLatestArvanCloudAccountCertificateOrder(ctx, uc.arvanProvider, creds, requestDomainNames(payload.Request))
+	switch {
+	case err == nil && order.Status == domain.ArvanCloudAccountCertificateOrderStatusValid:
+		result, merr := json.Marshal(order)
+		if merr != nil {
+			return fmt.Errorf("encoding reconciled account certificate order for operation %s: %w", job.ID, merr)
+		}
+		if err := job.MarkDone(result, now); err != nil {
+			return fmt.Errorf("reconciling operation %s: %w", job.ID, err)
+		}
+	case err == nil && order.Status == domain.ArvanCloudAccountCertificateOrderStatusKilled:
+		reason := fmt.Sprintf(
+			"arvancloud account certificate order %s failed permanently (status killed); reissue_arvancloud_account_certificate can attempt a manual reissue",
+			order.ID)
+		if err := job.MarkFailed(reason, now); err != nil {
+			return fmt.Errorf("reconciling operation %s: %w", job.ID, err)
+		}
+	case err == nil:
+		// Still in flight: leave the job Running with no result — see this
+		// method's own doc comment.
 	case isNotFound(err):
 		if err := job.MarkFailed(
 			"interrupted by process restart before the certificate order was placed; the request can be safely retried",
