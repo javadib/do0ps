@@ -738,6 +738,41 @@ type ArvanCloudProvider interface {
 	// domain by id. As with DeleteDomain, an already-absent package reports
 	// domain.ErrNotFound rather than succeeding silently.
 	UninstallArvanCloudWafPackage(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+
+	// DDoS Protection (issue #67): a per-domain challenge engine
+	// (cookie/JavaScript/CAPTCHA-based), distinct from both the CDN edge
+	// Firewall and the WAF managed rule-set engine above — see
+	// domain/arvancloud_ddos.go's package comment for the naming-collision
+	// warning. All fast operations.
+	//
+	// GetArvanCloudDdosSettings/UpdateArvanCloudDdosSettings manage the
+	// domain's challenge mechanism (ProtectionMode) and, when it is
+	// "captcha", the CAPTCHA vendor configuration. settings.SecretKey is
+	// caller-supplied CAPTCHA provider material, not an ArvanCloud
+	// credential — treated as sensitive by the adapter (never logged, never
+	// embedded in an error message), see
+	// domain.ArvanCloudDdosSettings.SecretKey's doc comment.
+	GetArvanCloudDdosSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudDdosSettings, error)
+	UpdateArvanCloudDdosSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string, settings domain.ArvanCloudDdosSettings) (*domain.ArvanCloudDdosSettings, error)
+
+	// Per-domain DDoS rules (ddos.rules.*): a caller-authored exemption or
+	// enforcement layered on top of the domain's DDoS challenge settings.
+	//
+	// CreateArvanCloudDdosRule is not assumed idempotent (see this
+	// interface's own doc comment above); a caller that must not duplicate a
+	// rule on retry checks first, e.g. via ListArvanCloudDdosRules.
+	ListArvanCloudDdosRules(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudDdosRule, error)
+	CreateArvanCloudDdosRule(ctx context.Context, creds domain.ProviderCredentials, domainName string, rule domain.ArvanCloudDdosRule) (*domain.ArvanCloudDdosRule, error)
+	GetArvanCloudDdosRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudDdosRule, error)
+	UpdateArvanCloudDdosRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, rule domain.ArvanCloudDdosRule) (*domain.ArvanCloudDdosRule, error)
+	// DeleteArvanCloudDdosRule removes a rule by id. As with DeleteDomain, an
+	// already-absent rule reports domain.ErrNotFound rather than succeeding
+	// silently.
+	DeleteArvanCloudDdosRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+	// ReprioritizeArvanCloudDdosRules moves ruleID to a new position relative
+	// to another rule: exactly one of afterRuleID/beforeRuleID should be
+	// given, same contract as ReprioritizeArvanCloudFirewallRules above.
+	ReprioritizeArvanCloudDdosRules(ctx context.Context, creds domain.ProviderCredentials, domainName, ruleID, afterRuleID, beforeRuleID string) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
