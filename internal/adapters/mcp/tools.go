@@ -260,6 +260,18 @@ type UseCases struct {
 	GetArvanCloudWafDomainPackage    *app.GetArvanCloudWafDomainPackage
 	UpdateArvanCloudWafDomainPackage *app.UpdateArvanCloudWafDomainPackage
 	UninstallArvanCloudWafPackage    *app.UninstallArvanCloudWafPackage
+
+	// ArvanCloud DDoS Protection — per-domain challenge settings and rules
+	// (issue #67).
+	GetArvanCloudDdosSettings    *app.GetArvanCloudDdosSettings
+	UpdateArvanCloudDdosSettings *app.UpdateArvanCloudDdosSettings
+
+	ListArvanCloudDdosRules         *app.ListArvanCloudDdosRules
+	CreateArvanCloudDdosRule        *app.CreateArvanCloudDdosRule
+	GetArvanCloudDdosRule           *app.GetArvanCloudDdosRule
+	UpdateArvanCloudDdosRule        *app.UpdateArvanCloudDdosRule
+	DeleteArvanCloudDdosRule        *app.DeleteArvanCloudDdosRule
+	ReprioritizeArvanCloudDdosRules *app.ReprioritizeArvanCloudDdosRules
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -527,6 +539,16 @@ func Tools(uc UseCases) []Tool {
 		getArvanCloudWafDomainPackageTool(uc.GetArvanCloudWafDomainPackage),
 		updateArvanCloudWafDomainPackageTool(uc.UpdateArvanCloudWafDomainPackage),
 		uninstallArvanCloudWafPackageTool(uc.UninstallArvanCloudWafPackage),
+
+		getArvanCloudDdosSettingsTool(uc.GetArvanCloudDdosSettings),
+		updateArvanCloudDdosSettingsTool(uc.UpdateArvanCloudDdosSettings),
+
+		listArvanCloudDdosRulesTool(uc.ListArvanCloudDdosRules),
+		createArvanCloudDdosRuleTool(uc.CreateArvanCloudDdosRule),
+		getArvanCloudDdosRuleTool(uc.GetArvanCloudDdosRule),
+		updateArvanCloudDdosRuleTool(uc.UpdateArvanCloudDdosRule),
+		deleteArvanCloudDdosRuleTool(uc.DeleteArvanCloudDdosRule),
+		reprioritizeArvanCloudDdosRulesTool(uc.ReprioritizeArvanCloudDdosRules),
 	}
 }
 

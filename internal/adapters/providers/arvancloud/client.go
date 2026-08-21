@@ -325,7 +325,7 @@ func (c *Client) roundTrip(ctx context.Context, authorization, method, path, con
 	}
 
 	c.logger.Debug("arvancloud response",
-		"method", method, "path", path, "status", resp.StatusCode, "body", domain.TruncateBody(data))
+		"method", method, "path", path, "status", resp.StatusCode, "body", redactedResponseBody(data))
 
 	// Read the body before deciding anything about the status: the body is
 	// where the provider says *why* it refused.
@@ -498,9 +498,12 @@ func mapErrorResponse(method, path string, status int, body []byte) error {
 
 	// Keep the raw body only when nothing structured came out of it — an HTML
 	// error page from a proxy in front of the API, or an error shape this
-	// adapter does not know, is still worth showing the caller.
+	// adapter does not know, is still worth showing the caller. Redacted the
+	// same way as the debug log (redactedResponseBody), in case an
+	// unrecognized error shape happens to echo back a sensitive field such as
+	// DdosSettings.secret_key.
 	if provErr.Message == "" && len(provErr.Details) == 0 {
-		provErr.Body = domain.TruncateBody(body)
+		provErr.Body = redactedResponseBody(body)
 	}
 	return provErr
 }
@@ -676,4 +679,55 @@ func redactedHeaders(h http.Header) map[string]string {
 		out[name] = value
 	}
 	return out
+}
+
+// sensitiveResponseFields lists JSON field names that must never appear
+// verbatim in the response debug log, wherever they occur in a response
+// body — not this adapter's own credential (redactedHeaders above already
+// covers that), but material a provider response can still echo back that is
+// just as sensitive: DdosSettings.secret_key is the CAPTCHA provider's own
+// secret key, caller-supplied and passed straight through (see
+// domain.ArvanCloudDdosSettings.SecretKey's doc comment and ddos.go's
+// package comment). A debug log is still a log: it gets pasted into issues.
+var sensitiveResponseFields = map[string]bool{
+	"secret_key": true,
+}
+
+// redactedResponseBody renders a response body for the debug log, replacing
+// the value of any sensitiveResponseFields key — at any nesting depth, since
+// a settings object can be nested under "data" — with a fixed placeholder
+// before truncating. Falls back to the raw truncated body when the response
+// is not valid JSON (e.g. an HTML error page): there is nothing structured
+// to redact in that case, and TruncateBody's own cap still limits what
+// reaches the log.
+func redactedResponseBody(body []byte) string {
+	var parsed any
+	if json.Unmarshal(body, &parsed) != nil {
+		return domain.TruncateBody(body)
+	}
+	redactSensitiveFields(parsed)
+	redacted, err := json.Marshal(parsed)
+	if err != nil {
+		return domain.TruncateBody(body)
+	}
+	return domain.TruncateBody(redacted)
+}
+
+// redactSensitiveFields walks a decoded JSON value in place, blanking any
+// object field whose name is in sensitiveResponseFields.
+func redactSensitiveFields(v any) {
+	switch val := v.(type) {
+	case map[string]any:
+		for k, sub := range val {
+			if s, ok := sub.(string); ok && s != "" && sensitiveResponseFields[k] {
+				val[k] = "<redacted>"
+				continue
+			}
+			redactSensitiveFields(sub)
+		}
+	case []any:
+		for _, item := range val {
+			redactSensitiveFields(item)
+		}
+	}
 }
