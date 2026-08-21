@@ -936,6 +936,92 @@ type ArvanCloudProvider interface {
 	// paginated — Summary returns its full per-zone breakdown in one call.
 	GetArvanCloudHealthCheckSummary(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudHealthCheckReportQuery) ([]domain.ArvanCloudHealthCheckReportSummary, error)
 	GetArvanCloudHealthCheckDetails(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudHealthCheckReportQuery) ([]domain.ArvanCloudHealthCheckReportDetail, domain.ArvanCloudHealthCheckReportPageMeta, error)
+
+	// Page Rules (issue #71): domain-scoped edge rewrite/routing rules, the
+	// largest and most complex single resource in the ArvanCloud CDN spec by
+	// field count — see domain/arvancloud_rules.go's package comment. All
+	// fast operations.
+	//
+	// CreateArvanCloudPageRule is not assumed idempotent (see this
+	// interface's own doc comment); a caller that must not duplicate a rule
+	// on retry checks first, e.g. via ListArvanCloudPageRules.
+	ListArvanCloudPageRules(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudPageRuleListQuery) ([]domain.ArvanCloudPageRuleSummary, domain.ArvanCloudPageRulePageMeta, error)
+	CreateArvanCloudPageRule(ctx context.Context, creds domain.ProviderCredentials, domainName string, rule domain.ArvanCloudPageRule) (*domain.ArvanCloudPageRule, error)
+	GetArvanCloudPageRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudPageRule, error)
+	// UpdateArvanCloudPageRule replaces a page rule's fields via PUT
+	// (page-rules.update).
+	UpdateArvanCloudPageRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, rule domain.ArvanCloudPageRule) (*domain.ArvanCloudPageRule, error)
+	// SetArvanCloudPageRuleStatus toggles ONLY a page rule's status via PATCH
+	// (page-rules.status.update) — a separate, narrower endpoint from
+	// UpdateArvanCloudPageRule's full PUT replace. The endpoint's response
+	// carries no data (just a confirmation message), so this returns only an
+	// error; a caller wanting the rule's full state afterward calls
+	// GetArvanCloudPageRule.
+	SetArvanCloudPageRuleStatus(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, status bool) error
+	// DeleteArvanCloudPageRule removes a page rule by id. As with
+	// DeleteArvanCloudHealthCheck, an already-absent rule reports
+	// domain.ErrNotFound rather than succeeding silently.
+	DeleteArvanCloudPageRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+	// PurgeArvanCloudPageRuleCache purges cached content for URLs matching
+	// this page rule (page-rules.purge). The endpoint's response carries no
+	// data, so this returns only an error.
+	PurgeArvanCloudPageRuleCache(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+	// GetArvanCloudPageRuleExceptions/UpdateArvanCloudPageRuleExceptions read
+	// and replace a page rule's "exceptions" override layer
+	// (page-rules.diff.show / page-rules.diff.update) — see
+	// domain.ArvanCloudPageRuleExceptions' own doc comment.
+	GetArvanCloudPageRuleExceptions(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudPageRuleExceptions, error)
+	UpdateArvanCloudPageRuleExceptions(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, exceptions domain.ArvanCloudPageRuleExceptions) (*domain.ArvanCloudPageRuleExceptions, error)
+
+	// Response Transforms (issue #71): domain-scoped, named presets of
+	// condition+action steps that add/replace CORS response headers on
+	// matching responses. All fast operations.
+	//
+	// CreateArvanCloudResponseTransform is not assumed idempotent (see this
+	// interface's own doc comment); a caller that must not duplicate a
+	// preset on retry checks first, e.g. via ListArvanCloudResponseTransforms.
+	ListArvanCloudResponseTransforms(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudResponseTransformListQuery) ([]domain.ArvanCloudResponseTransform, domain.ArvanCloudResponseTransformPageMeta, error)
+	CreateArvanCloudResponseTransform(ctx context.Context, creds domain.ProviderCredentials, domainName string, rt domain.ArvanCloudResponseTransform) (*domain.ArvanCloudResponseTransform, error)
+	GetArvanCloudResponseTransform(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudResponseTransform, error)
+	// UpdateArvanCloudResponseTransform updates a preset via PATCH
+	// (response_transforms.update); per the spec, omitting Transforms
+	// changes only name/description.
+	UpdateArvanCloudResponseTransform(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, rt domain.ArvanCloudResponseTransform) (*domain.ArvanCloudResponseTransform, error)
+	// DeleteArvanCloudResponseTransform removes a preset by id. As with
+	// DeleteArvanCloudPageRule, an already-absent preset reports
+	// domain.ErrNotFound rather than succeeding silently.
+	DeleteArvanCloudResponseTransform(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+
+	// Redirect (issue #71): a domain's www-redirect setting
+	// (/domains/{domain}/settings/www-redirect). A fast operation.
+	GetArvanCloudWWWRedirect(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudWWWRedirectSettings, error)
+	// UpdateArvanCloudWWWRedirect's endpoint response carries no data (just a
+	// confirmation message), so this returns only an error; a caller wanting
+	// the setting's state afterward calls GetArvanCloudWWWRedirect.
+	UpdateArvanCloudWWWRedirect(ctx context.Context, creds domain.ProviderCredentials, domainName string, settings domain.ArvanCloudWWWRedirectSettings) error
+
+	// Host Header Whitelist (issue #71): controls which CDN accounts (or,
+	// when globally whitelisted, any account) may use a domain as the HTTP
+	// Host header for requests proxied to it. All fast operations.
+	GetArvanCloudHostHeaderWhitelist(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudHostHeaderWhitelist, error)
+	// AddArvanCloudHostHeaderWhitelistEntry adds one target-account entry.
+	// Rejected by the provider with a 422 while the domain is globally
+	// whitelisted (per the spec's own description) — this adapter does not
+	// pre-check that client-side, since GloballyWhitelisted can change
+	// between a caller's read and write.
+	AddArvanCloudHostHeaderWhitelistEntry(ctx context.Context, creds domain.ProviderCredentials, domainName, targetAccount string) (*domain.ArvanCloudHostHeaderWhitelist, error)
+	// SetArvanCloudHostHeaderWhitelistSettings sets or clears the domain's
+	// global Host allowlist entry. Does not modify the per-account entries.
+	SetArvanCloudHostHeaderWhitelistSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string, global bool) (*domain.ArvanCloudHostHeaderWhitelist, error)
+	// RemoveArvanCloudHostHeaderWhitelistEntry removes one target-account
+	// entry. Unlike this interface's other Delete/Remove methods, a missing
+	// row is NOT normalized to success here: the spec's own 404 response for
+	// this endpoint is ambiguous between "domain not found" and "row not
+	// found" (two different response shapes on the same status,
+	// HostHeaderWhitelistRemoveNotFoundResponse vs. MessageResponse), so this
+	// adapter surfaces whatever the provider reports rather than guessing
+	// which case applies.
+	RemoveArvanCloudHostHeaderWhitelistEntry(ctx context.Context, creds domain.ProviderCredentials, domainName, targetAccount string) (*domain.ArvanCloudHostHeaderWhitelist, error)
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
