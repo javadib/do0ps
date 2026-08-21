@@ -897,6 +897,45 @@ type ArvanCloudProvider interface {
 	// DeleteDomain, an already-absent origin reports domain.ErrNotFound
 	// rather than succeeding silently.
 	DeleteArvanCloudLBPoolOrigin(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID, poolID, originID string) error
+
+	// Active Health Check (issue #70): a domain-scoped monitor that
+	// periodically probes an origin (in practice, a Load Balancing pool,
+	// #69) over TCP or HTTP(S) and reports whether it is reachable.
+	// Conceptually related to Load Balancing but its own resource family —
+	// see domain/arvancloud_healthcheck.go's package comment. All fast
+	// operations: every one of these API calls (create/read/update/delete a
+	// check definition, list zones, or read a report) returns synchronously
+	// — the check itself runs continuously on ArvanCloud's infrastructure,
+	// but there is no operation_id polling pattern here.
+	//
+	// CreateArvanCloudHealthCheck is not assumed idempotent (see this
+	// interface's own doc comment); a caller that must not duplicate a check
+	// on retry checks first, e.g. via ListArvanCloudHealthChecks.
+	ListArvanCloudHealthChecks(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudHealthCheck, error)
+	CreateArvanCloudHealthCheck(ctx context.Context, creds domain.ProviderCredentials, domainName string, hc domain.ArvanCloudHealthCheck) (*domain.ArvanCloudHealthCheck, error)
+	GetArvanCloudHealthCheck(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudHealthCheck, error)
+	UpdateArvanCloudHealthCheck(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, hc domain.ArvanCloudHealthCheck) (*domain.ArvanCloudHealthCheck, error)
+	// DeleteArvanCloudHealthCheck removes a check by id. As with
+	// DeleteArvanCloudLBPoolOrigin, an already-absent check reports
+	// domain.ErrNotFound rather than succeeding silently.
+	DeleteArvanCloudHealthCheck(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+	// ListArvanCloudDomainHealthCheckZones lists the check-execution zones
+	// available to domainName (health-checks.regions.index, despite the
+	// operationId saying "regions" — the path and response say "zones"; the
+	// spec's own inconsistency, per issue #70). ListArvanCloudHealthCheckZones
+	// is the global, account-independent equivalent
+	// (health-checks.zones.index, deprecated in the spec but still
+	// implemented, the same "implement both, do not assume they always
+	// agree" convention ListArvanCloudLBRegions/ListArvanCloudDomainLBRegions
+	// established for #69).
+	ListArvanCloudDomainHealthCheckZones(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudHealthCheckZoneName, error)
+	ListArvanCloudHealthCheckZones(ctx context.Context, creds domain.ProviderCredentials) ([]domain.ArvanCloudHealthCheckZoneName, error)
+	// GetArvanCloudHealthCheckSummary/GetArvanCloudHealthCheckDetails read a
+	// single health check's monitoring reports
+	// (active-health-check.reports.summary/.details). Only Details is
+	// paginated — Summary returns its full per-zone breakdown in one call.
+	GetArvanCloudHealthCheckSummary(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudHealthCheckReportQuery) ([]domain.ArvanCloudHealthCheckReportSummary, error)
+	GetArvanCloudHealthCheckDetails(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudHealthCheckReportQuery) ([]domain.ArvanCloudHealthCheckReportDetail, domain.ArvanCloudHealthCheckReportPageMeta, error)
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
