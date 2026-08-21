@@ -284,6 +284,33 @@ type UseCases struct {
 	UpdateArvanCloudRateLimitRule        *app.UpdateArvanCloudRateLimitRule
 	DeleteArvanCloudRateLimitRule        *app.DeleteArvanCloudRateLimitRule
 	ReprioritizeArvanCloudRateLimitRules *app.ReprioritizeArvanCloudRateLimitRules
+
+	// ArvanCloud Load Balancing — CDN edge-level traffic distribution across
+	// origin pools (issue #69).
+	ListArvanCloudLBRegions       *app.ListArvanCloudLBRegions
+	ListArvanCloudDomainLBRegions *app.ListArvanCloudDomainLBRegions
+	GetArvanCloudLBSettings       *app.GetArvanCloudLBSettings
+	UpdateArvanCloudLBSettings    *app.UpdateArvanCloudLBSettings
+
+	ListArvanCloudLoadBalancers  *app.ListArvanCloudLoadBalancers
+	CreateArvanCloudLoadBalancer *app.CreateArvanCloudLoadBalancer
+	GetArvanCloudLoadBalancer    *app.GetArvanCloudLoadBalancer
+	UpdateArvanCloudLoadBalancer *app.UpdateArvanCloudLoadBalancer
+	DeleteArvanCloudLoadBalancer *app.DeleteArvanCloudLoadBalancer
+
+	ListArvanCloudLBPools              *app.ListArvanCloudLBPools
+	CreateArvanCloudLBPool             *app.CreateArvanCloudLBPool
+	ReprioritizeArvanCloudLBPool       *app.ReprioritizeArvanCloudLBPool
+	GetArvanCloudLBPool                *app.GetArvanCloudLBPool
+	ReplaceArvanCloudLBPoolWithOrigins *app.ReplaceArvanCloudLBPoolWithOrigins
+	UpdateArvanCloudLBPoolSettings     *app.UpdateArvanCloudLBPoolSettings
+	DeleteArvanCloudLBPool             *app.DeleteArvanCloudLBPool
+
+	ListArvanCloudLBPoolOrigins  *app.ListArvanCloudLBPoolOrigins
+	CreateArvanCloudLBPoolOrigin *app.CreateArvanCloudLBPoolOrigin
+	GetArvanCloudLBPoolOrigin    *app.GetArvanCloudLBPoolOrigin
+	UpdateArvanCloudLBPoolOrigin *app.UpdateArvanCloudLBPoolOrigin
+	DeleteArvanCloudLBPoolOrigin *app.DeleteArvanCloudLBPoolOrigin
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -571,6 +598,28 @@ func Tools(uc UseCases) []Tool {
 		updateArvanCloudRateLimitRuleTool(uc.UpdateArvanCloudRateLimitRule),
 		deleteArvanCloudRateLimitRuleTool(uc.DeleteArvanCloudRateLimitRule),
 		reprioritizeArvanCloudRateLimitRulesTool(uc.ReprioritizeArvanCloudRateLimitRules),
+
+		listArvanCloudLBRegionsTool(uc.ListArvanCloudLBRegions),
+		listArvanCloudDomainLBRegionsTool(uc.ListArvanCloudDomainLBRegions),
+		getArvanCloudLBSettingsTool(uc.GetArvanCloudLBSettings),
+		updateArvanCloudLBSettingsTool(uc.UpdateArvanCloudLBSettings),
+		listArvanCloudLoadBalancersTool(uc.ListArvanCloudLoadBalancers),
+		createArvanCloudLoadBalancerTool(uc.CreateArvanCloudLoadBalancer),
+		getArvanCloudLoadBalancerTool(uc.GetArvanCloudLoadBalancer),
+		updateArvanCloudLoadBalancerTool(uc.UpdateArvanCloudLoadBalancer),
+		deleteArvanCloudLoadBalancerTool(uc.DeleteArvanCloudLoadBalancer),
+		listArvanCloudLBPoolsTool(uc.ListArvanCloudLBPools),
+		createArvanCloudLBPoolTool(uc.CreateArvanCloudLBPool),
+		reprioritizeArvanCloudLBPoolTool(uc.ReprioritizeArvanCloudLBPool),
+		getArvanCloudLBPoolTool(uc.GetArvanCloudLBPool),
+		replaceArvanCloudLBPoolWithOriginsTool(uc.ReplaceArvanCloudLBPoolWithOrigins),
+		updateArvanCloudLBPoolSettingsTool(uc.UpdateArvanCloudLBPoolSettings),
+		deleteArvanCloudLBPoolTool(uc.DeleteArvanCloudLBPool),
+		listArvanCloudLBPoolOriginsTool(uc.ListArvanCloudLBPoolOrigins),
+		createArvanCloudLBPoolOriginTool(uc.CreateArvanCloudLBPoolOrigin),
+		getArvanCloudLBPoolOriginTool(uc.GetArvanCloudLBPoolOrigin),
+		updateArvanCloudLBPoolOriginTool(uc.UpdateArvanCloudLBPoolOrigin),
+		deleteArvanCloudLBPoolOriginTool(uc.DeleteArvanCloudLBPoolOrigin),
 	}
 }
 

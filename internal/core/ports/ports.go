@@ -806,6 +806,97 @@ type ArvanCloudProvider interface {
 	// should be given, same contract as ReprioritizeArvanCloudFirewallRules
 	// above.
 	ReprioritizeArvanCloudRateLimitRules(ctx context.Context, creds domain.ProviderCredentials, domainName, ruleID, afterRuleID, beforeRuleID string) error
+
+	// Load Balancing (issue #69): ArvanCloud's CDN edge-level traffic
+	// distribution across origin pools — a 3-level resource hierarchy (load
+	// balancer -> pools -> origins), see domain/arvancloud_loadbalancer.go's
+	// package comment for the naming-collision warning against
+	// domain.LoadBalancer (this port's own CreateLoadBalancer/GetLoadBalancer/
+	// ... above, the cloud-server/VM-network-level resource). All fast
+	// operations: creating a load balancer configures routing rules, it does
+	// not provision new infrastructure, unlike CreateLoadBalancer above
+	// (a long operation, AGENTS.md 4.3) — do not copy that polling pattern
+	// here.
+	//
+	// ListArvanCloudLBRegions is account-independent (no domainName); the
+	// spec marks its operationId (load-balancers.regions.index) deprecated,
+	// but it is still implemented. ListArvanCloudDomainLBRegions is the
+	// per-domain equivalent (load-balancers.regions). Both are exposed since
+	// the spec does not document the two as always returning identical data.
+	ListArvanCloudLBRegions(ctx context.Context, creds domain.ProviderCredentials) ([]domain.ArvanCloudLoadBalancerRegion, error)
+	ListArvanCloudDomainLBRegions(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudLoadBalancerRegion, error)
+
+	// GetArvanCloudLBSettings/UpdateArvanCloudLBSettings manage a domain's
+	// global load-balancing defaults, applied to every load balancer on the
+	// domain unless a pool overrides a field itself.
+	GetArvanCloudLBSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudLoadBalancerSettings, error)
+	UpdateArvanCloudLBSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string, settings domain.ArvanCloudLoadBalancerSettings) (*domain.ArvanCloudLoadBalancerSettings, error)
+
+	// Load balancers, scoped to a domain by name.
+	//
+	// CreateArvanCloudLoadBalancer is not assumed idempotent (see this
+	// interface's own doc comment above); a caller that must not duplicate a
+	// load balancer on retry checks first, e.g. via
+	// ListArvanCloudLoadBalancers.
+	ListArvanCloudLoadBalancers(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudLoadBalancer, error)
+	CreateArvanCloudLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, domainName string, lb domain.ArvanCloudLoadBalancer) (*domain.ArvanCloudLoadBalancer, error)
+	GetArvanCloudLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudLoadBalancer, error)
+	UpdateArvanCloudLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, lb domain.ArvanCloudLoadBalancer) (*domain.ArvanCloudLoadBalancer, error)
+	// DeleteArvanCloudLoadBalancer removes a load balancer by id. As with
+	// DeleteDomain, an already-absent load balancer reports
+	// domain.ErrNotFound rather than succeeding silently.
+	DeleteArvanCloudLoadBalancer(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+
+	// Pools, scoped to a load balancer by id.
+	//
+	// CreateArvanCloudLBPool is not assumed idempotent, same caveat as
+	// CreateArvanCloudLoadBalancer above.
+	ListArvanCloudLBPools(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID string) ([]domain.ArvanCloudLoadBalancerPool, error)
+	CreateArvanCloudLBPool(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID string, pool domain.ArvanCloudLoadBalancerPool) (*domain.ArvanCloudLoadBalancerPool, error)
+	// ReprioritizeArvanCloudLBPool moves poolID relative to
+	// afterPoolID/beforePoolID within loadBalancerID's pool set: exactly one
+	// of the two should be given, per the spec's PrioritizePool schema
+	// (PrioritizePoolAfter/PrioritizePoolBefore's pool_id/after_pool_id and
+	// pool_id/before_pool_id) — a relative "move this pool before/after that
+	// pool" operation, NOT a full reordered-array reprioritize like the rule
+	// engines above (issue #69's explicit warning: do not copy that
+	// pattern). Returns the load balancer as stored afterward
+	// (load-balancers.prioritize_pool's 200 response is the LoadBalancer
+	// resource itself, unlike the rule-engine reprioritize methods above,
+	// which return no data).
+	ReprioritizeArvanCloudLBPool(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID, poolID, afterPoolID, beforePoolID string) (*domain.ArvanCloudLoadBalancer, error)
+	GetArvanCloudLBPool(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID, poolID string) (*domain.ArvanCloudLoadBalancerPool, error)
+	// UpdateArvanCloudLBPoolWithOrigins (PUT, load-balancers.pools.update)
+	// replaces the pool AND its full set of origins in one call — any
+	// existing origin not included in pool.Origins is removed.
+	// UpdateArvanCloudLBPoolSettings (PATCH, load-balancers.pools.updatePool)
+	// updates the pool's own settings only and leaves its existing origins
+	// untouched. These are two distinct update semantics for the same
+	// resource, kept as separate methods on purpose: silently picking the
+	// wrong one either wipes origins the caller didn't intend to touch (PUT
+	// for a settings-only change) or fails to update origins the caller
+	// expected to change (PATCH expecting origin changes to apply) — issue
+	// #69's acceptance criteria calls this out as the highest-risk part of
+	// this port.
+	UpdateArvanCloudLBPoolWithOrigins(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID, poolID string, pool domain.ArvanCloudLoadBalancerPool) (*domain.ArvanCloudLoadBalancerPool, error)
+	UpdateArvanCloudLBPoolSettings(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID, poolID string, pool domain.ArvanCloudLoadBalancerPool) (*domain.ArvanCloudLoadBalancerPool, error)
+	// DeleteArvanCloudLBPool removes a pool by id. As with DeleteDomain, an
+	// already-absent pool reports domain.ErrNotFound rather than succeeding
+	// silently.
+	DeleteArvanCloudLBPool(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID, poolID string) error
+
+	// Origins, scoped to a pool by id.
+	//
+	// CreateArvanCloudLBPoolOrigin is not assumed idempotent, same caveat as
+	// CreateArvanCloudLoadBalancer above.
+	ListArvanCloudLBPoolOrigins(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID, poolID string) ([]domain.ArvanCloudLoadBalancerOrigin, error)
+	CreateArvanCloudLBPoolOrigin(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID, poolID string, origin domain.ArvanCloudLoadBalancerOrigin) (*domain.ArvanCloudLoadBalancerOrigin, error)
+	GetArvanCloudLBPoolOrigin(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID, poolID, originID string) (*domain.ArvanCloudLoadBalancerOrigin, error)
+	UpdateArvanCloudLBPoolOrigin(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID, poolID, originID string, origin domain.ArvanCloudLoadBalancerOrigin) (*domain.ArvanCloudLoadBalancerOrigin, error)
+	// DeleteArvanCloudLBPoolOrigin removes an origin by id. As with
+	// DeleteDomain, an already-absent origin reports domain.ErrNotFound
+	// rather than succeeding silently.
+	DeleteArvanCloudLBPoolOrigin(ctx context.Context, creds domain.ProviderCredentials, domainName, loadBalancerID, poolID, originID string) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
