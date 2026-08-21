@@ -351,6 +351,24 @@ type UseCases struct {
 	AddArvanCloudHostHeaderWhitelistEntry    *app.AddArvanCloudHostHeaderWhitelistEntry
 	SetArvanCloudHostHeaderWhitelistSettings *app.SetArvanCloudHostHeaderWhitelistSettings
 	RemoveArvanCloudHostHeaderWhitelistEntry *app.RemoveArvanCloudHostHeaderWhitelistEntry
+
+	// ArvanCloud Caching, Acceleration/Image Resize and Custom Pages (issue #72).
+	GetArvanCloudCachingSettings    *app.GetArvanCloudCachingSettings
+	UpdateArvanCloudCachingSettings *app.UpdateArvanCloudCachingSettings
+	PurgeArvanCloudCache            *app.PurgeArvanCloudCache
+	ListArvanCloudPurgeTags         *app.ListArvanCloudPurgeTags
+	DeleteArvanCloudPurgeTag        *app.DeleteArvanCloudPurgeTag
+
+	GetArvanCloudImageResizeSettings     *app.GetArvanCloudImageResizeSettings
+	UpdateArvanCloudImageResizeSettings  *app.UpdateArvanCloudImageResizeSettings
+	GetArvanCloudAccelerationSettings    *app.GetArvanCloudAccelerationSettings
+	UpdateArvanCloudAccelerationSettings *app.UpdateArvanCloudAccelerationSettings
+
+	ListArvanCloudCustomPages      *app.ListArvanCloudCustomPages
+	UpdateArvanCloudCustomPage     *app.UpdateArvanCloudCustomPage
+	GetArvanCloudCustomPageFile    *app.GetArvanCloudCustomPageFile
+	UpdateArvanCloudCustomPageFile *app.UpdateArvanCloudCustomPageFile
+	DeleteArvanCloudCustomPageFile *app.DeleteArvanCloudCustomPageFile
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -694,6 +712,23 @@ func Tools(uc UseCases) []Tool {
 		addArvanCloudHostHeaderWhitelistEntryTool(uc.AddArvanCloudHostHeaderWhitelistEntry),
 		setArvanCloudHostHeaderWhitelistSettingsTool(uc.SetArvanCloudHostHeaderWhitelistSettings),
 		removeArvanCloudHostHeaderWhitelistEntryTool(uc.RemoveArvanCloudHostHeaderWhitelistEntry),
+
+		getArvanCloudCachingSettingsTool(uc.GetArvanCloudCachingSettings),
+		updateArvanCloudCachingSettingsTool(uc.UpdateArvanCloudCachingSettings),
+		purgeArvanCloudCacheTool(uc.PurgeArvanCloudCache),
+		listArvanCloudPurgeTagsTool(uc.ListArvanCloudPurgeTags),
+		deleteArvanCloudPurgeTagTool(uc.DeleteArvanCloudPurgeTag),
+
+		getArvanCloudImageResizeSettingsTool(uc.GetArvanCloudImageResizeSettings),
+		updateArvanCloudImageResizeSettingsTool(uc.UpdateArvanCloudImageResizeSettings),
+		getArvanCloudAccelerationSettingsTool(uc.GetArvanCloudAccelerationSettings),
+		updateArvanCloudAccelerationSettingsTool(uc.UpdateArvanCloudAccelerationSettings),
+
+		listArvanCloudCustomPagesTool(uc.ListArvanCloudCustomPages),
+		updateArvanCloudCustomPagesTool(uc.UpdateArvanCloudCustomPage),
+		getArvanCloudCustomPageFileTool(uc.GetArvanCloudCustomPageFile),
+		updateArvanCloudCustomPageFileTool(uc.UpdateArvanCloudCustomPageFile),
+		deleteArvanCloudCustomPageFileTool(uc.DeleteArvanCloudCustomPageFile),
 	}
 }
 

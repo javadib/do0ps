@@ -1022,6 +1022,87 @@ type ArvanCloudProvider interface {
 	// adapter surfaces whatever the provider reports rather than guessing
 	// which case applies.
 	RemoveArvanCloudHostHeaderWhitelistEntry(ctx context.Context, creds domain.ProviderCredentials, domainName, targetAccount string) (*domain.ArvanCloudHostHeaderWhitelist, error)
+
+	// Caching (issue #72): a domain's cache-behavior settings, cache purging,
+	// and the deprecated-but-still-implemented purge-tag history endpoints.
+	// All fast operations — PurgeArvanCloudCache included: like
+	// RegenerateDomainConfig above, the call itself returns immediately even
+	// though the actual purge propagates asynchronously afterward on
+	// ArvanCloud's own side, with nothing this port exposes to poll for it
+	// (confirmed against the spec's caching.purge response, a bare
+	// confirmation message with no operation id to poll — see
+	// domain.ArvanCloudCachePurgeRequest's doc comment).
+	//
+	// UpdateArvanCloudCachingSettings's endpoint response carries no data
+	// (just a confirmation message), so it returns only an error; a caller
+	// wanting the settings' state afterward calls
+	// GetArvanCloudCachingSettings. PurgeArvanCloudCache does NOT call the
+	// deprecated DELETE /domains/{domain}/caching endpoint
+	// (caching.deprecated_purge) — only POST /domains/{domain}/caching/purge
+	// (caching.purge), per the spec's own deprecation notice and issue #72's
+	// explicit scope note.
+	GetArvanCloudCachingSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudCachingSettings, error)
+	UpdateArvanCloudCachingSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string, settings domain.ArvanCloudCachingSettings) error
+	PurgeArvanCloudCache(ctx context.Context, creds domain.ProviderCredentials, domainName string, purge domain.ArvanCloudCachePurgeRequest) error
+	// ListArvanCloudPurgeTags returns a domain's previously-purged cache tag
+	// history, one domain.ArvanCloudPurgeTag entry per tag (see that type's
+	// own doc comment for how it denormalizes the provider's single-object
+	// response).
+	ListArvanCloudPurgeTags(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudPurgeTag, error)
+	// DeleteArvanCloudPurgeTag removes one tag from the purge-tag history by
+	// its value.
+	DeleteArvanCloudPurgeTag(ctx context.Context, creds domain.ProviderCredentials, domainName, tag string) error
+
+	// Acceleration / Image Resize (issue #72): standalone domain-scoped
+	// settings resources — image transformation-on-the-fly and general
+	// front-end acceleration, respectively. All fast operations.
+	//
+	// GetArvanCloudAccelerationSettings/UpdateArvanCloudAccelerationSettings
+	// reuse domain.ArvanCloudAccelerationSettings from
+	// arvancloud_acceleration.go (AC11/issue #71) rather than a second type —
+	// see that type's own doc comment, which documents this exact reuse.
+	GetArvanCloudImageResizeSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudImageResizeSettings, error)
+	UpdateArvanCloudImageResizeSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string, settings domain.ArvanCloudImageResizeSettings) (*domain.ArvanCloudImageResizeSettings, error)
+	GetArvanCloudAccelerationSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudAccelerationSettings, error)
+	UpdateArvanCloudAccelerationSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string, settings domain.ArvanCloudAccelerationSettings) (*domain.ArvanCloudAccelerationSettings, error)
+
+	// Custom Pages (issue #72): a domain's nine named custom-page slots
+	// (what is served instead of ArvanCloud's own default content for a WAF
+	// block, a rate-limit block, an expired secure link, ...), plus the
+	// individual uploaded-file resources those slots can hold. All fast
+	// operations.
+	//
+	// ListArvanCloudCustomPages returns the domain's whole named-slot object
+	// (custom-pages.show — despite the operationId saying "show", the
+	// response is a list/index by shape; see domain.ArvanCloudCustomPages'
+	// own doc comment).
+	ListArvanCloudCustomPages(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudCustomPages, error)
+	// UpdateArvanCloudCustomPage updates exactly ONE named slot per call
+	// (domain.ArvanCloudCustomPageUpdate.Page selects which) despite being
+	// POST to the /custom-pages collection endpoint — see that type's own
+	// doc comment. The endpoint's response carries no data, so this returns
+	// only an error; a caller wanting the slot's state afterward calls
+	// ListArvanCloudCustomPages.
+	UpdateArvanCloudCustomPage(ctx context.Context, creds domain.ProviderCredentials, domainName string, update domain.ArvanCloudCustomPageUpdate) error
+	GetArvanCloudCustomPageFile(ctx context.Context, creds domain.ProviderCredentials, domainName, fileID string) (*domain.ArvanCloudCustomPageFile, error)
+	// UpdateArvanCloudCustomPageFile updates one already-uploaded file entry
+	// by id: active is nil to leave the file's active flag untouched, or a
+	// pointer to set it explicitly; fileName/fileContent, when fileContent is
+	// non-empty, replace the file's content (the spec's own description:
+	// "Each upload creates a new file entry" applies to custom-pages.update,
+	// not this endpoint, which updates the existing entry addressed by
+	// fileID in place). The endpoint's response carries no data, so this
+	// returns only an error; a caller wanting the file's state afterward
+	// calls GetArvanCloudCustomPageFile.
+	UpdateArvanCloudCustomPageFile(ctx context.Context, creds domain.ProviderCredentials, domainName, fileID string, active *bool, fileName string, fileContent []byte) error
+	// DeleteArvanCloudCustomPageFile removes one file entry by id. Unlike
+	// this interface's other Delete/Remove methods, the provider rejects
+	// deleting the currently-active file for a slot (a 400, per the spec's
+	// own "Cannot delete active file" response) — this adapter does not
+	// pre-check that client-side, since which file is active can change
+	// between a caller's read and delete; whatever the provider reports is
+	// propagated as-is.
+	DeleteArvanCloudCustomPageFile(ctx context.Context, creds domain.ProviderCredentials, domainName, fileID string) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
