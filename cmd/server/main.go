@@ -165,7 +165,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	registerSSHKey := app.NewRegisterSSHKey(pool, provider)
 	listSSHKeys := app.NewListSSHKeys(pool, provider)
 	deleteSSHKey := app.NewDeleteSSHKey(pool, provider)
-	operationStatus := app.NewGetOperationStatus(jobs, provider, clock)
+	operationStatus := app.NewGetOperationStatus(jobs, provider, arvanProvider, clock)
 	createSnapshot, err := app.NewCreateSnapshot(jobs, pool, provider, clock, ids,
 		app.WithActionPollInterval(cfg.PollInterval),
 		app.WithActionPollTimeout(cfg.PollTimeout),
@@ -349,10 +349,29 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	holdArvanCloudDomain := app.NewHoldArvanCloudDomain(pool, arvanProvider)
 	unholdArvanCloudDomain := app.NewUnholdArvanCloudDomain(pool, arvanProvider)
 
+	// --- ArvanCloud SSL/TLS settings and certificates (issue #73) --------
+	getArvanCloudSslSettings := app.NewGetArvanCloudSslSettings(pool, arvanProvider)
+	updateArvanCloudSslSettings := app.NewUpdateArvanCloudSslSettings(pool, arvanProvider)
+	listArvanCloudCertificates := app.NewListArvanCloudCertificates(pool, arvanProvider)
+	uploadArvanCloudCertificate := app.NewUploadArvanCloudCertificate(pool, arvanProvider)
+	getArvanCloudCertificate := app.NewGetArvanCloudCertificate(pool, arvanProvider)
+	deleteArvanCloudCertificate := app.NewDeleteArvanCloudCertificate(pool, arvanProvider)
+	revokeArvanCloudCertificate := app.NewRevokeArvanCloudCertificate(pool, arvanProvider)
+	listArvanCloudSslOrders := app.NewListArvanCloudSslOrders(pool, arvanProvider)
+	retryArvanCloudSslOrder := app.NewRetryArvanCloudSslOrder(pool, arvanProvider)
+	issueArvanCloudManagedCertificate, err := app.NewIssueArvanCloudManagedCertificate(jobs, pool, arvanProvider, clock, ids,
+		app.WithArvanCloudSslOrderPollInterval(cfg.PollInterval),
+		app.WithArvanCloudSslOrderPollTimeout(cfg.PollTimeout),
+	)
+	if err != nil {
+		return err
+	}
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Register(domain.JobTypeCreateSnapshot, createSnapshot.Handle)
 	pool.Register(domain.JobTypeRestoreVM, restoreVM.Handle)
 	pool.Register(domain.JobTypeProvisionLoadBalancer, provisionLoadBalancer.Handle)
+	pool.Register(domain.JobTypeIssueArvanCloudManagedCertificate, issueArvanCloudManagedCertificate.Handle)
 
 	// Each long operation holds the caller's credentials in memory until the
 	// job can no longer be re-attempted; the pool calls these once it is done
@@ -361,6 +380,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	pool.RegisterSettled(domain.JobTypeCreateSnapshot, createSnapshot.Settled)
 	pool.RegisterSettled(domain.JobTypeRestoreVM, restoreVM.Settled)
 	pool.RegisterSettled(domain.JobTypeProvisionLoadBalancer, provisionLoadBalancer.Settled)
+	pool.RegisterSettled(domain.JobTypeIssueArvanCloudManagedCertificate, issueArvanCloudManagedCertificate.Settled)
 	pool.Start(ctx)
 
 	flagged, err := recovery.Run(ctx)
@@ -555,6 +575,17 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		RegenerateArvanCloudDomainConfig: regenerateArvanCloudDomainConfig,
 		HoldArvanCloudDomain:             holdArvanCloudDomain,
 		UnholdArvanCloudDomain:           unholdArvanCloudDomain,
+
+		GetArvanCloudSslSettings:          getArvanCloudSslSettings,
+		UpdateArvanCloudSslSettings:       updateArvanCloudSslSettings,
+		ListArvanCloudCertificates:        listArvanCloudCertificates,
+		UploadArvanCloudCertificate:       uploadArvanCloudCertificate,
+		GetArvanCloudCertificate:          getArvanCloudCertificate,
+		DeleteArvanCloudCertificate:       deleteArvanCloudCertificate,
+		RevokeArvanCloudCertificate:       revokeArvanCloudCertificate,
+		ListArvanCloudSslOrders:           listArvanCloudSslOrders,
+		IssueArvanCloudManagedCertificate: issueArvanCloudManagedCertificate,
+		RetryArvanCloudSslOrder:           retryArvanCloudSslOrder,
 	}), mcp.WithLogger(logger), mcp.WithInfo(mcp.Info{Name: "do0ps", Version: version}))
 	if err != nil {
 		return err

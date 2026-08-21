@@ -401,7 +401,7 @@ func TestGetOperationStatusReconcilesInterruptedSnapshot(t *testing.T) {
 	provider := &fakeProvider{snapshots: []domain.VMSnapshot{
 		{ID: "snap-9", Name: "before-upgrade", ServerID: "vm-1"},
 	}}
-	uc := app.NewGetOperationStatus(jobs, provider, fixedClock{t: now.Add(time.Minute)})
+	uc := app.NewGetOperationStatus(jobs, provider, nil, fixedClock{t: now.Add(time.Minute)})
 
 	op, err := uc.Execute(context.Background(), app.GetOperationStatusInput{
 		OperationID: "op-1",
@@ -450,7 +450,7 @@ func TestGetOperationStatusReconcilesMissingSnapshotAsFailed(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
-	uc := app.NewGetOperationStatus(jobs, &fakeProvider{}, fixedClock{t: now.Add(time.Minute)})
+	uc := app.NewGetOperationStatus(jobs, &fakeProvider{}, nil, fixedClock{t: now.Add(time.Minute)})
 
 	op, err := uc.Execute(context.Background(), app.GetOperationStatusInput{
 		OperationID: "op-1",
