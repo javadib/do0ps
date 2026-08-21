@@ -367,11 +367,27 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		return err
 	}
 
+	// --- ArvanCloud account-level Certum certificate ordering (issue #74) --
+	listArvanCloudCertificateProducts := app.NewListArvanCloudCertificateProducts(pool, arvanProvider)
+	listArvanCloudAccountCertificateOrders := app.NewListArvanCloudAccountCertificateOrders(pool, arvanProvider)
+	getArvanCloudAccountCertificateOrder := app.NewGetArvanCloudAccountCertificateOrder(pool, arvanProvider)
+	revokeArvanCloudAccountCertificate := app.NewRevokeArvanCloudAccountCertificate(pool, arvanProvider)
+	reissueArvanCloudAccountCertificate := app.NewReissueArvanCloudAccountCertificate(pool, arvanProvider)
+	installArvanCloudAccountCertificate := app.NewInstallArvanCloudAccountCertificate(pool, arvanProvider)
+	issueArvanCloudAccountCertificate, err := app.NewIssueArvanCloudAccountCertificate(jobs, pool, arvanProvider, clock, ids,
+		app.WithArvanCloudAccountCertificatePollInterval(cfg.PollInterval),
+		app.WithArvanCloudAccountCertificatePollTimeout(cfg.PollTimeout),
+	)
+	if err != nil {
+		return err
+	}
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Register(domain.JobTypeCreateSnapshot, createSnapshot.Handle)
 	pool.Register(domain.JobTypeRestoreVM, restoreVM.Handle)
 	pool.Register(domain.JobTypeProvisionLoadBalancer, provisionLoadBalancer.Handle)
 	pool.Register(domain.JobTypeIssueArvanCloudManagedCertificate, issueArvanCloudManagedCertificate.Handle)
+	pool.Register(domain.JobTypeIssueArvanCloudAccountCertificate, issueArvanCloudAccountCertificate.Handle)
 
 	// Each long operation holds the caller's credentials in memory until the
 	// job can no longer be re-attempted; the pool calls these once it is done
@@ -381,6 +397,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	pool.RegisterSettled(domain.JobTypeRestoreVM, restoreVM.Settled)
 	pool.RegisterSettled(domain.JobTypeProvisionLoadBalancer, provisionLoadBalancer.Settled)
 	pool.RegisterSettled(domain.JobTypeIssueArvanCloudManagedCertificate, issueArvanCloudManagedCertificate.Settled)
+	pool.RegisterSettled(domain.JobTypeIssueArvanCloudAccountCertificate, issueArvanCloudAccountCertificate.Settled)
 	pool.Start(ctx)
 
 	flagged, err := recovery.Run(ctx)
@@ -586,6 +603,14 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		ListArvanCloudSslOrders:           listArvanCloudSslOrders,
 		IssueArvanCloudManagedCertificate: issueArvanCloudManagedCertificate,
 		RetryArvanCloudSslOrder:           retryArvanCloudSslOrder,
+
+		ListArvanCloudCertificateProducts:      listArvanCloudCertificateProducts,
+		IssueArvanCloudAccountCertificate:      issueArvanCloudAccountCertificate,
+		ListArvanCloudAccountCertificateOrders: listArvanCloudAccountCertificateOrders,
+		GetArvanCloudAccountCertificateOrder:   getArvanCloudAccountCertificateOrder,
+		RevokeArvanCloudAccountCertificate:     revokeArvanCloudAccountCertificate,
+		ReissueArvanCloudAccountCertificate:    reissueArvanCloudAccountCertificate,
+		InstallArvanCloudAccountCertificate:    installArvanCloudAccountCertificate,
 	}), mcp.WithLogger(logger), mcp.WithInfo(mcp.Info{Name: "do0ps", Version: version}))
 	if err != nil {
 		return err

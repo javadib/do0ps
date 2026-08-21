@@ -66,6 +66,11 @@ const (
 	// (free/automatic) certificate order to a terminal state (issue #73). See
 	// ArvanCloudCertificateOrderStatus for the state machine it polls.
 	JobTypeIssueArvanCloudManagedCertificate JobType = "issue_arvancloud_managed_certificate"
+	// JobTypeIssueArvanCloudAccountCertificate drives an ArvanCloud
+	// account-level Certum certificate order to a terminal state (issue
+	// #74). See ArvanCloudAccountCertificateOrderStatus for the state
+	// machine it polls.
+	JobTypeIssueArvanCloudAccountCertificate JobType = "issue_arvancloud_account_certificate"
 )
 
 // InterruptedReason marks a job whose in-process execution was lost to a

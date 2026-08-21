@@ -1166,6 +1166,61 @@ type ArvanCloudProvider interface {
 	// only an error; a caller wanting the retried order's state afterward
 	// calls ListArvanCloudSslOrders.
 	RetryArvanCloudSslOrder(ctx context.Context, creds domain.ProviderCredentials, domainName string) error
+
+	// Account-level Certum certificate ordering (issue #74/AC14): a paid,
+	// CA-issued certificate product purchased against the account and
+	// installed onto one or more domains. Deliberately NOT the domain-scoped
+	// SSL/TLS settings and managed/uploaded certificate workflow above (issue
+	// #73) — see domain/arvancloud_account_ssl.go's package comment.
+	//
+	// All fast operations except IssueArvanCloudAccountCertificate, which
+	// starts an AccountCertificateOrder in a non-terminal status
+	// (domain.ArvanCloudAccountCertificateOrderStatus) — a long operation
+	// (AGENTS.md 4.3), the same shape as IssueArvanCloudManagedCertificate
+	// above.
+	ListArvanCloudCertificateProducts(ctx context.Context, creds domain.ProviderCredentials) ([]domain.ArvanCloudCertificateProduct, error)
+	// IssueArvanCloudAccountCertificate purchases and requests issuance of a
+	// Certum certificate (account_certificate.issue) and returns the order it
+	// started. This is a LONG operation (AGENTS.md 4.3) — see this
+	// interface's own doc comment above and
+	// domain.ArvanCloudAccountCertificateOrderStatus. Not assumed idempotent
+	// by itself; the use case above it
+	// (app.IssueArvanCloudAccountCertificate) is responsible for not calling
+	// this a second time for a request that already has an order in flight,
+	// checking ListArvanCloudAccountCertificateOrders first.
+	IssueArvanCloudAccountCertificate(ctx context.Context, creds domain.ProviderCredentials, req domain.ArvanCloudCertificateOrderIssueRequest) (*domain.ArvanCloudAccountCertificateOrder, error)
+	// ListArvanCloudAccountCertificateOrders returns the account's full
+	// Certum order history (account_certificate.order.index) — the data a
+	// caller polls to track an order IssueArvanCloudAccountCertificate
+	// started, and what crash recovery consults to reconcile an interrupted
+	// issuance job (AGENTS.md 4.4) instead of calling
+	// IssueArvanCloudAccountCertificate a second time. Unlike
+	// ListArvanCloudSslOrders above, this list is account-wide, not scoped to
+	// one domain — there is no per-domain filter on this endpoint.
+	ListArvanCloudAccountCertificateOrders(ctx context.Context, creds domain.ProviderCredentials) ([]domain.ArvanCloudAccountCertificateOrder, error)
+	// GetArvanCloudAccountCertificateOrder returns one order by its ID
+	// (account_certificate.show). keepPrivateKey mirrors the endpoint's own
+	// keep_private_key query parameter: false permanently deletes the
+	// provider-held private key ArvanCloud/Certum generated for this order
+	// after this call, so it can no longer be retrieved or viewed — nil
+	// leaves the provider's own default (true) in effect.
+	GetArvanCloudAccountCertificateOrder(ctx context.Context, creds domain.ProviderCredentials, orderID string, keepPrivateKey *bool) (*domain.ArvanCloudAccountCertificateOrder, error)
+	// RevokeArvanCloudAccountCertificate revokes an order's certificate
+	// (account_certificate.revoke) and returns the order as updated.
+	RevokeArvanCloudAccountCertificate(ctx context.Context, creds domain.ProviderCredentials, orderID string) (*domain.ArvanCloudAccountCertificateOrder, error)
+	// ReissueArvanCloudAccountCertificate reissues an order's certificate
+	// (account_certificate.reissue) — e.g. after a key compromise or CN
+	// change, or as the manual recovery path for an order that reached
+	// domain.ArvanCloudAccountCertificateOrderStatusKilled (there is no
+	// order-level "retry" endpoint at the account level, unlike issue #73's
+	// ssl.cert.order.retry) — and returns the order as updated.
+	ReissueArvanCloudAccountCertificate(ctx context.Context, creds domain.ProviderCredentials, orderID string) (*domain.ArvanCloudAccountCertificateOrder, error)
+	// InstallArvanCloudAccountCertificate installs an issued certificate onto
+	// edge servers (account_certificate.install) — the step that actually
+	// activates it for serving traffic; issuance alone does not. This is a
+	// FAST operation (AGENTS.md 4.3): see
+	// domain.ArvanCloudCertificateInstallResult's own doc comment for why.
+	InstallArvanCloudAccountCertificate(ctx context.Context, creds domain.ProviderCredentials, orderID string) (*domain.ArvanCloudCertificateInstallResult, error)
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
