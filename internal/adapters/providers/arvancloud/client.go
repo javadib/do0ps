@@ -22,6 +22,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -384,6 +385,96 @@ func (c *Client) doMultipart(ctx context.Context, creds domain.ProviderCredentia
 		}
 		if _, err := part.Write(fileContent); err != nil {
 			return backoff.Permanent(fmt.Errorf("writing multipart body for %s %s: %w", method, path, err))
+		}
+		if err := writer.Close(); err != nil {
+			return backoff.Permanent(fmt.Errorf("closing multipart body for %s %s: %w", method, path, err))
+		}
+
+		data, err := c.roundTrip(ctx, authorization, method, path, writer.FormDataContentType(), "application/json", buf.Bytes())
+		if err != nil {
+			return err
+		}
+		if len(data) == 0 {
+			return nil
+		}
+		if err := json.Unmarshal(data, &env); err != nil {
+			return backoff.Permanent(fmt.Errorf("decoding %s %s response: %w", method, path, err))
+		}
+		return nil
+	}
+
+	sequence := backoff.WithContext(backoff.WithMaxRetries(c.newBackOff(), c.maxRetries), ctx)
+	if err := backoff.Retry(operation, sequence); err != nil {
+		return err
+	}
+
+	if out == nil || len(env.Data) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(env.Data, out); err != nil {
+		return fmt.Errorf("decoding %s %s response data: %w", method, path, err)
+	}
+	return nil
+}
+
+// multipartFormFile describes the one optional binary part a doMultipartForm
+// request may carry, alongside its plain string fields.
+type multipartFormFile struct {
+	FieldName string
+	FileName  string
+	Content   []byte
+}
+
+// doMultipartForm sends a multipart/form-data request built from a set of
+// plain string fields plus an optional binary file part, and decodes the
+// response envelope's "data" into out (nil to discard), with the same
+// retry/error-mapping behavior as doJSON. Unlike doMultipart (fixed to the
+// single "f_zone_file" field for DNS zone import), this supports the
+// several-field forms Custom Pages' two upload endpoints need
+// (custom-pages.update: type/page/url/file; custom-pages.file.update:
+// active/file) — see edge_settings.go.
+func (c *Client) doMultipartForm(
+	ctx context.Context, creds domain.ProviderCredentials, method, path string,
+	fields map[string]string, file *multipartFormFile, out any,
+) error {
+	authorization, err := authorizationHeader(creds.APIKey)
+	if err != nil {
+		return fmt.Errorf("building %s %s request: %w", method, path, err)
+	}
+
+	// Sorted so the request this client sends is deterministic across
+	// retries and in tests, even though multipart/form-data does not require
+	// field order.
+	names := make([]string, 0, len(fields))
+	for name := range fields {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	var env envelope
+	attempt := 0
+	operation := func() error {
+		if attempt > 0 && c.nowRetrying != nil {
+			c.nowRetrying()
+		}
+		attempt++
+		env = envelope{}
+
+		var buf bytes.Buffer
+		writer := multipart.NewWriter(&buf)
+		for _, name := range names {
+			if err := writer.WriteField(name, fields[name]); err != nil {
+				return backoff.Permanent(fmt.Errorf("building multipart body for %s %s: %w", method, path, err))
+			}
+		}
+		if file != nil {
+			part, err := writer.CreateFormFile(file.FieldName, file.FileName)
+			if err != nil {
+				return backoff.Permanent(fmt.Errorf("building multipart body for %s %s: %w", method, path, err))
+			}
+			if _, err := part.Write(file.Content); err != nil {
+				return backoff.Permanent(fmt.Errorf("writing multipart body for %s %s: %w", method, path, err))
+			}
 		}
 		if err := writer.Close(); err != nil {
 			return backoff.Permanent(fmt.Errorf("closing multipart body for %s %s: %w", method, path, err))
