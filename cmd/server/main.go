@@ -407,6 +407,21 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	getArvanCloudAggregatedReportCharts := app.NewGetArvanCloudAggregatedReportCharts(pool, arvanProvider)
 	getArvanCloudAggregatedReportFilters := app.NewGetArvanCloudAggregatedReportFilters(pool, arvanProvider)
 
+	// --- ArvanCloud Log Forwarders & Metric Exporters (issue #76) ---------
+	listArvanCloudLogForwarders := app.NewListArvanCloudLogForwarders(pool, arvanProvider)
+	createArvanCloudLogForwarder := app.NewCreateArvanCloudLogForwarder(pool, arvanProvider)
+	getArvanCloudLogForwarder := app.NewGetArvanCloudLogForwarder(pool, arvanProvider)
+	updateArvanCloudLogForwarder := app.NewUpdateArvanCloudLogForwarder(pool, arvanProvider)
+	deleteArvanCloudLogForwarder := app.NewDeleteArvanCloudLogForwarder(pool, arvanProvider)
+	setArvanCloudLogForwarderStatus := app.NewSetArvanCloudLogForwarderStatus(pool, arvanProvider)
+	listArvanCloudMetricExporters := app.NewListArvanCloudMetricExporters(pool, arvanProvider)
+	listArvanCloudMetricExporterTypes := app.NewListArvanCloudMetricExporterTypes(pool, arvanProvider)
+	createArvanCloudMetricExporter := app.NewCreateArvanCloudMetricExporter(pool, arvanProvider)
+	getArvanCloudMetricExporter := app.NewGetArvanCloudMetricExporter(pool, arvanProvider)
+	updateArvanCloudMetricExporter := app.NewUpdateArvanCloudMetricExporter(pool, arvanProvider)
+	deleteArvanCloudMetricExporter := app.NewDeleteArvanCloudMetricExporter(pool, arvanProvider)
+	setArvanCloudMetricExporterStatus := app.NewSetArvanCloudMetricExporterStatus(pool, arvanProvider)
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Register(domain.JobTypeCreateSnapshot, createSnapshot.Handle)
 	pool.Register(domain.JobTypeRestoreVM, restoreVM.Handle)
@@ -661,6 +676,20 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		ListArvanCloudAggregatedReportDetails: listArvanCloudAggregatedReportDetails,
 		GetArvanCloudAggregatedReportCharts:   getArvanCloudAggregatedReportCharts,
 		GetArvanCloudAggregatedReportFilters:  getArvanCloudAggregatedReportFilters,
+
+		ListArvanCloudLogForwarders:       listArvanCloudLogForwarders,
+		CreateArvanCloudLogForwarder:      createArvanCloudLogForwarder,
+		GetArvanCloudLogForwarder:         getArvanCloudLogForwarder,
+		UpdateArvanCloudLogForwarder:      updateArvanCloudLogForwarder,
+		DeleteArvanCloudLogForwarder:      deleteArvanCloudLogForwarder,
+		SetArvanCloudLogForwarderStatus:   setArvanCloudLogForwarderStatus,
+		ListArvanCloudMetricExporters:     listArvanCloudMetricExporters,
+		ListArvanCloudMetricExporterTypes: listArvanCloudMetricExporterTypes,
+		CreateArvanCloudMetricExporter:    createArvanCloudMetricExporter,
+		GetArvanCloudMetricExporter:       getArvanCloudMetricExporter,
+		UpdateArvanCloudMetricExporter:    updateArvanCloudMetricExporter,
+		DeleteArvanCloudMetricExporter:    deleteArvanCloudMetricExporter,
+		SetArvanCloudMetricExporterStatus: setArvanCloudMetricExporterStatus,
 	}), mcp.WithLogger(logger), mcp.WithInfo(mcp.Info{Name: "do0ps", Version: version}))
 	if err != nil {
 		return err

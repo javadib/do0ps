@@ -1291,6 +1291,60 @@ type ArvanCloudProvider interface {
 	// spec's reports.aggregated.charts nests under data.charts.
 	GetArvanCloudAggregatedReportCharts(ctx context.Context, creds domain.ProviderCredentials, query domain.ArvanCloudAggregatedReportQuery) (*domain.ArvanCloudReportChart, error)
 	GetArvanCloudAggregatedReportFilters(ctx context.Context, creds domain.ProviderCredentials, query domain.ArvanCloudAggregatedReportQuery) (*domain.ArvanCloudAggregatedReportFilters, error)
+
+	// Log Forwarders and Metric Exporters (issue #76): both push data to an
+	// external system (S3-compatible storage, Datadog, Kafka, syslog, ...)
+	// rather than exposing it through this project's own Reports tools
+	// above. See domain/arvancloud_observability.go's package comment for
+	// how the type/data_fields/settings per-variant shape variance and the
+	// metric exporter list-vs-CRUD scoping asymmetry are resolved. All fast
+	// operations (AGENTS.md 4.3).
+
+	// ListArvanCloudLogForwarders lists domainName's log forwarders
+	// (log-forwarders.index), filtered/paginated per query.
+	ListArvanCloudLogForwarders(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudLogForwarderListQuery) ([]domain.ArvanCloudLogForwarder, domain.ArvanCloudReportPageMeta, error)
+	// CreateArvanCloudLogForwarder creates a new log forwarder
+	// (log-forwarders.store).
+	CreateArvanCloudLogForwarder(ctx context.Context, creds domain.ProviderCredentials, domainName string, forwarder domain.ArvanCloudLogForwarder) (*domain.ArvanCloudLogForwarder, error)
+	// GetArvanCloudLogForwarder returns a single log forwarder by id
+	// (log-forwarders.show).
+	GetArvanCloudLogForwarder(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudLogForwarder, error)
+	// UpdateArvanCloudLogForwarder replaces a log forwarder's fields
+	// (log-forwarders.update) and returns it as stored afterward.
+	UpdateArvanCloudLogForwarder(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, forwarder domain.ArvanCloudLogForwarder) (*domain.ArvanCloudLogForwarder, error)
+	// DeleteArvanCloudLogForwarder removes a log forwarder by id
+	// (log-forwarders.destroy).
+	DeleteArvanCloudLogForwarder(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+	// SetArvanCloudLogForwarderStatus enables or disables a log forwarder
+	// (log-forwarders.update.status) and returns it as stored afterward.
+	SetArvanCloudLogForwarderStatus(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, status bool) (*domain.ArvanCloudLogForwarder, error)
+
+	// ListArvanCloudMetricExporters lists metric exporters across the whole
+	// account (metric-exporters.index) — NOT scoped to a single domain,
+	// unlike every other method in this group; see
+	// domain/arvancloud_observability.go's package comment.
+	ListArvanCloudMetricExporters(ctx context.Context, creds domain.ProviderCredentials, query domain.ArvanCloudMetricExporterListQuery) ([]domain.ArvanCloudMetricExporter, domain.ArvanCloudReportPageMeta, error)
+	// ListArvanCloudMetricExporterTypes returns the catalog of metric groups
+	// and individual metrics available to choose from when creating a
+	// metric exporter (metric-exporters.metrics.index) — also
+	// account-wide, no domain parameter.
+	ListArvanCloudMetricExporterTypes(ctx context.Context, creds domain.ProviderCredentials) (*domain.ArvanCloudMetricExporterMetrics, error)
+	// CreateArvanCloudMetricExporter creates a new metric exporter, scoped
+	// to domainName (metric-exporters.store).
+	CreateArvanCloudMetricExporter(ctx context.Context, creds domain.ProviderCredentials, domainName string, exporter domain.ArvanCloudMetricExporter) (*domain.ArvanCloudMetricExporter, error)
+	// GetArvanCloudMetricExporter returns a single metric exporter by id
+	// (metric-exporters.show).
+	GetArvanCloudMetricExporter(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudMetricExporter, error)
+	// UpdateArvanCloudMetricExporter replaces a metric exporter's fields
+	// (metric-exporters.update) and returns it as stored afterward.
+	UpdateArvanCloudMetricExporter(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, exporter domain.ArvanCloudMetricExporter) (*domain.ArvanCloudMetricExporter, error)
+	// DeleteArvanCloudMetricExporter removes a metric exporter by id
+	// (metric-exporters.destroy).
+	DeleteArvanCloudMetricExporter(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+	// SetArvanCloudMetricExporterStatus enables or disables a metric
+	// exporter (metric-exporters.update.status) and returns it as stored
+	// afterward.
+	SetArvanCloudMetricExporterStatus(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, status bool) (*domain.ArvanCloudMetricExporter, error)
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic

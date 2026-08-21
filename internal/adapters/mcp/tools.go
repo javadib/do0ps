@@ -420,6 +420,22 @@ type UseCases struct {
 	ListArvanCloudAggregatedReportDetails *app.ListArvanCloudAggregatedReportDetails
 	GetArvanCloudAggregatedReportCharts   *app.GetArvanCloudAggregatedReportCharts
 	GetArvanCloudAggregatedReportFilters  *app.GetArvanCloudAggregatedReportFilters
+
+	// ArvanCloud Log Forwarders & Metric Exporters (issue #76). All fast
+	// operations.
+	ListArvanCloudLogForwarders       *app.ListArvanCloudLogForwarders
+	CreateArvanCloudLogForwarder      *app.CreateArvanCloudLogForwarder
+	GetArvanCloudLogForwarder         *app.GetArvanCloudLogForwarder
+	UpdateArvanCloudLogForwarder      *app.UpdateArvanCloudLogForwarder
+	DeleteArvanCloudLogForwarder      *app.DeleteArvanCloudLogForwarder
+	SetArvanCloudLogForwarderStatus   *app.SetArvanCloudLogForwarderStatus
+	ListArvanCloudMetricExporters     *app.ListArvanCloudMetricExporters
+	ListArvanCloudMetricExporterTypes *app.ListArvanCloudMetricExporterTypes
+	CreateArvanCloudMetricExporter    *app.CreateArvanCloudMetricExporter
+	GetArvanCloudMetricExporter       *app.GetArvanCloudMetricExporter
+	UpdateArvanCloudMetricExporter    *app.UpdateArvanCloudMetricExporter
+	DeleteArvanCloudMetricExporter    *app.DeleteArvanCloudMetricExporter
+	SetArvanCloudMetricExporterStatus *app.SetArvanCloudMetricExporterStatus
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -824,6 +840,20 @@ func Tools(uc UseCases) []Tool {
 		listArvanCloudAggregatedReportDetailsTool(uc.ListArvanCloudAggregatedReportDetails),
 		getArvanCloudAggregatedReportChartsTool(uc.GetArvanCloudAggregatedReportCharts),
 		getArvanCloudAggregatedReportFiltersTool(uc.GetArvanCloudAggregatedReportFilters),
+
+		listArvanCloudLogForwardersTool(uc.ListArvanCloudLogForwarders),
+		createArvanCloudLogForwarderTool(uc.CreateArvanCloudLogForwarder),
+		getArvanCloudLogForwarderTool(uc.GetArvanCloudLogForwarder),
+		updateArvanCloudLogForwarderTool(uc.UpdateArvanCloudLogForwarder),
+		deleteArvanCloudLogForwarderTool(uc.DeleteArvanCloudLogForwarder),
+		setArvanCloudLogForwarderStatusTool(uc.SetArvanCloudLogForwarderStatus),
+		listArvanCloudMetricExportersTool(uc.ListArvanCloudMetricExporters),
+		listArvanCloudMetricExporterTypesTool(uc.ListArvanCloudMetricExporterTypes),
+		createArvanCloudMetricExporterTool(uc.CreateArvanCloudMetricExporter),
+		getArvanCloudMetricExporterTool(uc.GetArvanCloudMetricExporter),
+		updateArvanCloudMetricExporterTool(uc.UpdateArvanCloudMetricExporter),
+		deleteArvanCloudMetricExporterTool(uc.DeleteArvanCloudMetricExporter),
+		setArvanCloudMetricExporterStatusTool(uc.SetArvanCloudMetricExporterStatus),
 	}
 }
 

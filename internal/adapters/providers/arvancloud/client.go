@@ -912,11 +912,19 @@ func redactedHeaders(h http.Header) map[string]string {
 // upload request itself is never logged (roundTrip only logs
 // method/URL/redacted headers), but this still guards an unrecognized error
 // response that happens to echo the submitted body back, the same
-// defense-in-depth mapErrorResponse already relies on for secret_key. A
-// debug log is still a log: it gets pasted into issues.
+// defense-in-depth mapErrorResponse already relies on for secret_key.
+// access_key, api_key, app_key and token are LogForwarder.settings' own
+// external-destination credentials (S3 access key, Datadog API/App key,
+// Loggly token — see domain/arvancloud_observability.go's package comment
+// and observability.go's package comment), added for issue #76. A debug log
+// is still a log: it gets pasted into issues.
 var sensitiveResponseFields = map[string]bool{
 	"secret_key":  true,
 	"private_key": true,
+	"access_key":  true,
+	"api_key":     true,
+	"app_key":     true,
+	"token":       true,
 }
 
 // redactedResponseBody renders a response body for the debug log, replacing
