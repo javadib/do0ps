@@ -272,6 +272,18 @@ type UseCases struct {
 	UpdateArvanCloudDdosRule        *app.UpdateArvanCloudDdosRule
 	DeleteArvanCloudDdosRule        *app.DeleteArvanCloudDdosRule
 	ReprioritizeArvanCloudDdosRules *app.ReprioritizeArvanCloudDdosRules
+
+	// ArvanCloud Rate Limiting — per-domain rate settings and rules (issue
+	// #68).
+	GetArvanCloudRateLimitSettings    *app.GetArvanCloudRateLimitSettings
+	UpdateArvanCloudRateLimitSettings *app.UpdateArvanCloudRateLimitSettings
+
+	ListArvanCloudRateLimitRules         *app.ListArvanCloudRateLimitRules
+	CreateArvanCloudRateLimitRule        *app.CreateArvanCloudRateLimitRule
+	GetArvanCloudRateLimitRule           *app.GetArvanCloudRateLimitRule
+	UpdateArvanCloudRateLimitRule        *app.UpdateArvanCloudRateLimitRule
+	DeleteArvanCloudRateLimitRule        *app.DeleteArvanCloudRateLimitRule
+	ReprioritizeArvanCloudRateLimitRules *app.ReprioritizeArvanCloudRateLimitRules
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -549,6 +561,16 @@ func Tools(uc UseCases) []Tool {
 		updateArvanCloudDdosRuleTool(uc.UpdateArvanCloudDdosRule),
 		deleteArvanCloudDdosRuleTool(uc.DeleteArvanCloudDdosRule),
 		reprioritizeArvanCloudDdosRulesTool(uc.ReprioritizeArvanCloudDdosRules),
+
+		getArvanCloudRateLimitSettingsTool(uc.GetArvanCloudRateLimitSettings),
+		updateArvanCloudRateLimitSettingsTool(uc.UpdateArvanCloudRateLimitSettings),
+
+		listArvanCloudRateLimitRulesTool(uc.ListArvanCloudRateLimitRules),
+		createArvanCloudRateLimitRuleTool(uc.CreateArvanCloudRateLimitRule),
+		getArvanCloudRateLimitRuleTool(uc.GetArvanCloudRateLimitRule),
+		updateArvanCloudRateLimitRuleTool(uc.UpdateArvanCloudRateLimitRule),
+		deleteArvanCloudRateLimitRuleTool(uc.DeleteArvanCloudRateLimitRule),
+		reprioritizeArvanCloudRateLimitRulesTool(uc.ReprioritizeArvanCloudRateLimitRules),
 	}
 }
 
