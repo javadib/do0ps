@@ -325,6 +325,32 @@ type UseCases struct {
 
 	GetArvanCloudHealthCheckSummary *app.GetArvanCloudHealthCheckSummary
 	GetArvanCloudHealthCheckDetails *app.GetArvanCloudHealthCheckDetails
+
+	// ArvanCloud Page Rules, Response Transforms, Redirect (www-redirect) and
+	// Host Header Whitelist (issue #71).
+	ListArvanCloudPageRules            *app.ListArvanCloudPageRules
+	CreateArvanCloudPageRule           *app.CreateArvanCloudPageRule
+	GetArvanCloudPageRule              *app.GetArvanCloudPageRule
+	UpdateArvanCloudPageRule           *app.UpdateArvanCloudPageRule
+	SetArvanCloudPageRuleStatus        *app.SetArvanCloudPageRuleStatus
+	DeleteArvanCloudPageRule           *app.DeleteArvanCloudPageRule
+	PurgeArvanCloudPageRuleCache       *app.PurgeArvanCloudPageRuleCache
+	GetArvanCloudPageRuleExceptions    *app.GetArvanCloudPageRuleExceptions
+	UpdateArvanCloudPageRuleExceptions *app.UpdateArvanCloudPageRuleExceptions
+
+	ListArvanCloudResponseTransforms  *app.ListArvanCloudResponseTransforms
+	CreateArvanCloudResponseTransform *app.CreateArvanCloudResponseTransform
+	GetArvanCloudResponseTransform    *app.GetArvanCloudResponseTransform
+	UpdateArvanCloudResponseTransform *app.UpdateArvanCloudResponseTransform
+	DeleteArvanCloudResponseTransform *app.DeleteArvanCloudResponseTransform
+
+	GetArvanCloudWWWRedirect    *app.GetArvanCloudWWWRedirect
+	UpdateArvanCloudWWWRedirect *app.UpdateArvanCloudWWWRedirect
+
+	GetArvanCloudHostHeaderWhitelist         *app.GetArvanCloudHostHeaderWhitelist
+	AddArvanCloudHostHeaderWhitelistEntry    *app.AddArvanCloudHostHeaderWhitelistEntry
+	SetArvanCloudHostHeaderWhitelistSettings *app.SetArvanCloudHostHeaderWhitelistSettings
+	RemoveArvanCloudHostHeaderWhitelistEntry *app.RemoveArvanCloudHostHeaderWhitelistEntry
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -644,6 +670,30 @@ func Tools(uc UseCases) []Tool {
 		listArvanCloudHealthCheckZonesTool(uc.ListArvanCloudHealthCheckZones),
 		getArvanCloudHealthCheckSummaryTool(uc.GetArvanCloudHealthCheckSummary),
 		getArvanCloudHealthCheckDetailsTool(uc.GetArvanCloudHealthCheckDetails),
+
+		listArvanCloudPageRulesTool(uc.ListArvanCloudPageRules),
+		createArvanCloudPageRuleTool(uc.CreateArvanCloudPageRule),
+		getArvanCloudPageRuleTool(uc.GetArvanCloudPageRule),
+		updateArvanCloudPageRuleTool(uc.UpdateArvanCloudPageRule),
+		setArvanCloudPageRuleStatusTool(uc.SetArvanCloudPageRuleStatus),
+		deleteArvanCloudPageRuleTool(uc.DeleteArvanCloudPageRule),
+		purgeArvanCloudPageRuleCacheTool(uc.PurgeArvanCloudPageRuleCache),
+		getArvanCloudPageRuleExceptionsTool(uc.GetArvanCloudPageRuleExceptions),
+		updateArvanCloudPageRuleExceptionsTool(uc.UpdateArvanCloudPageRuleExceptions),
+
+		listArvanCloudResponseTransformsTool(uc.ListArvanCloudResponseTransforms),
+		createArvanCloudResponseTransformTool(uc.CreateArvanCloudResponseTransform),
+		getArvanCloudResponseTransformTool(uc.GetArvanCloudResponseTransform),
+		updateArvanCloudResponseTransformTool(uc.UpdateArvanCloudResponseTransform),
+		deleteArvanCloudResponseTransformTool(uc.DeleteArvanCloudResponseTransform),
+
+		getArvanCloudWWWRedirectTool(uc.GetArvanCloudWWWRedirect),
+		updateArvanCloudWWWRedirectTool(uc.UpdateArvanCloudWWWRedirect),
+
+		getArvanCloudHostHeaderWhitelistTool(uc.GetArvanCloudHostHeaderWhitelist),
+		addArvanCloudHostHeaderWhitelistEntryTool(uc.AddArvanCloudHostHeaderWhitelistEntry),
+		setArvanCloudHostHeaderWhitelistSettingsTool(uc.SetArvanCloudHostHeaderWhitelistSettings),
+		removeArvanCloudHostHeaderWhitelistEntryTool(uc.RemoveArvanCloudHostHeaderWhitelistEntry),
 	}
 }
 
