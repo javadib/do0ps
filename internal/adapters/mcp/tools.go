@@ -311,6 +311,20 @@ type UseCases struct {
 	GetArvanCloudLBPoolOrigin    *app.GetArvanCloudLBPoolOrigin
 	UpdateArvanCloudLBPoolOrigin *app.UpdateArvanCloudLBPoolOrigin
 	DeleteArvanCloudLBPoolOrigin *app.DeleteArvanCloudLBPoolOrigin
+
+	// ArvanCloud Active Health Check — a domain-scoped monitor probing an
+	// origin over TCP or HTTP(S) (issue #70).
+	ListArvanCloudHealthChecks  *app.ListArvanCloudHealthChecks
+	CreateArvanCloudHealthCheck *app.CreateArvanCloudHealthCheck
+	GetArvanCloudHealthCheck    *app.GetArvanCloudHealthCheck
+	UpdateArvanCloudHealthCheck *app.UpdateArvanCloudHealthCheck
+	DeleteArvanCloudHealthCheck *app.DeleteArvanCloudHealthCheck
+
+	ListArvanCloudDomainHealthCheckZones *app.ListArvanCloudDomainHealthCheckZones
+	ListArvanCloudHealthCheckZones       *app.ListArvanCloudHealthCheckZones
+
+	GetArvanCloudHealthCheckSummary *app.GetArvanCloudHealthCheckSummary
+	GetArvanCloudHealthCheckDetails *app.GetArvanCloudHealthCheckDetails
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -620,6 +634,16 @@ func Tools(uc UseCases) []Tool {
 		getArvanCloudLBPoolOriginTool(uc.GetArvanCloudLBPoolOrigin),
 		updateArvanCloudLBPoolOriginTool(uc.UpdateArvanCloudLBPoolOrigin),
 		deleteArvanCloudLBPoolOriginTool(uc.DeleteArvanCloudLBPoolOrigin),
+
+		listArvanCloudHealthChecksTool(uc.ListArvanCloudHealthChecks),
+		createArvanCloudHealthCheckTool(uc.CreateArvanCloudHealthCheck),
+		getArvanCloudHealthCheckTool(uc.GetArvanCloudHealthCheck),
+		updateArvanCloudHealthCheckTool(uc.UpdateArvanCloudHealthCheck),
+		deleteArvanCloudHealthCheckTool(uc.DeleteArvanCloudHealthCheck),
+		listArvanCloudDomainHealthCheckZonesTool(uc.ListArvanCloudDomainHealthCheckZones),
+		listArvanCloudHealthCheckZonesTool(uc.ListArvanCloudHealthCheckZones),
+		getArvanCloudHealthCheckSummaryTool(uc.GetArvanCloudHealthCheckSummary),
+		getArvanCloudHealthCheckDetailsTool(uc.GetArvanCloudHealthCheckDetails),
 	}
 }
 
