@@ -62,6 +62,10 @@ const (
 	JobTypeProvisionLoadBalancer JobType = "provision_load_balancer"
 	JobTypeCreateSnapshot        JobType = "create_snapshot"
 	JobTypeRestoreVM             JobType = "restore_vm"
+	// JobTypeIssueArvanCloudManagedCertificate drives an ArvanCloud managed
+	// (free/automatic) certificate order to a terminal state (issue #73). See
+	// ArvanCloudCertificateOrderStatus for the state machine it polls.
+	JobTypeIssueArvanCloudManagedCertificate JobType = "issue_arvancloud_managed_certificate"
 )
 
 // InterruptedReason marks a job whose in-process execution was lost to a

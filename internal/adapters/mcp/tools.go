@@ -369,6 +369,20 @@ type UseCases struct {
 	GetArvanCloudCustomPageFile    *app.GetArvanCloudCustomPageFile
 	UpdateArvanCloudCustomPageFile *app.UpdateArvanCloudCustomPageFile
 	DeleteArvanCloudCustomPageFile *app.DeleteArvanCloudCustomPageFile
+
+	// ArvanCloud SSL/TLS — domain-scoped settings, uploaded/managed
+	// certificates, and the managed-certificate issuance workflow (issue
+	// #73). IssueArvanCloudManagedCertificate is the one long operation.
+	GetArvanCloudSslSettings          *app.GetArvanCloudSslSettings
+	UpdateArvanCloudSslSettings       *app.UpdateArvanCloudSslSettings
+	ListArvanCloudCertificates        *app.ListArvanCloudCertificates
+	UploadArvanCloudCertificate       *app.UploadArvanCloudCertificate
+	GetArvanCloudCertificate          *app.GetArvanCloudCertificate
+	DeleteArvanCloudCertificate       *app.DeleteArvanCloudCertificate
+	RevokeArvanCloudCertificate       *app.RevokeArvanCloudCertificate
+	ListArvanCloudSslOrders           *app.ListArvanCloudSslOrders
+	IssueArvanCloudManagedCertificate *app.IssueArvanCloudManagedCertificate
+	RetryArvanCloudSslOrder           *app.RetryArvanCloudSslOrder
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -729,6 +743,17 @@ func Tools(uc UseCases) []Tool {
 		getArvanCloudCustomPageFileTool(uc.GetArvanCloudCustomPageFile),
 		updateArvanCloudCustomPageFileTool(uc.UpdateArvanCloudCustomPageFile),
 		deleteArvanCloudCustomPageFileTool(uc.DeleteArvanCloudCustomPageFile),
+
+		getArvanCloudSslSettingsTool(uc.GetArvanCloudSslSettings),
+		updateArvanCloudSslSettingsTool(uc.UpdateArvanCloudSslSettings),
+		listArvanCloudCertificatesTool(uc.ListArvanCloudCertificates),
+		uploadArvanCloudCertificateTool(uc.UploadArvanCloudCertificate),
+		getArvanCloudCertificateTool(uc.GetArvanCloudCertificate),
+		deleteArvanCloudCertificateTool(uc.DeleteArvanCloudCertificate),
+		revokeArvanCloudCertificateTool(uc.RevokeArvanCloudCertificate),
+		listArvanCloudSslOrdersTool(uc.ListArvanCloudSslOrders),
+		issueArvanCloudManagedCertificateTool(uc.IssueArvanCloudManagedCertificate),
+		retryArvanCloudSslOrderTool(uc.RetryArvanCloudSslOrder),
 	}
 }
 

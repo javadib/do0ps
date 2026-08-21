@@ -417,6 +417,82 @@ func (c *Client) doMultipart(ctx context.Context, creds domain.ProviderCredentia
 	return nil
 }
 
+// doCertificateUpload uploads a customer certificate and its private key as
+// two multipart/form-data file parts (ssl.cert.store, the CertificateStore
+// schema: {"certificate": <binary>, "private_key": <binary>}), decoding the
+// response envelope's "data" into out (nil to discard, since ssl.cert.store's
+// 201 response carries only a confirmation message — see
+// ports.ArvanCloudProvider.UploadArvanCloudCertificate's doc comment), with
+// the same retry/error-mapping behavior as doJSON.
+//
+// privateKey is caller-supplied sensitive material (AGENTS.md 4.2's
+// credential-handling principle extended to this field, per issue #73): it
+// is sent straight through in the request body, which — like every request
+// this client sends — is never logged (see roundTrip's own comment); only
+// the method/URL/redacted headers reach the debug log.
+func (c *Client) doCertificateUpload(ctx context.Context, creds domain.ProviderCredentials, method, path string, certificate, privateKey []byte, out any) error {
+	authorization, err := authorizationHeader(creds.APIKey)
+	if err != nil {
+		return fmt.Errorf("building %s %s request: %w", method, path, err)
+	}
+
+	var env envelope
+	attempt := 0
+	operation := func() error {
+		if attempt > 0 && c.nowRetrying != nil {
+			c.nowRetrying()
+		}
+		attempt++
+		env = envelope{}
+
+		var buf bytes.Buffer
+		writer := multipart.NewWriter(&buf)
+		for _, part := range []struct {
+			field, filename string
+			content         []byte
+		}{
+			{"certificate", "certificate.pem", certificate},
+			{"private_key", "private_key.pem", privateKey},
+		} {
+			w, err := writer.CreateFormFile(part.field, part.filename)
+			if err != nil {
+				return backoff.Permanent(fmt.Errorf("building multipart body for %s %s: %w", method, path, err))
+			}
+			if _, err := w.Write(part.content); err != nil {
+				return backoff.Permanent(fmt.Errorf("writing multipart body for %s %s: %w", method, path, err))
+			}
+		}
+		if err := writer.Close(); err != nil {
+			return backoff.Permanent(fmt.Errorf("closing multipart body for %s %s: %w", method, path, err))
+		}
+
+		data, err := c.roundTrip(ctx, authorization, method, path, writer.FormDataContentType(), "application/json", buf.Bytes())
+		if err != nil {
+			return err
+		}
+		if len(data) == 0 {
+			return nil
+		}
+		if err := json.Unmarshal(data, &env); err != nil {
+			return backoff.Permanent(fmt.Errorf("decoding %s %s response: %w", method, path, err))
+		}
+		return nil
+	}
+
+	sequence := backoff.WithContext(backoff.WithMaxRetries(c.newBackOff(), c.maxRetries), ctx)
+	if err := backoff.Retry(operation, sequence); err != nil {
+		return err
+	}
+
+	if out == nil || len(env.Data) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(env.Data, out); err != nil {
+		return fmt.Errorf("decoding %s %s response data: %w", method, path, err)
+	}
+	return nil
+}
+
 // multipartFormFile describes the one optional binary part a doMultipartForm
 // request may carry, alongside its plain string fields.
 type multipartFormFile struct {
@@ -779,9 +855,17 @@ func redactedHeaders(h http.Header) map[string]string {
 // just as sensitive: DdosSettings.secret_key is the CAPTCHA provider's own
 // secret key, caller-supplied and passed straight through (see
 // domain.ArvanCloudDdosSettings.SecretKey's doc comment and ddos.go's
-// package comment). A debug log is still a log: it gets pasted into issues.
+// package comment). private_key is CertificateStore's caller-supplied
+// certificate private key (see ssl.go's package comment and
+// ports.ArvanCloudProvider.UploadArvanCloudCertificate's doc comment) — the
+// upload request itself is never logged (roundTrip only logs
+// method/URL/redacted headers), but this still guards an unrecognized error
+// response that happens to echo the submitted body back, the same
+// defense-in-depth mapErrorResponse already relies on for secret_key. A
+// debug log is still a log: it gets pasted into issues.
 var sensitiveResponseFields = map[string]bool{
-	"secret_key": true,
+	"secret_key":  true,
+	"private_key": true,
 }
 
 // redactedResponseBody renders a response body for the debug log, replacing

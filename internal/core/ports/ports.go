@@ -1103,6 +1103,69 @@ type ArvanCloudProvider interface {
 	// between a caller's read and delete; whatever the provider reports is
 	// propagated as-is.
 	DeleteArvanCloudCustomPageFile(ctx context.Context, creds domain.ProviderCredentials, domainName, fileID string) error
+
+	// SSL/TLS — domain-scoped settings plus uploaded/managed certificates
+	// (issue #73): a domain's SSL settings, the certificates attached to it,
+	// and the account-side workflow that drives an ArvanCloud-managed
+	// certificate to issuance. Deliberately NOT the account-scoped Certum
+	// certificate ordering workflow (a distinct purchase/issuance product,
+	// tracked separately in issue #74/AC14) — see domain/arvancloud_ssl.go's
+	// package comment for the same base-concern split this project already
+	// made for Parspack's own SSL surfaces (AGENTS.md 4.5, issue #18).
+	//
+	// All fast operations except IssueArvanCloudManagedCertificate, which
+	// starts a CertificateOrder in a non-terminal status
+	// (domain.ArvanCloudCertificateOrderStatus) that ArvanCloud drives toward
+	// "valid" or "killed" over time — a long operation (AGENTS.md 4.3), the
+	// same shape as Parspack's CreateSSLOrder/ProcessSSLOrder flow.
+	GetArvanCloudSslSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudSslSettings, error)
+	UpdateArvanCloudSslSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string, settings domain.ArvanCloudSslSettings) (*domain.ArvanCloudSslSettings, error)
+
+	ListArvanCloudCertificates(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudCertificate, error)
+	// UploadArvanCloudCertificate stores a customer-owned certificate
+	// (ssl.cert.store). The endpoint's response carries no data (just a
+	// confirmation message), so this returns only an error; a caller wanting
+	// the new certificate's provider-assigned ID calls
+	// ListArvanCloudCertificates afterward. certificatePEM/privateKeyPEM are
+	// sent exactly as given, multipart/form-data per the spec's
+	// CertificateStore schema — privateKeyPEM is caller-supplied sensitive
+	// material, never logged and never persisted beyond this call (AGENTS.md
+	// 4.2's credential-handling principle extended to this field, per issue
+	// #73's explicit scope note).
+	UploadArvanCloudCertificate(ctx context.Context, creds domain.ProviderCredentials, domainName string, certificatePEM, privateKeyPEM []byte) error
+	GetArvanCloudCertificate(ctx context.Context, creds domain.ProviderCredentials, domainName, certificateID string) (*domain.ArvanCloudCertificate, error)
+	// DeleteArvanCloudCertificate removes an unused certificate by id. As
+	// with DeleteDomain, an already-absent certificate reports
+	// domain.ErrNotFound rather than succeeding silently.
+	DeleteArvanCloudCertificate(ctx context.Context, creds domain.ProviderCredentials, domainName, certificateID string) error
+	// RevokeArvanCloudCertificate revokes a certificate for security reasons
+	// (ssl.cert.revoke). The endpoint's response carries no data, so this
+	// returns only an error.
+	RevokeArvanCloudCertificate(ctx context.Context, creds domain.ProviderCredentials, domainName, certificateID string) error
+
+	// ListArvanCloudSslOrders returns the domain's managed-certificate order
+	// history (ssl.cert.order.index), newest activity included — the same
+	// data a caller polls to track an order IssueArvanCloudManagedCertificate
+	// started, and what crash recovery consults to reconcile an interrupted
+	// issuance job (AGENTS.md 4.4) instead of calling
+	// IssueArvanCloudManagedCertificate a second time.
+	ListArvanCloudSslOrders(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudCertificateOrder, error)
+	// IssueArvanCloudManagedCertificate requests issuance of a managed
+	// (ArvanCloud-issued, free/automatic) certificate for the domain
+	// (ssl.cert.issue) and returns the order it started. This is a LONG
+	// operation (AGENTS.md 4.3) — see this interface's own doc comment above
+	// and domain.ArvanCloudCertificateOrderStatus. Not assumed idempotent by
+	// itself; the use case above it (app.IssueArvanCloudManagedCertificate)
+	// is responsible for not calling this a second time for a domain that
+	// already has an order in flight, checking ListArvanCloudSslOrders first.
+	IssueArvanCloudManagedCertificate(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudCertificateOrder, error)
+	// RetryArvanCloudSslOrder retries a previously "killed" order
+	// (ssl.cert.order.retry) — the manual-intervention path
+	// domain.ArvanCloudCertificateOrderStatusKilled's own doc comment
+	// describes. The endpoint's response carries no data, so this returns
+	// only an error; a caller wanting the retried order's state afterward
+	// calls ListArvanCloudSslOrders.
+	RetryArvanCloudSslOrder(ctx context.Context, creds domain.ProviderCredentials, domainName string) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
