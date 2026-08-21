@@ -616,6 +616,64 @@ type ArvanCloudProvider interface {
 	// RemoveArvanCloudDynamicFieldItem removes one item from a list by the
 	// item's own id (domain.ArvanCloudDynamicFieldValue.ID), not an index.
 	RemoveArvanCloudDynamicFieldItem(ctx context.Context, creds domain.ProviderCredentials, id, itemID string) error
+
+	// Firewall — domain-level, scoped to a domain by name (issue #65): the
+	// CDN edge-level L7 firewall, evaluated per-request against each rule's
+	// filter_expr. Naming collision warning: this has no relationship to any
+	// future ArvanCloud IaaS/cloud-server firewall (AGENTS.md 4.1/4.5, see
+	// domain/arvancloud_firewall.go's package comment). All fast operations.
+	//
+	// CreateArvanCloudFirewallRule is not assumed idempotent (see this
+	// interface's own doc comment above); a caller that must not duplicate a
+	// rule on retry checks first, e.g. via ListArvanCloudFirewallRules.
+	GetArvanCloudFirewallSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudFirewallSettings, error)
+	UpdateArvanCloudFirewallSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string, settings domain.ArvanCloudFirewallSettings) (*domain.ArvanCloudFirewallSettings, error)
+	ListArvanCloudFirewallRules(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudFirewallRule, error)
+	CreateArvanCloudFirewallRule(ctx context.Context, creds domain.ProviderCredentials, domainName string, rule domain.ArvanCloudFirewallRule) (*domain.ArvanCloudFirewallRule, error)
+	GetArvanCloudFirewallRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudFirewallRule, error)
+	UpdateArvanCloudFirewallRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, rule domain.ArvanCloudFirewallRule) (*domain.ArvanCloudFirewallRule, error)
+	// DeleteArvanCloudFirewallRule removes a rule by id. As with
+	// DeleteDomain, an already-absent rule reports domain.ErrNotFound rather
+	// than succeeding silently.
+	DeleteArvanCloudFirewallRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+	// ReprioritizeArvanCloudFirewallRules moves ruleID to a new position
+	// relative to another rule: exactly one of afterRuleID/beforeRuleID
+	// should be given, per the spec's ReprioritizeRuleRequest description
+	// ("You should only provide either after_rule_id or before_rule_id (and
+	// not both of them)").
+	ReprioritizeArvanCloudFirewallRules(ctx context.Context, creds domain.ProviderCredentials, domainName, ruleID, afterRuleID, beforeRuleID string) error
+
+	// Firewall — account-level (issue #65): the same rule shape as the
+	// domain-level firewall above, but applied across a settable subset of
+	// the account's domains (domain.ArvanCloudAccountFirewallRule's
+	// DomainSelectionType/DomainIDs) instead of one domain named in the URL
+	// path. Unlike every domain-scoped method above, none of these take a
+	// domainName. All fast operations.
+	//
+	// ListArvanCloudAccountFirewallValidDomains lists the account's active
+	// enterprise domains eligible to be targeted by DomainIDs on create or
+	// via Attach/DetachArvanCloudAccountFirewallDomains below.
+	ListArvanCloudAccountFirewallValidDomains(ctx context.Context, creds domain.ProviderCredentials) ([]domain.ArvanCloudAccountFirewallValidDomain, error)
+	ListArvanCloudAccountFirewallRules(ctx context.Context, creds domain.ProviderCredentials) ([]domain.ArvanCloudAccountFirewallRule, error)
+	// CreateArvanCloudAccountFirewallRule is not assumed idempotent, same as
+	// CreateArvanCloudFirewallRule above.
+	CreateArvanCloudAccountFirewallRule(ctx context.Context, creds domain.ProviderCredentials, rule domain.ArvanCloudAccountFirewallRule) (*domain.ArvanCloudAccountFirewallRule, error)
+	GetArvanCloudAccountFirewallRule(ctx context.Context, creds domain.ProviderCredentials, id string) (*domain.ArvanCloudAccountFirewallRule, error)
+	UpdateArvanCloudAccountFirewallRule(ctx context.Context, creds domain.ProviderCredentials, id string, rule domain.ArvanCloudAccountFirewallRule) (*domain.ArvanCloudAccountFirewallRule, error)
+	// DeleteArvanCloudAccountFirewallRule removes a rule by id. As with
+	// DeleteDomain, an already-absent rule reports domain.ErrNotFound rather
+	// than succeeding silently.
+	DeleteArvanCloudAccountFirewallRule(ctx context.Context, creds domain.ProviderCredentials, id string) error
+	// AttachArvanCloudAccountFirewallDomains/DetachArvanCloudAccountFirewallDomains
+	// add or remove domains from an "include"/"exclude" rule's DomainIDs
+	// without resubmitting the whole rule. Both return the rule as stored
+	// afterward.
+	AttachArvanCloudAccountFirewallDomains(ctx context.Context, creds domain.ProviderCredentials, id string, domainIDs []string) (*domain.ArvanCloudAccountFirewallRule, error)
+	DetachArvanCloudAccountFirewallDomains(ctx context.Context, creds domain.ProviderCredentials, id string, domainIDs []string) (*domain.ArvanCloudAccountFirewallRule, error)
+	// ReprioritizeArvanCloudAccountFirewallRules moves ruleID to a new
+	// position, same "exactly one of after/before" contract as
+	// ReprioritizeArvanCloudFirewallRules above.
+	ReprioritizeArvanCloudAccountFirewallRules(ctx context.Context, creds domain.ProviderCredentials, ruleID, afterRuleID, beforeRuleID string) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
