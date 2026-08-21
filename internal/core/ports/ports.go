@@ -1221,6 +1221,76 @@ type ArvanCloudProvider interface {
 	// FAST operation (AGENTS.md 4.3): see
 	// domain.ArvanCloudCertificateInstallResult's own doc comment for why.
 	InstallArvanCloudAccountCertificate(ctx context.Context, creds domain.ProviderCredentials, orderID string) (*domain.ArvanCloudCertificateInstallResult, error)
+
+	// Reports (per-domain) and Aggregated Reports (account-wide) (issue #75):
+	// pure GET traffic/security/DNS analytics, confirmed against
+	// docs/api-specs/arvancloud-cdn-4.0.yml's "Reports" and "Aggregated
+	// Reports" tags. All fast operations (AGENTS.md 4.3) — every one of
+	// these API calls returns synchronously, with no operation_id to poll
+	// afterward. See domain/arvancloud_reports.go's package comment for the
+	// shared response building blocks (ArvanCloudReportChart,
+	// ArvanCloudPieSlice, ArvanCloudGeoMapEntry) most of the methods below
+	// return pieces of.
+	//
+	// Every per-domain report's query parameters live on one shared
+	// domain.ArvanCloudReportQuery — see that type's own field comments for
+	// exactly which endpoints honor which field, since the spec does not
+	// apply the same parameter set to every endpoint here.
+	GetArvanCloudTrafficReport(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudTrafficReport, error)
+	GetArvanCloudTrafficSavedReport(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudTrafficSavedReport, error)
+	GetArvanCloudTrafficMap(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudTrafficMapReport, error)
+	GetArvanCloudVisitorsReport(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudVisitorsReport, error)
+	// ListArvanCloudHighRequestIPs is the one paginated report among the
+	// non-attack per-domain endpoints (reports.visitors.high-request-ips).
+	ListArvanCloudHighRequestIPs(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) ([]domain.ArvanCloudHighRequestIP, domain.ArvanCloudReportPageMeta, error)
+	GetArvanCloudResponseTimeReport(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudResponseTimeReport, error)
+	GetArvanCloudStatusCodeReport(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudStatusCodeReport, error)
+	GetArvanCloudStatusCodeSummary(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudStatusCodeSummary, error)
+	ListArvanCloudErrorLogs(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) ([]domain.ArvanCloudErrorLog, error)
+	GetArvanCloudErrorLogsChart(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudErrorLogsChart, error)
+	// GetArvanCloudErrorLogDetail is deprecated in the spec
+	// (reports.error-log-details) but still implemented, the same
+	// "implement it anyway" convention this port already applies to other
+	// deprecated-but-live endpoints (e.g. ListArvanCloudLBRegions).
+	// query.Error is the error message to search for; see
+	// domain.ArvanCloudErrorLogDetail's own doc comment for why its result
+	// has no confirmed shape beyond raw JSON.
+	GetArvanCloudErrorLogDetail(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudErrorLogDetail, error)
+	GetArvanCloudDnsRequestsReport(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudDnsRequestsReport, error)
+	GetArvanCloudDnsGeoReport(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudDnsGeoReport, error)
+	GetArvanCloudAttackReport(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudAttackReport, error)
+	// ListArvanCloudAttacks is the other paginated report among the
+	// per-domain endpoints (reports.attacks.index).
+	ListArvanCloudAttacks(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) ([]domain.ArvanCloudAttackReportItem, domain.ArvanCloudReportPageMeta, error)
+	ListArvanCloudAttackers(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) ([]domain.ArvanCloudAttacker, error)
+	GetArvanCloudAttackMap(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudAttackMapReport, error)
+	ListArvanCloudAttackedURIs(ctx context.Context, creds domain.ProviderCredentials, domainName string, query domain.ArvanCloudReportQuery) ([]domain.ArvanCloudAttackedURI, error)
+	// GetArvanCloudTransportLayerProxyTraffic reports traffic for one
+	// Transport Layer Proxy (reports.transport_layer_proxies.traffics).
+	// transportLayerProxyID is a caller-supplied opaque ID: the spec
+	// declares no create/list endpoint anywhere for this resource type, so
+	// this port does not invent CRUD for it just to backfill an ID lookup —
+	// see domain.ArvanCloudTransportLayerProxyTraffic's own doc comment.
+	GetArvanCloudTransportLayerProxyTraffic(ctx context.Context, creds domain.ProviderCredentials, domainName, transportLayerProxyID string, query domain.ArvanCloudReportQuery) (*domain.ArvanCloudTransportLayerProxyTraffic, error)
+	// DownloadArvanCloudDomainsReport returns a CSV export of the domains
+	// report (domains.reports.download) — unlike every other method above,
+	// it is NOT scoped to a single domain (no domainName parameter): the
+	// spec declares it with no parameters at all, across every domain
+	// visible to the credentials. The response body is not JSON (the spec
+	// declares its 200 response as text/csv), the same "return the raw
+	// body" convention ExportArvanCloudDNSRecords uses for its own
+	// text/plain response.
+	DownloadArvanCloudDomainsReport(ctx context.Context, creds domain.ProviderCredentials) (string, error)
+
+	// Aggregated Reports, account-wide (no domain path segment at all,
+	// unlike every method above). Every query parameter lives on
+	// domain.ArvanCloudAggregatedReportQuery — see that type's own field
+	// comments for which of the three endpoints below honor which field.
+	ListArvanCloudAggregatedReportDetails(ctx context.Context, creds domain.ProviderCredentials, query domain.ArvanCloudAggregatedReportQuery) ([]domain.ArvanCloudAggregatedReportDetail, domain.ArvanCloudReportPageMeta, error)
+	// GetArvanCloudAggregatedReportCharts returns the single chart the
+	// spec's reports.aggregated.charts nests under data.charts.
+	GetArvanCloudAggregatedReportCharts(ctx context.Context, creds domain.ProviderCredentials, query domain.ArvanCloudAggregatedReportQuery) (*domain.ArvanCloudReportChart, error)
+	GetArvanCloudAggregatedReportFilters(ctx context.Context, creds domain.ProviderCredentials, query domain.ArvanCloudAggregatedReportQuery) (*domain.ArvanCloudAggregatedReportFilters, error)
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic

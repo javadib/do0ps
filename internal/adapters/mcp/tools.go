@@ -393,6 +393,33 @@ type UseCases struct {
 	RevokeArvanCloudAccountCertificate     *app.RevokeArvanCloudAccountCertificate
 	ReissueArvanCloudAccountCertificate    *app.ReissueArvanCloudAccountCertificate
 	InstallArvanCloudAccountCertificate    *app.InstallArvanCloudAccountCertificate
+
+	// ArvanCloud Reports (per-domain) and Aggregated Reports (account-wide)
+	// (issue #75). All fast operations.
+	GetArvanCloudTrafficReport              *app.GetArvanCloudTrafficReport
+	GetArvanCloudTrafficSavedReport         *app.GetArvanCloudTrafficSavedReport
+	GetArvanCloudTrafficMap                 *app.GetArvanCloudTrafficMap
+	GetArvanCloudVisitorsReport             *app.GetArvanCloudVisitorsReport
+	ListArvanCloudHighRequestIPs            *app.ListArvanCloudHighRequestIPs
+	GetArvanCloudResponseTimeReport         *app.GetArvanCloudResponseTimeReport
+	GetArvanCloudStatusCodeReport           *app.GetArvanCloudStatusCodeReport
+	GetArvanCloudStatusCodeSummary          *app.GetArvanCloudStatusCodeSummary
+	ListArvanCloudErrorLogs                 *app.ListArvanCloudErrorLogs
+	GetArvanCloudErrorLogsChart             *app.GetArvanCloudErrorLogsChart
+	GetArvanCloudErrorLogDetail             *app.GetArvanCloudErrorLogDetail
+	GetArvanCloudDnsRequestsReport          *app.GetArvanCloudDnsRequestsReport
+	GetArvanCloudDnsGeoReport               *app.GetArvanCloudDnsGeoReport
+	GetArvanCloudAttackReport               *app.GetArvanCloudAttackReport
+	ListArvanCloudAttacks                   *app.ListArvanCloudAttacks
+	ListArvanCloudAttackers                 *app.ListArvanCloudAttackers
+	GetArvanCloudAttackMap                  *app.GetArvanCloudAttackMap
+	ListArvanCloudAttackedURIs              *app.ListArvanCloudAttackedURIs
+	GetArvanCloudTransportLayerProxyTraffic *app.GetArvanCloudTransportLayerProxyTraffic
+	DownloadArvanCloudDomainsReport         *app.DownloadArvanCloudDomainsReport
+
+	ListArvanCloudAggregatedReportDetails *app.ListArvanCloudAggregatedReportDetails
+	GetArvanCloudAggregatedReportCharts   *app.GetArvanCloudAggregatedReportCharts
+	GetArvanCloudAggregatedReportFilters  *app.GetArvanCloudAggregatedReportFilters
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -772,6 +799,31 @@ func Tools(uc UseCases) []Tool {
 		revokeArvanCloudAccountCertificateTool(uc.RevokeArvanCloudAccountCertificate),
 		reissueArvanCloudAccountCertificateTool(uc.ReissueArvanCloudAccountCertificate),
 		installArvanCloudAccountCertificateTool(uc.InstallArvanCloudAccountCertificate),
+
+		getArvanCloudTrafficReportTool(uc.GetArvanCloudTrafficReport),
+		getArvanCloudTrafficSavedReportTool(uc.GetArvanCloudTrafficSavedReport),
+		getArvanCloudTrafficMapTool(uc.GetArvanCloudTrafficMap),
+		getArvanCloudVisitorsReportTool(uc.GetArvanCloudVisitorsReport),
+		getArvanCloudHighRequestIPsTool(uc.ListArvanCloudHighRequestIPs),
+		getArvanCloudResponseTimeReportTool(uc.GetArvanCloudResponseTimeReport),
+		getArvanCloudStatusCodeReportTool(uc.GetArvanCloudStatusCodeReport),
+		getArvanCloudStatusCodeSummaryTool(uc.GetArvanCloudStatusCodeSummary),
+		listArvanCloudErrorLogsTool(uc.ListArvanCloudErrorLogs),
+		getArvanCloudErrorLogsChartTool(uc.GetArvanCloudErrorLogsChart),
+		getArvanCloudErrorLogDetailsTool(uc.GetArvanCloudErrorLogDetail),
+		getArvanCloudDnsRequestsReportTool(uc.GetArvanCloudDnsRequestsReport),
+		getArvanCloudDnsGeoReportTool(uc.GetArvanCloudDnsGeoReport),
+		getArvanCloudAttackReportTool(uc.GetArvanCloudAttackReport),
+		listArvanCloudAttacksTool(uc.ListArvanCloudAttacks),
+		listArvanCloudAttackersTool(uc.ListArvanCloudAttackers),
+		getArvanCloudAttackMapTool(uc.GetArvanCloudAttackMap),
+		listArvanCloudAttackedURIsTool(uc.ListArvanCloudAttackedURIs),
+		getArvanCloudTransportLayerProxyTrafficTool(uc.GetArvanCloudTransportLayerProxyTraffic),
+		downloadArvanCloudDomainsReportTool(uc.DownloadArvanCloudDomainsReport),
+
+		listArvanCloudAggregatedReportDetailsTool(uc.ListArvanCloudAggregatedReportDetails),
+		getArvanCloudAggregatedReportChartsTool(uc.GetArvanCloudAggregatedReportCharts),
+		getArvanCloudAggregatedReportFiltersTool(uc.GetArvanCloudAggregatedReportFilters),
 	}
 }
 

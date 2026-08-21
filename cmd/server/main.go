@@ -382,6 +382,31 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		return err
 	}
 
+	// --- ArvanCloud Reports & Aggregated Reports (issue #75) --------------
+	getArvanCloudTrafficReport := app.NewGetArvanCloudTrafficReport(pool, arvanProvider)
+	getArvanCloudTrafficSavedReport := app.NewGetArvanCloudTrafficSavedReport(pool, arvanProvider)
+	getArvanCloudTrafficMap := app.NewGetArvanCloudTrafficMap(pool, arvanProvider)
+	getArvanCloudVisitorsReport := app.NewGetArvanCloudVisitorsReport(pool, arvanProvider)
+	listArvanCloudHighRequestIPs := app.NewListArvanCloudHighRequestIPs(pool, arvanProvider)
+	getArvanCloudResponseTimeReport := app.NewGetArvanCloudResponseTimeReport(pool, arvanProvider)
+	getArvanCloudStatusCodeReport := app.NewGetArvanCloudStatusCodeReport(pool, arvanProvider)
+	getArvanCloudStatusCodeSummary := app.NewGetArvanCloudStatusCodeSummary(pool, arvanProvider)
+	listArvanCloudErrorLogs := app.NewListArvanCloudErrorLogs(pool, arvanProvider)
+	getArvanCloudErrorLogsChart := app.NewGetArvanCloudErrorLogsChart(pool, arvanProvider)
+	getArvanCloudErrorLogDetail := app.NewGetArvanCloudErrorLogDetail(pool, arvanProvider)
+	getArvanCloudDnsRequestsReport := app.NewGetArvanCloudDnsRequestsReport(pool, arvanProvider)
+	getArvanCloudDnsGeoReport := app.NewGetArvanCloudDnsGeoReport(pool, arvanProvider)
+	getArvanCloudAttackReport := app.NewGetArvanCloudAttackReport(pool, arvanProvider)
+	listArvanCloudAttacks := app.NewListArvanCloudAttacks(pool, arvanProvider)
+	listArvanCloudAttackers := app.NewListArvanCloudAttackers(pool, arvanProvider)
+	getArvanCloudAttackMap := app.NewGetArvanCloudAttackMap(pool, arvanProvider)
+	listArvanCloudAttackedURIs := app.NewListArvanCloudAttackedURIs(pool, arvanProvider)
+	getArvanCloudTransportLayerProxyTraffic := app.NewGetArvanCloudTransportLayerProxyTraffic(pool, arvanProvider)
+	downloadArvanCloudDomainsReport := app.NewDownloadArvanCloudDomainsReport(pool, arvanProvider)
+	listArvanCloudAggregatedReportDetails := app.NewListArvanCloudAggregatedReportDetails(pool, arvanProvider)
+	getArvanCloudAggregatedReportCharts := app.NewGetArvanCloudAggregatedReportCharts(pool, arvanProvider)
+	getArvanCloudAggregatedReportFilters := app.NewGetArvanCloudAggregatedReportFilters(pool, arvanProvider)
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Register(domain.JobTypeCreateSnapshot, createSnapshot.Handle)
 	pool.Register(domain.JobTypeRestoreVM, restoreVM.Handle)
@@ -611,6 +636,31 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		RevokeArvanCloudAccountCertificate:     revokeArvanCloudAccountCertificate,
 		ReissueArvanCloudAccountCertificate:    reissueArvanCloudAccountCertificate,
 		InstallArvanCloudAccountCertificate:    installArvanCloudAccountCertificate,
+
+		GetArvanCloudTrafficReport:              getArvanCloudTrafficReport,
+		GetArvanCloudTrafficSavedReport:         getArvanCloudTrafficSavedReport,
+		GetArvanCloudTrafficMap:                 getArvanCloudTrafficMap,
+		GetArvanCloudVisitorsReport:             getArvanCloudVisitorsReport,
+		ListArvanCloudHighRequestIPs:            listArvanCloudHighRequestIPs,
+		GetArvanCloudResponseTimeReport:         getArvanCloudResponseTimeReport,
+		GetArvanCloudStatusCodeReport:           getArvanCloudStatusCodeReport,
+		GetArvanCloudStatusCodeSummary:          getArvanCloudStatusCodeSummary,
+		ListArvanCloudErrorLogs:                 listArvanCloudErrorLogs,
+		GetArvanCloudErrorLogsChart:             getArvanCloudErrorLogsChart,
+		GetArvanCloudErrorLogDetail:             getArvanCloudErrorLogDetail,
+		GetArvanCloudDnsRequestsReport:          getArvanCloudDnsRequestsReport,
+		GetArvanCloudDnsGeoReport:               getArvanCloudDnsGeoReport,
+		GetArvanCloudAttackReport:               getArvanCloudAttackReport,
+		ListArvanCloudAttacks:                   listArvanCloudAttacks,
+		ListArvanCloudAttackers:                 listArvanCloudAttackers,
+		GetArvanCloudAttackMap:                  getArvanCloudAttackMap,
+		ListArvanCloudAttackedURIs:              listArvanCloudAttackedURIs,
+		GetArvanCloudTransportLayerProxyTraffic: getArvanCloudTransportLayerProxyTraffic,
+		DownloadArvanCloudDomainsReport:         downloadArvanCloudDomainsReport,
+
+		ListArvanCloudAggregatedReportDetails: listArvanCloudAggregatedReportDetails,
+		GetArvanCloudAggregatedReportCharts:   getArvanCloudAggregatedReportCharts,
+		GetArvanCloudAggregatedReportFilters:  getArvanCloudAggregatedReportFilters,
 	}), mcp.WithLogger(logger), mcp.WithInfo(mcp.Info{Name: "do0ps", Version: version}))
 	if err != nil {
 		return err
