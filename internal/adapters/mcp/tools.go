@@ -237,6 +237,29 @@ type UseCases struct {
 	AttachArvanCloudAccountFirewallDomains     *app.AttachArvanCloudAccountFirewallDomains
 	DetachArvanCloudAccountFirewallDomains     *app.DetachArvanCloudAccountFirewallDomains
 	ReprioritizeArvanCloudAccountFirewallRules *app.ReprioritizeArvanCloudAccountFirewallRules
+
+	// ArvanCloud WAF — global reference data, per-domain configuration,
+	// custom rules and package subscriptions (issue #66).
+	ListArvanCloudWafPresets          *app.ListArvanCloudWafPresets
+	GetArvanCloudWafPackage           *app.GetArvanCloudWafPackage
+	GetArvanCloudWafPackageRules      *app.GetArvanCloudWafPackageRules
+	GetArvanCloudWafSettings          *app.GetArvanCloudWafSettings
+	UpdateArvanCloudWafSettings       *app.UpdateArvanCloudWafSettings
+	ReconfigureArvanCloudWaf          *app.ReconfigureArvanCloudWaf
+	ReprioritizeArvanCloudWafRules    *app.ReprioritizeArvanCloudWafRules
+	ReprioritizeArvanCloudWafPackages *app.ReprioritizeArvanCloudWafPackages
+
+	ListArvanCloudWafRules  *app.ListArvanCloudWafRules
+	CreateArvanCloudWafRule *app.CreateArvanCloudWafRule
+	GetArvanCloudWafRule    *app.GetArvanCloudWafRule
+	UpdateArvanCloudWafRule *app.UpdateArvanCloudWafRule
+	DeleteArvanCloudWafRule *app.DeleteArvanCloudWafRule
+
+	ListArvanCloudWafDomainPackages  *app.ListArvanCloudWafDomainPackages
+	InstallArvanCloudWafPackage      *app.InstallArvanCloudWafPackage
+	GetArvanCloudWafDomainPackage    *app.GetArvanCloudWafDomainPackage
+	UpdateArvanCloudWafDomainPackage *app.UpdateArvanCloudWafDomainPackage
+	UninstallArvanCloudWafPackage    *app.UninstallArvanCloudWafPackage
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -483,6 +506,27 @@ func Tools(uc UseCases) []Tool {
 		attachArvanCloudAccountFirewallDomainsTool(uc.AttachArvanCloudAccountFirewallDomains),
 		detachArvanCloudAccountFirewallDomainsTool(uc.DetachArvanCloudAccountFirewallDomains),
 		reprioritizeArvanCloudAccountFirewallRulesTool(uc.ReprioritizeArvanCloudAccountFirewallRules),
+
+		listArvanCloudWafPresetsTool(uc.ListArvanCloudWafPresets),
+		getArvanCloudWafPackageTool(uc.GetArvanCloudWafPackage),
+		getArvanCloudWafPackageRulesTool(uc.GetArvanCloudWafPackageRules),
+		getArvanCloudWafSettingsTool(uc.GetArvanCloudWafSettings),
+		updateArvanCloudWafSettingsTool(uc.UpdateArvanCloudWafSettings),
+		reconfigureArvanCloudWafTool(uc.ReconfigureArvanCloudWaf),
+		reprioritizeArvanCloudWafRulesTool(uc.ReprioritizeArvanCloudWafRules),
+		reprioritizeArvanCloudWafPackagesTool(uc.ReprioritizeArvanCloudWafPackages),
+
+		listArvanCloudWafRulesTool(uc.ListArvanCloudWafRules),
+		createArvanCloudWafRuleTool(uc.CreateArvanCloudWafRule),
+		getArvanCloudWafRuleTool(uc.GetArvanCloudWafRule),
+		updateArvanCloudWafRuleTool(uc.UpdateArvanCloudWafRule),
+		deleteArvanCloudWafRuleTool(uc.DeleteArvanCloudWafRule),
+
+		listArvanCloudWafDomainPackagesTool(uc.ListArvanCloudWafDomainPackages),
+		installArvanCloudWafPackageTool(uc.InstallArvanCloudWafPackage),
+		getArvanCloudWafDomainPackageTool(uc.GetArvanCloudWafDomainPackage),
+		updateArvanCloudWafDomainPackageTool(uc.UpdateArvanCloudWafDomainPackage),
+		uninstallArvanCloudWafPackageTool(uc.UninstallArvanCloudWafPackage),
 	}
 }
 

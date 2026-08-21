@@ -674,6 +674,70 @@ type ArvanCloudProvider interface {
 	// position, same "exactly one of after/before" contract as
 	// ReprioritizeArvanCloudFirewallRules above.
 	ReprioritizeArvanCloudAccountFirewallRules(ctx context.Context, creds domain.ProviderCredentials, ruleID, afterRuleID, beforeRuleID string) error
+
+	// WAF (issue #66): ArvanCloud's managed rule-set engine (OWASP-style
+	// packages/presets a domain subscribes to), distinct from the CDN edge
+	// Firewall above — see domain/arvancloud_waf.go's package comment for
+	// the naming-collision warning. All fast operations.
+	//
+	// Global (account-independent reference data): read-only presets and
+	// package catalog, shared across every account.
+	ListArvanCloudWafPresets(ctx context.Context, creds domain.ProviderCredentials) (*domain.ArvanCloudWafPresetsAndPackages, error)
+	GetArvanCloudWafPackage(ctx context.Context, creds domain.ProviderCredentials, packageID string) (*domain.ArvanCloudWafPackage, error)
+	GetArvanCloudWafPackageRules(ctx context.Context, creds domain.ProviderCredentials, packageID string) ([]domain.ArvanCloudWafPackageRule, error)
+
+	// Per-domain WAF configuration, scoped to a domain by name.
+	GetArvanCloudWafSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudWafSettings, error)
+	UpdateArvanCloudWafSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string, settings domain.ArvanCloudWafSettings) (*domain.ArvanCloudWafSettings, error)
+	// ReconfigureArvanCloudWaf applies presetID to domainName in one call,
+	// removing every WAF package currently installed on the domain and
+	// replacing it with the preset's own set (per the spec's
+	// waf.reconfigure description). This is the tool for a request like
+	// "turn on OWASP-style protection" or "block SQL injection attempts" —
+	// see domain/arvancloud_waf.go's package comment.
+	ReconfigureArvanCloudWaf(ctx context.Context, creds domain.ProviderCredentials, domainName, presetID string) error
+	// ReprioritizeArvanCloudWafRules moves ruleID to a new position relative
+	// to another custom rule: exactly one of afterRuleID/beforeRuleID should
+	// be given, same contract as ReprioritizeArvanCloudFirewallRules above.
+	ReprioritizeArvanCloudWafRules(ctx context.Context, creds domain.ProviderCredentials, domainName, ruleID, afterRuleID, beforeRuleID string) error
+	// ReprioritizeArvanCloudWafPackages moves packageID to a new position
+	// relative to another installed package: exactly one of
+	// afterPackageID/beforePackageID should be given.
+	ReprioritizeArvanCloudWafPackages(ctx context.Context, creds domain.ProviderCredentials, domainName, packageID, afterPackageID, beforePackageID string) error
+
+	// Per-domain WAF custom rules (waf.rules.*), the thin exception layer on
+	// top of the managed packages — see domain/arvancloud_waf.go's package
+	// comment for how this differs from the CDN edge Firewall's rules.
+	//
+	// CreateArvanCloudWafRule is not assumed idempotent (see this
+	// interface's own doc comment above); a caller that must not duplicate a
+	// rule on retry checks first, e.g. via ListArvanCloudWafRules.
+	ListArvanCloudWafRules(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudWafRule, error)
+	CreateArvanCloudWafRule(ctx context.Context, creds domain.ProviderCredentials, domainName string, rule domain.ArvanCloudWafRule) (*domain.ArvanCloudWafRule, error)
+	GetArvanCloudWafRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudWafRule, error)
+	UpdateArvanCloudWafRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, rule domain.ArvanCloudWafRule) (*domain.ArvanCloudWafRule, error)
+	// DeleteArvanCloudWafRule removes a custom rule by id. As with
+	// DeleteDomain, an already-absent rule reports domain.ErrNotFound rather
+	// than succeeding silently.
+	DeleteArvanCloudWafRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+
+	// Per-domain WAF package subscriptions (waf.packages.*): which managed
+	// packages are installed on a domain's WAF, and their per-package
+	// configuration (disabled rules/rulesets, params).
+	ListArvanCloudWafDomainPackages(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudWafPackage, error)
+	// InstallArvanCloudWafPackage subscribes domainName to the global
+	// package identified by packageID (DomainWafPackageStore's only field).
+	// Not assumed idempotent, same caveat as CreateArvanCloudWafRule above.
+	InstallArvanCloudWafPackage(ctx context.Context, creds domain.ProviderCredentials, domainName, packageID string) (*domain.ArvanCloudWafPackage, error)
+	GetArvanCloudWafDomainPackage(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudWafPackage, error)
+	// UpdateArvanCloudWafDomainPackage changes an installed package's own
+	// configuration, e.g. toggling IsEnabled or its DisabledRules/
+	// DisabledRulesets/Params.
+	UpdateArvanCloudWafDomainPackage(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, pkg domain.ArvanCloudWafPackage) (*domain.ArvanCloudWafPackage, error)
+	// UninstallArvanCloudWafPackage removes an installed package from the
+	// domain by id. As with DeleteDomain, an already-absent package reports
+	// domain.ErrNotFound rather than succeeding silently.
+	UninstallArvanCloudWafPackage(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
