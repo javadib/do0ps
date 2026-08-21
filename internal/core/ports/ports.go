@@ -773,6 +773,39 @@ type ArvanCloudProvider interface {
 	// to another rule: exactly one of afterRuleID/beforeRuleID should be
 	// given, same contract as ReprioritizeArvanCloudFirewallRules above.
 	ReprioritizeArvanCloudDdosRules(ctx context.Context, creds domain.ProviderCredentials, domainName, ruleID, afterRuleID, beforeRuleID string) error
+
+	// Rate Limiting (issue #68): per-domain request-rate settings plus a rule
+	// engine that throttles or blocks traffic exceeding a configured rate —
+	// distinct from the CDN edge Firewall, the WAF managed rule-set engine
+	// and the dedicated DDoS challenge engine above, see
+	// domain/arvancloud_ratelimit.go's package comment. All fast operations.
+	//
+	// GetArvanCloudRateLimitSettings/UpdateArvanCloudRateLimitSettings manage
+	// the domain's automatic rate-based DDoS detection toggle and its
+	// globally exempted sources.
+	GetArvanCloudRateLimitSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudRateLimitSettings, error)
+	UpdateArvanCloudRateLimitSettings(ctx context.Context, creds domain.ProviderCredentials, domainName string, settings domain.ArvanCloudRateLimitSettings) (*domain.ArvanCloudRateLimitSettings, error)
+
+	// Per-domain rate-limit rules (rate-limiting.rules.*): throttle or block
+	// traffic matching a URL pattern once a source exceeds a configured
+	// request rate.
+	//
+	// CreateArvanCloudRateLimitRule is not assumed idempotent (see this
+	// interface's own doc comment above); a caller that must not duplicate a
+	// rule on retry checks first, e.g. via ListArvanCloudRateLimitRules.
+	ListArvanCloudRateLimitRules(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudRateLimitRule, error)
+	CreateArvanCloudRateLimitRule(ctx context.Context, creds domain.ProviderCredentials, domainName string, rule domain.ArvanCloudRateLimitRule) (*domain.ArvanCloudRateLimitRule, error)
+	GetArvanCloudRateLimitRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) (*domain.ArvanCloudRateLimitRule, error)
+	UpdateArvanCloudRateLimitRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, rule domain.ArvanCloudRateLimitRule) (*domain.ArvanCloudRateLimitRule, error)
+	// DeleteArvanCloudRateLimitRule removes a rule by id. As with
+	// DeleteArvanCloudDdosRule, an already-absent rule reports
+	// domain.ErrNotFound rather than succeeding silently.
+	DeleteArvanCloudRateLimitRule(ctx context.Context, creds domain.ProviderCredentials, domainName, id string) error
+	// ReprioritizeArvanCloudRateLimitRules moves ruleID to a new position
+	// relative to another rule: exactly one of afterRuleID/beforeRuleID
+	// should be given, same contract as ReprioritizeArvanCloudFirewallRules
+	// above.
+	ReprioritizeArvanCloudRateLimitRules(ctx context.Context, creds domain.ProviderCredentials, domainName, ruleID, afterRuleID, beforeRuleID string) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
