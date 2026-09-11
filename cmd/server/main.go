@@ -422,6 +422,18 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	deleteArvanCloudMetricExporter := app.NewDeleteArvanCloudMetricExporter(pool, arvanProvider)
 	setArvanCloudMetricExporterStatus := app.NewSetArvanCloudMetricExporterStatus(pool, arvanProvider)
 
+	// CDN Apps marketplace (issue #77).
+	listArvanCloudCdnApps := app.NewListArvanCloudCdnApps(pool, arvanProvider)
+	getArvanCloudCdnApp := app.NewGetArvanCloudCdnApp(pool, arvanProvider)
+	likeArvanCloudCdnApp := app.NewLikeArvanCloudCdnApp(pool, arvanProvider)
+	listArvanCloudCdnAppCategories := app.NewListArvanCloudCdnAppCategories(pool, arvanProvider)
+	getArvanCloudCdnAppCategory := app.NewGetArvanCloudCdnAppCategory(pool, arvanProvider)
+	listArvanCloudDomainCdnApps := app.NewListArvanCloudDomainCdnApps(pool, arvanProvider)
+	checkArvanCloudCdnAppInstalled := app.NewCheckArvanCloudCdnAppInstalled(pool, arvanProvider)
+	installArvanCloudCdnApp := app.NewInstallArvanCloudCdnApp(pool, arvanProvider)
+	uninstallArvanCloudCdnApp := app.NewUninstallArvanCloudCdnApp(pool, arvanProvider)
+	triggerArvanCloudCdnAppWebhook := app.NewTriggerArvanCloudCdnAppWebhook(pool, arvanProvider)
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Register(domain.JobTypeCreateSnapshot, createSnapshot.Handle)
 	pool.Register(domain.JobTypeRestoreVM, restoreVM.Handle)
@@ -690,6 +702,17 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		UpdateArvanCloudMetricExporter:    updateArvanCloudMetricExporter,
 		DeleteArvanCloudMetricExporter:    deleteArvanCloudMetricExporter,
 		SetArvanCloudMetricExporterStatus: setArvanCloudMetricExporterStatus,
+
+		ListArvanCloudCdnApps:          listArvanCloudCdnApps,
+		GetArvanCloudCdnApp:            getArvanCloudCdnApp,
+		LikeArvanCloudCdnApp:           likeArvanCloudCdnApp,
+		ListArvanCloudCdnAppCategories: listArvanCloudCdnAppCategories,
+		GetArvanCloudCdnAppCategory:    getArvanCloudCdnAppCategory,
+		ListArvanCloudDomainCdnApps:    listArvanCloudDomainCdnApps,
+		CheckArvanCloudCdnAppInstalled: checkArvanCloudCdnAppInstalled,
+		InstallArvanCloudCdnApp:        installArvanCloudCdnApp,
+		UninstallArvanCloudCdnApp:      uninstallArvanCloudCdnApp,
+		TriggerArvanCloudCdnAppWebhook: triggerArvanCloudCdnAppWebhook,
 	}), mcp.WithLogger(logger), mcp.WithInfo(mcp.Info{Name: "do0ps", Version: version}))
 	if err != nil {
 		return err

@@ -1345,6 +1345,38 @@ type ArvanCloudProvider interface {
 	// exporter (metric-exporters.update.status) and returns it as stored
 	// afterward.
 	SetArvanCloudMetricExporterStatus(ctx context.Context, creds domain.ProviderCredentials, domainName, id string, status bool) (*domain.ArvanCloudMetricExporter, error)
+
+	// CDN Apps marketplace (issue #77): installable edge add-ons.
+	// Catalog-level methods (apps.index, apps.show, apps.like, apps.category.*)
+	// are account-scoped; domain-scoped methods (domains.apps.*) take a domain
+	// by name. All fast operations.
+	//
+	// ListArvanCloudCdnApps returns every available marketplace app. Draft
+	// apps are included in the raw provider response; the caller (use case /
+	// tool layer) filters by Status when the caller doesn't want drafts.
+	ListArvanCloudCdnApps(ctx context.Context, creds domain.ProviderCredentials) ([]domain.ArvanCloudCdnApp, error)
+	GetArvanCloudCdnApp(ctx context.Context, creds domain.ProviderCredentials, appID string) (*domain.ArvanCloudCdnApp, error)
+	// LikeArvanCloudCdnApp expresses a like (like=true), dislike
+	// (like=false), or retracts a vote (like=nil). Returns the updated
+	// aggregate like_stats.
+	LikeArvanCloudCdnApp(ctx context.Context, creds domain.ProviderCredentials, appID string, like *bool) (*domain.ArvanCloudCdnAppLikeStats, error)
+	ListArvanCloudCdnAppCategories(ctx context.Context, creds domain.ProviderCredentials) ([]domain.ArvanCloudAppCategory, error)
+	GetArvanCloudCdnAppCategory(ctx context.Context, creds domain.ProviderCredentials, categoryID string) (*domain.ArvanCloudAppCategory, error)
+
+	// Domain-scoped app operations. All fast operations.
+	ListArvanCloudDomainCdnApps(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudCdnApp, error)
+	// CheckArvanCloudCdnAppInstalled reports whether appID is installed on
+	// domainName — returns (true, nil) when installed, (false, nil) when not,
+	// or an error.
+	CheckArvanCloudCdnAppInstalled(ctx context.Context, creds domain.ProviderCredentials, domainName, appID string) (bool, error)
+	// InstallArvanCloudCdnApp installs appID on domainName with the given
+	// options. The spec's POST body is AppOptions (an opaque object), which
+	// may be nil/empty when the app has no configurable options.
+	InstallArvanCloudCdnApp(ctx context.Context, creds domain.ProviderCredentials, domainName, appID string, options map[string]any) (*domain.ArvanCloudDomainCdnApp, error)
+	UninstallArvanCloudCdnApp(ctx context.Context, creds domain.ProviderCredentials, domainName, appID string) error
+	// TriggerArvanCloudCdnAppWebhook fires the app's webhook event on the
+	// domain. Options may be nil.
+	TriggerArvanCloudCdnAppWebhook(ctx context.Context, creds domain.ProviderCredentials, domainName, appID string, event domain.ArvanCloudTriggerWebhookEvent, options map[string]any) error
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic

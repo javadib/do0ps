@@ -436,6 +436,19 @@ type UseCases struct {
 	UpdateArvanCloudMetricExporter    *app.UpdateArvanCloudMetricExporter
 	DeleteArvanCloudMetricExporter    *app.DeleteArvanCloudMetricExporter
 	SetArvanCloudMetricExporterStatus *app.SetArvanCloudMetricExporterStatus
+
+	// ArvanCloud CDN Apps marketplace (issue #77). All fast operations.
+	ListArvanCloudCdnApps          *app.ListArvanCloudCdnApps
+	GetArvanCloudCdnApp            *app.GetArvanCloudCdnApp
+	LikeArvanCloudCdnApp           *app.LikeArvanCloudCdnApp
+	ListArvanCloudCdnAppCategories *app.ListArvanCloudCdnAppCategories
+	GetArvanCloudCdnAppCategory    *app.GetArvanCloudCdnAppCategory
+
+	ListArvanCloudDomainCdnApps      *app.ListArvanCloudDomainCdnApps
+	CheckArvanCloudCdnAppInstalled   *app.CheckArvanCloudCdnAppInstalled
+	InstallArvanCloudCdnApp          *app.InstallArvanCloudCdnApp
+	UninstallArvanCloudCdnApp        *app.UninstallArvanCloudCdnApp
+	TriggerArvanCloudCdnAppWebhook   *app.TriggerArvanCloudCdnAppWebhook
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -854,6 +867,17 @@ func Tools(uc UseCases) []Tool {
 		updateArvanCloudMetricExporterTool(uc.UpdateArvanCloudMetricExporter),
 		deleteArvanCloudMetricExporterTool(uc.DeleteArvanCloudMetricExporter),
 		setArvanCloudMetricExporterStatusTool(uc.SetArvanCloudMetricExporterStatus),
+
+		listArvanCloudCdnAppsTool(uc.ListArvanCloudCdnApps),
+		getArvanCloudCdnAppTool(uc.GetArvanCloudCdnApp),
+		likeArvanCloudCdnAppTool(uc.LikeArvanCloudCdnApp),
+		listArvanCloudCdnAppCategoriesTool(uc.ListArvanCloudCdnAppCategories),
+		getArvanCloudCdnAppCategoryTool(uc.GetArvanCloudCdnAppCategory),
+		listArvanCloudDomainCdnAppsTool(uc.ListArvanCloudDomainCdnApps),
+		checkArvanCloudCdnAppInstalledTool(uc.CheckArvanCloudCdnAppInstalled),
+		installArvanCloudCdnAppTool(uc.InstallArvanCloudCdnApp),
+		uninstallArvanCloudCdnAppTool(uc.UninstallArvanCloudCdnApp),
+		triggerArvanCloudCdnAppWebhookTool(uc.TriggerArvanCloudCdnAppWebhook),
 	}
 }
 
