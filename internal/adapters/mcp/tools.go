@@ -34,6 +34,7 @@ type UseCases struct {
 	GetCDNZone           *app.GetCDNZone
 	DeleteCDNZone        *app.DeleteCDNZone
 	ListCDNZonePlans     *app.ListCDNZonePlans
+	UpdateCDNZonePlan    *app.UpdateCDNZonePlan
 	GetNameserverRecords *app.GetNameserverRecords
 	ListDNSRecords       *app.ListDNSRecords
 	CreateDNSRecord      *app.CreateDNSRecord
@@ -227,6 +228,7 @@ func Tools(uc UseCases) []Tool {
 		getCDNZoneTool(uc.GetCDNZone),
 		deleteCDNZoneTool(uc.DeleteCDNZone),
 		listCDNZonePlansTool(uc.ListCDNZonePlans),
+		updateCDNZonePlanTool(uc.UpdateCDNZonePlan),
 		getNameserverRecordsTool(uc.GetNameserverRecords),
 		listDNSRecordsTool(uc.ListDNSRecords),
 		createDNSRecordTool(uc.CreateDNSRecord),

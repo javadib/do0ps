@@ -48,6 +48,15 @@ func (p *fakeProvider) ListCDNZonePlans(context.Context, domain.ProviderCredenti
 	return p.cdnZonePlans, nil
 }
 
+func (p *fakeProvider) UpdateCDNZonePlan(_ context.Context, _ domain.ProviderCredentials, zoneUUID string, spec domain.CDNZonePlanUpdateSpec) (*domain.CDNZone, error) {
+	if p.updatePlanErr != nil {
+		return nil, p.updatePlanErr
+	}
+	p.updatePlanZoneUUID = zoneUUID
+	p.updatePlanSpec = spec
+	return &domain.CDNZone{UUID: zoneUUID, Plan: spec.Plan, BillingCycle: spec.BillingCycle, Status: "active"}, nil
+}
+
 func (p *fakeProvider) GetNameserverRecords(context.Context, domain.ProviderCredentials, string) (*domain.NameserverRecords, error) {
 	return p.nsRecords, nil
 }
@@ -170,6 +179,89 @@ func TestDeleteCDNZoneTreatsAlreadyGoneAsSuccess(t *testing.T) {
 	err := uc.Execute(context.Background(), app.DeleteCDNZoneInput{Credentials: domain.ProviderCredentials{APIKey: "k"}, ZoneUUID: "z1"})
 	if err != nil {
 		t.Fatalf("Execute: %v, want nil for an already-deleted zone", err)
+	}
+}
+
+func TestUpdateCDNZonePlanSuccess(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewUpdateCDNZonePlan(&inlineQueue{}, provider)
+
+	zone, err := uc.Execute(context.Background(), app.UpdateCDNZonePlanInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ZoneUUID:    "z1",
+		Spec:        domain.CDNZonePlanUpdateSpec{Plan: "premium", BillingCycle: "annually"},
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if zone.Plan != "premium" {
+		t.Errorf("Plan = %q, want premium", zone.Plan)
+	}
+	if zone.BillingCycle != "annually" {
+		t.Errorf("BillingCycle = %q, want annually", zone.BillingCycle)
+	}
+	if provider.updatePlanZoneUUID != "z1" {
+		t.Errorf("updatePlanZoneUUID = %q, want z1", provider.updatePlanZoneUUID)
+	}
+}
+
+func TestUpdateCDNZonePlanRejectsInvalidPlan(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewUpdateCDNZonePlan(&inlineQueue{}, provider)
+
+	_, err := uc.Execute(context.Background(), app.UpdateCDNZonePlanInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ZoneUUID:    "z1",
+		Spec:        domain.CDNZonePlanUpdateSpec{Plan: "deluxe", BillingCycle: "monthly"},
+	})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+	if provider.updatePlanZoneUUID != "" {
+		t.Error("provider was called with an invalid plan")
+	}
+}
+
+func TestUpdateCDNZonePlanRejectsInvalidBillingCycle(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewUpdateCDNZonePlan(&inlineQueue{}, provider)
+
+	_, err := uc.Execute(context.Background(), app.UpdateCDNZonePlanInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		ZoneUUID:    "z1",
+		Spec:        domain.CDNZonePlanUpdateSpec{Plan: "standard", BillingCycle: "bogus"},
+	})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+	if provider.updatePlanZoneUUID != "" {
+		t.Error("provider was called with an invalid billing cycle")
+	}
+}
+
+func TestUpdateCDNZonePlanRejectsEmptyZoneUUID(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewUpdateCDNZonePlan(&inlineQueue{}, provider)
+
+	_, err := uc.Execute(context.Background(), app.UpdateCDNZonePlanInput{
+		Credentials: domain.ProviderCredentials{APIKey: "k"},
+		Spec:        domain.CDNZonePlanUpdateSpec{Plan: "standard", BillingCycle: "monthly"},
+	})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
+	}
+}
+
+func TestUpdateCDNZonePlanRejectsMissingCredentials(t *testing.T) {
+	provider := &fakeProvider{}
+	uc := app.NewUpdateCDNZonePlan(&inlineQueue{}, provider)
+
+	_, err := uc.Execute(context.Background(), app.UpdateCDNZonePlanInput{
+		ZoneUUID: "z1",
+		Spec:     domain.CDNZonePlanUpdateSpec{Plan: "standard", BillingCycle: "monthly"},
+	})
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Fatalf("error = %v, want domain.ErrInvalidInput", err)
 	}
 }
 

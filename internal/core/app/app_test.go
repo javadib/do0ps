@@ -108,8 +108,11 @@ type fakeProvider struct {
 	createZoneErr   error
 	deletedZoneUUID string
 	deleteZoneErr   error
-	cdnZonePlans    []domain.CDNZonePlanPricing
-	nsRecords       *domain.NameserverRecords
+	cdnZonePlans         []domain.CDNZonePlanPricing
+	updatePlanZoneUUID   string
+	updatePlanSpec       domain.CDNZonePlanUpdateSpec
+	updatePlanErr        error
+	nsRecords            *domain.NameserverRecords
 
 	dnsRecords           []domain.DNSRecord
 	createdRecord        *domain.DNSRecord

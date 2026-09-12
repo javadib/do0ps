@@ -228,6 +228,60 @@ func listCDNZonePlansTool(uc *app.ListCDNZonePlans) Tool {
 	}
 }
 
+func updateCDNZonePlanTool(uc *app.UpdateCDNZonePlan) Tool {
+	props := credentialProperties()
+	props["zone_uuid"] = zoneUUIDProperty()
+	props["plan"] = map[string]any{
+		"type":        "string",
+		"enum":        []string{"free", "standard", "premium", "professional"},
+		"description": "New CDN subscription plan. Use list_cdn_plans to see pricing for each. Changing the plan may change the recurring charge.",
+	}
+	props["billing_cycle"] = map[string]any{
+		"type":        "string",
+		"enum":        []string{"free", "monthly", "quarterly", "semiannually", "annually"},
+		"description": "New billing cycle for the plan, e.g. \"monthly\". Use \"free\" only with the free plan. Changing the billing cycle may change the recurring charge.",
+	}
+
+	return Tool{
+		Name: "update_cdn_zone_plan",
+		Description: "Change a CDN zone's subscription plan and billing cycle at Parspack. This is a billing-sensitive operation: " +
+			"changing the plan may increase or decrease the recurring charge. Before calling this tool, always confirm " +
+			"the new plan and billing cycle with the user and warn them about any price change. " +
+			"Use list_cdn_plans to show current pricing. This is a fast operation: the updated zone is returned within this call.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"api_key", "zone_uuid", "plan", "billing_cycle"},
+		},
+		Handler: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var args updateCDNZonePlanArgs
+			if err := decodeArgs(raw, &args); err != nil {
+				return nil, err
+			}
+
+			zone, err := uc.Execute(ctx, app.UpdateCDNZonePlanInput{
+				Credentials: args.domain(),
+				ZoneUUID:    args.ZoneUUID,
+				Spec: domain.CDNZonePlanUpdateSpec{
+					Plan:         args.Plan,
+					BillingCycle: args.BillingCycle,
+				},
+			})
+			if err != nil {
+				return nil, err
+			}
+			return cdnZoneToMap(*zone), nil
+		},
+	}
+}
+
+type updateCDNZonePlanArgs struct {
+	credentialArgs
+	ZoneUUID     string `json:"zone_uuid"`
+	Plan         string `json:"plan"`
+	BillingCycle string `json:"billing_cycle"`
+}
+
 func getNameserverRecordsTool(uc *app.GetNameserverRecords) Tool {
 	props := credentialProperties()
 	props["zone_uuid"] = zoneUUIDProperty()

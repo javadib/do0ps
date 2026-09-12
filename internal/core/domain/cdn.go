@@ -59,6 +59,14 @@ func contains(values []string, s string) bool {
 	return false
 }
 
+// CDNZonePlanUpdateSpec is the normalized request to change a zone's
+// subscription plan and billing cycle via the undocumented PUT
+// /external/api/v1/zones/{zone_uuid} endpoint. Both fields are required.
+type CDNZonePlanUpdateSpec struct {
+	Plan         string
+	BillingCycle string
+}
+
 // CDNZonePlanPricing is one entry of list_cdn_plans, confirmed against
 // GET /external/api/v1/orders/packages.
 type CDNZonePlanPricing struct {

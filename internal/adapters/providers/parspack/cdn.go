@@ -103,6 +103,31 @@ func (c *Client) DeleteCDNZone(ctx context.Context, creds domain.ProviderCredent
 	return nil
 }
 
+// zonePlanUpdateRequest is the body of PUT /external/api/v1/zones/{zone_uuid}
+// for changing a zone's subscription plan. This endpoint is undocumented in
+// the committed OpenAPI spec but confirmed against the Parspack CDN dashboard.
+type zonePlanUpdateRequest struct {
+	Plan         string `json:"plan"`
+	BillingCycle string `json:"billing_cycle"`
+}
+
+// UpdateCDNZonePlan changes a zone's plan and billing cycle via the
+// undocumented PUT /zones/{zone_uuid} endpoint. The response returns the
+// updated zone in the same shape as GET /zones/{zone_uuid}.
+func (c *Client) UpdateCDNZonePlan(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, spec domain.CDNZonePlanUpdateSpec) (*domain.CDNZone, error) {
+	reqBody := zonePlanUpdateRequest{
+		Plan:         spec.Plan,
+		BillingCycle: spec.BillingCycle,
+	}
+
+	var detail zoneDetailWire
+	if err := c.doCDNJSON(ctx, creds, "PUT", zonesBasePath+"/"+zoneUUID, reqBody, &detail); err != nil {
+		return nil, fmt.Errorf("update plan for CDN zone %s: %w", zoneUUID, err)
+	}
+	zone := toDomainZoneFromDetail(zoneUUID, detail)
+	return &zone, nil
+}
+
 // packagePeriodWire and packageWire mirror GET /orders/packages.
 type packagePeriodWire struct {
 	Title string `json:"title"`

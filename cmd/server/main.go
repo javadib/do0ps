@@ -188,6 +188,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	getCDNZone := app.NewGetCDNZone(pool, provider)
 	deleteCDNZone := app.NewDeleteCDNZone(pool, provider)
 	listCDNZonePlans := app.NewListCDNZonePlans(pool, provider)
+	updateCDNZonePlan := app.NewUpdateCDNZonePlan(pool, provider)
 	getNameserverRecords := app.NewGetNameserverRecords(pool, provider)
 	listDNSRecords := app.NewListDNSRecords(pool, provider)
 	createDNSRecord := app.NewCreateDNSRecord(pool, provider)
@@ -364,9 +365,9 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		CreateCDNZone:        createCDNZone,
 		ListCDNZones:         listCDNZones,
 		GetCDNZone:           getCDNZone,
-		DeleteCDNZone:        deleteCDNZone,
-		ListCDNZonePlans:     listCDNZonePlans,
-		GetNameserverRecords: getNameserverRecords,
+		DeleteCDNZone:        deleteCDNZone,			ListCDNZonePlans:     listCDNZonePlans,
+			UpdateCDNZonePlan:    updateCDNZonePlan,
+			GetNameserverRecords: getNameserverRecords,
 		ListDNSRecords:       listDNSRecords,
 		CreateDNSRecord:      createDNSRecord,
 		UpdateDNSRecord:      updateDNSRecord,

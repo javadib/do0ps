@@ -244,6 +244,61 @@ func (uc *ListCDNZonePlans) Execute(ctx context.Context, in ListCDNZonePlansInpu
 	return plans, nil
 }
 
+// UpdateCDNZonePlanInput identifies the zone to update and carries the new
+// plan and billing cycle.
+type UpdateCDNZonePlanInput struct {
+	Credentials domain.ProviderCredentials
+	ZoneUUID    string
+	Spec        domain.CDNZonePlanUpdateSpec
+}
+
+// UpdateCDNZonePlan is a fast operation: it changes a zone's CDN subscription
+// plan and billing cycle in a single round trip. This is a billing-sensitive
+// operation: the calling tool must make it clear to the end user that changing
+// the plan may change the recurring charge.
+type UpdateCDNZonePlan struct {
+	queue    ports.Queue
+	provider ports.ParspackProvider
+}
+
+// NewUpdateCDNZonePlan builds the use case from its ports.
+func NewUpdateCDNZonePlan(queue ports.Queue, provider ports.ParspackProvider) *UpdateCDNZonePlan {
+	return &UpdateCDNZonePlan{queue: queue, provider: provider}
+}
+
+// Execute validates the request and updates the zone's plan.
+func (uc *UpdateCDNZonePlan) Execute(ctx context.Context, in UpdateCDNZonePlanInput) (*domain.CDNZone, error) {
+	if err := in.Credentials.Validate(); err != nil {
+		return nil, err
+	}
+	if in.ZoneUUID == "" {
+		return nil, fmt.Errorf("zone_uuid is required: %w", domain.ErrInvalidInput)
+	}
+	if !domain.ValidCDNZonePlan(in.Spec.Plan) {
+		return nil, fmt.Errorf("plan %q is not one of the plans Parspack offers: %w", in.Spec.Plan, domain.ErrInvalidInput)
+	}
+	if !domain.ValidCDNBillingCycle(in.Spec.BillingCycle) {
+		return nil, fmt.Errorf("billing_cycle %q is not one of the cycles Parspack offers: %w", in.Spec.BillingCycle, domain.ErrInvalidInput)
+	}
+
+	raw, err := uc.queue.Dispatch(ctx, func(ctx context.Context) (json.RawMessage, error) {
+		zone, err := uc.provider.UpdateCDNZonePlan(ctx, in.Credentials, in.ZoneUUID, in.Spec)
+		if err != nil {
+			return nil, fmt.Errorf("updating plan for CDN zone %s: %w", in.ZoneUUID, err)
+		}
+		return json.Marshal(zone)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var zone domain.CDNZone
+	if err := json.Unmarshal(raw, &zone); err != nil {
+		return nil, fmt.Errorf("decoding updated CDN zone: %w", err)
+	}
+	return &zone, nil
+}
+
 // GetNameserverRecordsInput identifies the zone whose nameservers to look up.
 type GetNameserverRecordsInput struct {
 	Credentials domain.ProviderCredentials

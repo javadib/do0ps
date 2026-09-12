@@ -168,6 +168,13 @@ type ParspackProvider interface {
 	ListCDNZonePlans(ctx context.Context, creds domain.ProviderCredentials) ([]domain.CDNZonePlanPricing, error)
 	GetNameserverRecords(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) (*domain.NameserverRecords, error)
 
+	// UpdateCDNZonePlan changes a zone's CDN subscription plan and billing
+	// cycle. This is a billing-sensitive operation: upgrading or downgrading
+	// the plan can change the recurring charge. The provider's undocumented
+	// PUT /zones/{zone_uuid} endpoint accepts plan and billing_cycle as the
+	// request body. The updated zone is returned synchronously.
+	UpdateCDNZonePlan(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string, spec domain.CDNZonePlanUpdateSpec) (*domain.CDNZone, error)
+
 	// DNS records, scoped to a CDN zone — Parspack has no standalone DNS
 	// product (AGENTS.md 4.1). All fast operations.
 	ListDNSRecords(ctx context.Context, creds domain.ProviderCredentials, zoneUUID string) ([]domain.DNSRecord, error)
