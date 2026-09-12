@@ -24,3 +24,4 @@
 
 # Build output: cross-compiled binaries and packed MCP bundles
 /dist/
+/.freebuff/project-id
