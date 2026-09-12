@@ -449,6 +449,11 @@ type UseCases struct {
 	InstallArvanCloudCdnApp          *app.InstallArvanCloudCdnApp
 	UninstallArvanCloudCdnApp        *app.UninstallArvanCloudCdnApp
 	TriggerArvanCloudCdnAppWebhook   *app.TriggerArvanCloudCdnAppWebhook
+
+	// ArvanCloud Troubleshoot (issue #79). All fast operations.
+	ListArvanCloudTroubleshoots      *app.ListArvanCloudTroubleshoots
+	RunArvanCloudTroubleshoot        *app.RunArvanCloudTroubleshoot
+	GetLatestArvanCloudTroubleshoot  *app.GetLatestArvanCloudTroubleshoot
 }
 
 // credentialProperties are repeated on every provider-touching tool: the
@@ -878,6 +883,11 @@ func Tools(uc UseCases) []Tool {
 		installArvanCloudCdnAppTool(uc.InstallArvanCloudCdnApp),
 		uninstallArvanCloudCdnAppTool(uc.UninstallArvanCloudCdnApp),
 		triggerArvanCloudCdnAppWebhookTool(uc.TriggerArvanCloudCdnAppWebhook),
+
+		// ArvanCloud Troubleshoot (issue #79).
+		listArvanCloudTroubleshootsTool(uc.ListArvanCloudTroubleshoots),
+		runArvanCloudTroubleshootTool(uc.RunArvanCloudTroubleshoot),
+		getLatestArvanCloudTroubleshootTool(uc.GetLatestArvanCloudTroubleshoot),
 	}
 }
 

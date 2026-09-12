@@ -434,6 +434,11 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 	uninstallArvanCloudCdnApp := app.NewUninstallArvanCloudCdnApp(pool, arvanProvider)
 	triggerArvanCloudCdnAppWebhook := app.NewTriggerArvanCloudCdnAppWebhook(pool, arvanProvider)
 
+	// ArvanCloud Troubleshoot (issue #79).
+	listArvanCloudTroubleshoots := app.NewListArvanCloudTroubleshoots(pool, arvanProvider)
+	runArvanCloudTroubleshoot := app.NewRunArvanCloudTroubleshoot(pool, arvanProvider)
+	getLatestArvanCloudTroubleshoot := app.NewGetLatestArvanCloudTroubleshoot(pool, arvanProvider)
+
 	pool.Register(domain.JobTypeProvisionServer, provisionServer.Handle)
 	pool.Register(domain.JobTypeCreateSnapshot, createSnapshot.Handle)
 	pool.Register(domain.JobTypeRestoreVM, restoreVM.Handle)
@@ -713,6 +718,10 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger, onListen f
 		InstallArvanCloudCdnApp:        installArvanCloudCdnApp,
 		UninstallArvanCloudCdnApp:      uninstallArvanCloudCdnApp,
 		TriggerArvanCloudCdnAppWebhook: triggerArvanCloudCdnAppWebhook,
+
+		ListArvanCloudTroubleshoots:     listArvanCloudTroubleshoots,
+		RunArvanCloudTroubleshoot:       runArvanCloudTroubleshoot,
+		GetLatestArvanCloudTroubleshoot: getLatestArvanCloudTroubleshoot,
 	}), mcp.WithLogger(logger), mcp.WithInfo(mcp.Info{Name: "do0ps", Version: version}))
 	if err != nil {
 		return err

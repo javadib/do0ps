@@ -1377,6 +1377,18 @@ type ArvanCloudProvider interface {
 	// TriggerArvanCloudCdnAppWebhook fires the app's webhook event on the
 	// domain. Options may be nil.
 	TriggerArvanCloudCdnAppWebhook(ctx context.Context, creds domain.ProviderCredentials, domainName, appID string, event domain.ArvanCloudTriggerWebhookEvent, options map[string]any) error
+
+	// Troubleshoot (issue #79): ArvanCloud's built-in domain diagnostics
+	// tool — runs a set of predefined checks (DNS, HTTPS, certificate,
+	// expiration, ...) and reports which passed and which found problems.
+	// All fast operations: POST /domains/{domain}/troubleshoots returns the
+	// completed result synchronously (HTTP 201 with the full Troubleshoot
+	// object including the details array).
+	ListArvanCloudTroubleshoots(ctx context.Context, creds domain.ProviderCredentials, domainName string) ([]domain.ArvanCloudTroubleshoot, error)
+	// RunArvanCloudTroubleshoot starts a new troubleshoot run and returns the
+	// completed result synchronously — no polling required.
+	RunArvanCloudTroubleshoot(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudTroubleshoot, error)
+	GetLatestArvanCloudTroubleshoot(ctx context.Context, creds domain.ProviderCredentials, domainName string) (*domain.ArvanCloudTroubleshoot, error)
 }
 
 // Clock reports the current time. Injected so use cases stay deterministic
